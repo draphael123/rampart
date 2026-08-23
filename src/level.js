@@ -61,27 +61,27 @@ export function buildLevel(world) {
   sign(9, 0, -66, 'WASD to move\nmouse to look', Math.PI);
   L.tutorial.push({ z: -65, key: 'jump', text: 'SPACE — jump' });
   block(0, 0, -61, 26, 1.2, 4, C.stone); sign(-9, 1.2, -60.6, 'SPACE to jump', Math.PI);
-  L.tutorial.push({ z: -60.2, key: 'djump', text: 'SPACE again in the air — double jump' });
-  block(0, 0, -57, 26, 3.8, 4, C.stoneL); sign(9, 3.8, -56.6, 'SPACE again\nin the air', Math.PI);
+  L.tutorial.push({ z: -60.2, key: 'djump', text: 'Hold SPACE longer — a higher jump' });
+  block(0, 0, -57, 26, 2.8, 4, C.stoneL); sign(9, 2.8, -56.6, 'hold SPACE for\na higher jump', Math.PI);
   L.tutorial.push({ z: -56.2, key: 'dash', text: 'SHIFT — dash. Works in the air, once per jump' });
-  block(0, 0, -52.75, 26, 2.4, 4.5, C.stoneD);                       // pit (hop back out)
-  block(0, 0, -48.5, 26, 3.8, 4, C.stone); sign(-9, 3.8, -48.1, 'SHIFT in the air\nto dash', Math.PI);
+  block(0, 0, -52.75, 26, 1.4, 4.5, C.stoneD);                       // pit (hop back out)
+  block(0, 0, -48.5, 26, 2.8, 4, C.stone); sign(-9, 2.8, -48.1, 'SHIFT in the air\nto dash', Math.PI);
   // slider over a pit
   L.tutorial.push({ z: -47.8, key: 'slider', text: 'Ride the moving platform — you move with it' });
-  block(0, 0, -42, 26, 2.4, 9, C.stoneD);                            // pit floor under the slider
-  const tsl = world.add(new Box(-6, 3.5, -42, 2.8, 0.3, 2.8, { moving: true, tag: 'slider' }));
-  tsl.path = { a: { x: -7, y: 3.5, z: -42 }, b: { x: 7, y: 3.5, z: -42 }, period: 7, phase: 0 }; L.platforms.push(tsl);
-  block(0, 0, -36, 26, 3.8, 3, C.stone); sign(9, 3.8, -35.6, 'Ride the platform', Math.PI);
-  // narrow beam: teaches the landing ring
-  L.tutorial.push({ z: -35.4, key: 'beam', text: 'Narrow beam — the ring beneath you shows where you will land' });
-  block(0, 0, -30.5, 26, 2.4, 8, C.stoneD);                          // pit under the beam
-  block(0, 3.5, -30.5, 0.9, 0.3, 8, C.wood); deco(0, 2.4, -30.5, 0.3, 1.1, 0.3, C.woodD);
-  block(0, 0, -25.5, 26, 3.8, 2, C.stone);
+  block(0, 0, -42, 26, 1.4, 9, C.stoneD);                            // pit floor under the slider
+  const tsl = world.add(new Box(-6, 2.5, -42, 2.8, 0.3, 2.8, { moving: true, tag: 'slider' }));
+  tsl.path = { a: { x: -7, y: 2.5, z: -42 }, b: { x: 7, y: 2.5, z: -42 }, period: 7, phase: 0 }; L.platforms.push(tsl);
+  block(0, 0, -36, 26, 2.8, 3, C.stone); sign(9, 2.8, -35.6, 'Ride the platform', Math.PI);
+  // LONG JUMP gate: a 7m gap over a shallow pit
+  L.tutorial.push({ z: -35.4, key: 'beam', text: 'Hold F to charge — press SPACE during the charge to LONG JUMP' });
+  block(0, 0, -30.5, 26, 1.2, 8, C.stoneD);
+  sign(-9, 2.8, -33.8, 'hold F: charge\nSPACE mid-charge:\nLONG JUMP', Math.PI);
+  block(0, 0, -25.5, 26, 2.8, 2, C.stone);
   // drop into the yard proper (z -24.5 .. -16); a barricade bars the way
-  L.tutorial.push({ z: -25.2, key: 'bash', text: 'F — shield bash smashes barricades (or hold Q for a heavy)' });
+  L.tutorial.push({ z: -25.2, key: 'bash', text: 'The CHARGE also smashes barricades — bowl through it' });
   block(-8.5, 0, -21, 9, 8, 1.2, C.stoneD); block(8.5, 0, -21, 9, 8, 1.2, C.stoneD); 
   barricade(0, 0, -21, 8, 1.2, 8);
-  sign(-8.5, 0, -22.8, 'F — shield bash\nbreaks it', Math.PI);
+  sign(-8.5, 0, -22.8, 'CHARGE (F)\nbreaks it', Math.PI);
   // pells
   L.spawns.push({ kind: 'pell', x: -5, y: 0.1, z: -18.6 }, { kind: 'pellshield', x: 5, y: 0.1, z: -18.6, facing: Math.PI });
   sign(-5, 0, -17, 'LEFT CLICK\nthree-hit chain', Math.PI); sign(5, 0, -17, 'hold Q — charged heavy\nbreaks a shield', Math.PI);
@@ -151,7 +151,7 @@ export function buildLevel(world) {
   // banners on the south wall
   for (const bx of [-10, 10]) { deco(bx, 3, -13.9, 1.6, 4, 0.1, C.banner); deco(bx, 7, -13.9, 2, 0.3, 0.2, C.gold); }
   L.checkpoints.push({ x: 0, y: 0.1, z: -10, name: 'Courtyard' });
-  L.spawns.push({ kind: 'grunt', x: -4, y: 0.1, z: 10 }, { kind: 'grunt', x: 8, y: 0.1, z: 18 });
+  L.spawns.push({ kind: 'grunt', x: 2, y: 0.1, z: 14 });
   L.spawns.push({ kind: 'crossbow', x: 12, y: 2.2, z: 6, perch: true });
   L.torches.push({ x: -29.5, y: 4, z: 0 }, { x: 29.5, y: 4, z: 0 }, { x: -6, y: 5.5, z: 29.6 }, { x: 6, y: 5.5, z: 29.6 });
 
@@ -184,23 +184,19 @@ export function buildLevel(world) {
   brazier(29, 12, 30); brazier(-29, 12, 30);
   L.spawns.push({ kind: 'defender', x: -24.5, y: 8.1, z: 33, facing: 0 }, { kind: 'defender', x: 2, y: 8.1, z: 33, facing: 0 }, { kind: 'defender', x: 24, y: 8.1, z: 33, facing: 0 }, { kind: 'defender', x: 30, y: 12.1, z: 35, facing: 0 });
   // enemies on the walk
-  L.spawns.push({ kind: 'shield', x: 18, y: 8.1, z: 32 }, { kind: 'grunt', x: -18, y: 8.1, z: 32 });
+  L.spawns.push({ kind: 'shield', x: 16, y: 8.1, z: 32 });
   L.spawns.push({ kind: 'crossbow', x: 30, y: 12.1, z: 32, perch: true });
   // ladders on the outer face (north side, z=34): swarm climbs from y=0 outside to wall top
-  for (const lx of [-20, 3, 20]) {
-    L.ladders.push({ x: lx, z: 34.6, bottom: 0, top: 8, facing: Math.PI, up: true, respawn: 0, spawnEvery: 9, t: 3 + Math.random() * 2 });
+  for (const lx of [-16, 20]) {
+    L.ladders.push({ x: lx, z: 34.6, bottom: 0, top: 8, facing: Math.PI, up: true, respawn: 0, spawnEvery: 14, t: 4 + Math.random() * 2 });
   }
   // outside ground (so falling off the far side is death but looks like a field)
-  // THE CHASM: everything outside the walls is a drop. Field far below, red mist above it.
-  block(0, -16, 40, 240, 4, 200, '#2a1418', { tag: 'field' });
-  block(-80, -16, -10, 60, 4, 120, '#2a1418', { tag: 'field' });
-  L.mistY = -5;
+  // THE CASTLE FLOATS IN THE SKY (cloud decks live in main.js). Rock underside so it reads as a crag:
+  deco(0, -9, 9, 52, 7, 40, '#4a4038'); deco(0, -14, 8, 38, 5, 28, '#3e362e'); deco(0, -17.5, 9, 22, 4, 16, '#332c26');
+  deco(0, -9, -32, 20, 6, 24, '#4a4038'); deco(0, -13.5, -32, 12, 4, 14, '#3e362e');
+  deco(0, -7, 33, 40, 5, 8, '#4a4038'); deco(-40, -8, 22, 8, 6, 8, '#3e362e');
   // siege camp props outside
-  // broken stubs of the outer works, poking out of the mist
-  for (let i = -24; i <= 24; i += 12) { deco(i, -9, 44, 3, 6 + (i % 24 === 0 ? 3 : 0), 3, C.stoneD); }
-  for (let i = 0; i < 22; i++) { const rx = -60 + rnd() * 120, rz = 38 + rnd() * 40; deco(rx, -8, rz, 1.5 + rnd() * 3, 2 + rnd() * 3.5, 1.5 + rnd() * 3, rnd() < 0.5 ? '#3a2a30' : '#2e2026'); }
-  for (let i = 0; i < 8; i++) { const rx = -58 + rnd() * 20, rz = -10 + rnd() * 40; deco(rx, -8, rz, 1.5 + rnd() * 3, 2 + rnd() * 4, 1.5 + rnd() * 3, '#332630'); }
-  deco(-10, -8, 52, 14, 5, 1.2, '#3a3034'); deco(18, -8, 56, 1.2, 6, 10, '#3a3034'); deco(-38, -8, 48, 10, 4, 1.2, '#3a3034');
+// (outer works removed: open sky)
   L.checkpoints.push({ x: 26, y: 8.1, z: 28.5, name: 'Wall' });
   // the wall's west end is closed off by the tower; the only way on is down the scaffold
 
@@ -217,11 +213,10 @@ export function buildLevel(world) {
   // pillar climb north along x≈-16..-22
   block(-16, 0, 13, 2.2, 7.0, 2.2, C.stoneL); block(-18.5, 0, 18, 2.2, 8.2, 2.2, C.stone); block(-21, 0, 22, 2.4, 9.6, 2.4, C.stoneL);
   for (const [px, py, pz] of [[-16, 7.0, 13], [-18.5, 8.2, 18], [-21, 9.6, 22]]) { deco(px, py - 1.2, pz, 2.6, 0.4, 2.6, C.stoneD); deco(px, py - 2.4, pz, 2.4, 0.3, 2.4, C.stoneD); for (let yy = 1; yy < py - 3; yy += 2.2) deco(px, yy, pz, 2.3, 0.12, 2.3, '#4e4a44'); }
-  L.tutorial.push({ z: 19.5, key: 'hoist', text: 'Double jump onto the hoist' });
-  L.spawns.push({ kind: 'crossbow', x: -12, y: 2.25, z: 20, perch: true }); block(-12, 0, 20, 2, 2.2, 2, C.stoneD);
+  L.tutorial.push({ z: 19.5, key: 'hoist', text: 'Jump onto the hoist when it is low' });
   L.checkpoints.push({ x: -15.5, y: 5.6, z: 9, name: 'Scaffold' });
-  const hoist = world.add(new Box(-24.5, 12, 27, 4, 0.4, 4, { moving: true, tag: 'hoist' }));
-  hoist.path = { a: { x: -24.5, y: 12, z: 27 }, b: { x: -24.5, y: 15.6, z: 27 }, period: 8, phase: 0 };
+  const hoist = world.add(new Box(-24.5, 10.6, 27, 4, 0.4, 4, { moving: true, tag: 'hoist' }));
+  hoist.path = { a: { x: -24.5, y: 10.6, z: 27 }, b: { x: -24.5, y: 15.6, z: 27 }, period: 8, phase: 0 };
   L.platforms.push(hoist);
   deco(-26.4, 0, 27, 0.25, 17, 0.25, C.wood); deco(-22.6, 0, 27, 0.25, 17, 0.25, C.wood); deco(-24.5, 17, 27, 4.4, 0.3, 0.3, C.wood); deco(-24.5, 17.3, 27, 0.8, 0.8, 0.8, C.woodD); deco(-22.4, 17.3, 27, 0.2, 1.4, 0.2, C.wood);
   L.torches.push({ x: -27, y: 9.5, z: 30.2 }, { x: 27, y: 9.5, z: 30.2 });
@@ -237,7 +232,11 @@ export function buildLevel(world) {
   for (let i = 1; i <= steps; i++) {
     ang += THREE.MathUtils.degToRad(34);
     y += RISE;
-    const px = T.x + Math.cos(ang) * R, pz = T.z + Math.sin(ang) * R;
+    // the last three platforms flare OUTWARD so the wide arena slab never overhangs the approach;
+    // the very last sits a fixed 2.4m off the slab edge ALONG ITS OWN ANGLE (the slab is square)
+    let RR = R + Math.max(0, i - 23) * 1.35;
+    if (i === steps) { const sr = 9 / Math.max(Math.abs(Math.cos(ang)), Math.abs(Math.sin(ang))); RR = sr + 2.4; }
+    const px = T.x + Math.cos(ang) * RR, pz = T.z + Math.sin(ang) * RR;
     // every 7th platform is a slider; every 9th is missing (forces a double jump)
     L.spiral.push({ i, x: px, y, z: pz, gap: i % 9 === 0 });
     if (i % 9 === 0) { y -= RISE; continue; }   // gap: next platform sits at this height → double-jump gate, not a wall
@@ -252,25 +251,33 @@ export function buildLevel(world) {
       // corbel under the platform's inner edge + a stub on the tower face
       { const rr = Math.hypot(px - T.x, pz - T.z); const ux = (px - T.x) / rr, uz = (pz - T.z) / rr; deco(T.x + ux * (rr - w / 2 + 0.2), y - 1.0, T.z + uz * (rr - w / 2 + 0.2), 0.7, 0.5, 0.7, C.stoneD); const f = 3.5 / Math.max(Math.abs(ux), Math.abs(uz)); deco(T.x + ux * (f + 0.3), y - 1.0, T.z + uz * (f + 0.3), 0.6, 0.5, 0.6, C.stoneD); }
     }
-    if (i === 6) L.spawns.push({ kind: 'grunt', x: px, y: y + 0.05, z: pz });
     if (i === 12) { L.checkpoints.push({ x: px, y: y + 0.05, z: pz, name: 'Keep mid' }); }
     if (i % 4 === 2) L.torches.push({ x: px + (T.x - px) * 0.22, y: y + 1.7, z: pz + (T.z - pz) * 0.22 });
     if (i % 3 === 0) { deco(px + (rnd() - 0.5) * 1.2, y, pz + (rnd() - 0.5) * 1.2, 0.3 + rnd() * 0.3, 0.2 + rnd() * 0.2, 0.3 + rnd() * 0.3, C.stoneD); }
   }
+  const topYPre = y + RISE;
+  // final approach: a corbel step half-way from the last platform onto the slab, and a clear
+  // notch in the crenel ring at that angle so the landing is never blocked
+  { const sr = 9 / Math.max(Math.abs(Math.cos(ang)), Math.abs(Math.sin(ang)));
+    const bxp = T.x + Math.cos(ang) * (sr + 1.1), bzp = T.z + Math.sin(ang) * (sr + 1.1);
+    block(bxp, topYPre - 0.75, bzp, 1.9, 0.5, 1.9, C.stoneL); deco(bxp, topYPre - 1.5, bzp, 0.8, 0.8, 0.8, C.stoneD);
+    L.arenaNotch = { x: T.x + Math.cos(ang) * 8.7, z: T.z + Math.sin(ang) * 8.7 };
+  }
   // tower-face crossbow perches
-  block(T.x + 4.4, 24, T.z - 4.4, 2, 0.5, 2, C.stone); deco(T.x + 3.9, 23.2, T.z - 3.9, 0.8, 0.8, 0.8, C.stoneD); L.spawns.push({ kind: 'crossbow', x: T.x + 4.6, y: 24.55, z: T.z - 4.6, perch: true });
+  block(T.x + 4.4, 24, T.z - 4.4, 2, 0.5, 2, C.stone); deco(T.x + 3.9, 23.2, T.z - 3.9, 0.8, 0.8, 0.8, C.stoneD); 
   // top platform (y = 40.6) — arena + flag
   const topY = y + RISE;
   block(T.x, 0, T.z, 7, topY - 1, 7, C.stoneD);
-  block(T.x, topY - 1, T.z, 11, 1, 11, C.stone);
-  deco(T.x, topY - 0.02, T.z, 11, 0.02, 11, C.stoneL);
+  block(T.x, topY - 1, T.z, 18, 1, 18, C.stone);
+  deco(T.x, topY - 0.02, T.z, 18, 0.02, 18, C.stoneL);
+  deco(T.x, topY - 2.6, T.z, 13, 1.8, 13, C.stoneD); deco(T.x, topY - 4, T.z, 10, 1.6, 10, '#4a4642');
   L.arenaCrenels = [];
-  const acren = (x, z, w, d) => { const bx = world.add(new Box(x, topY, z, w, 1, d)); const m = boxesMesh([{ x: 0, y: 0.5, z: 0, w, h: 1, d, c: C.stoneL }]); m.position.set(x, topY, z); bx.crumbleMesh = m; L.props.add(m); L.arenaCrenels.push(bx); };
-  for (let i = -4; i <= 4; i += 2) { acren(T.x + i, T.z + 5.2, 1, 0.6); acren(T.x + i, T.z - 5.2, 1, 0.6); acren(T.x + 5.2, T.z + i, 0.6, 1); acren(T.x - 5.2, T.z + i, 0.6, 1); }
-  L.checkpoints.push({ x: T.x + 3, y: topY + 0.05, z: T.z + 3, name: 'Keep top' });
+  const acren = (x, z, w, d) => { if (L.arenaNotch && Math.hypot(x - L.arenaNotch.x, z - L.arenaNotch.z) < 1.9) return; const bx = world.add(new Box(x, topY, z, w, 1, d)); const m = boxesMesh([{ x: 0, y: 0.5, z: 0, w, h: 1, d, c: C.stoneL }]); m.position.set(x, topY, z); bx.crumbleMesh = m; L.props.add(m); L.arenaCrenels.push(bx); };
+  for (let i = -8; i <= 8; i += 2) { acren(T.x + i, T.z + 8.7, 1, 0.6); acren(T.x + i, T.z - 8.7, 1, 0.6); acren(T.x + 8.7, T.z + i, 0.6, 1); acren(T.x - 8.7, T.z + i, 0.6, 1); }
+  L.checkpoints.push({ x: T.x + 6, y: topY + 0.05, z: T.z + 6, name: 'Keep top' });
   L.spawns.push({ kind: 'captain', x: T.x - 1.2, y: topY + 0.05, z: T.z - 1.2, boss: true });
   // arena cover: four pillars
-  for (const [ox, oz] of [[3.6, 3.6], [-3.6, 3.6], [3.6, -3.6], [-3.6, -3.6]]) { block(T.x + ox, topY, T.z + oz, 1.2, 3.2, 1.2, C.stoneL); deco(T.x + ox, topY + 3.2, T.z + oz, 1.6, 0.3, 1.6, C.stoneD); }
+  for (const [ox, oz] of [[5.6, 5.6], [-5.6, 5.6], [5.6, -5.6], [-5.6, -5.6]]) { block(T.x + ox, topY, T.z + oz, 1.4, 3.4, 1.4, C.stoneL); deco(T.x + ox, topY + 3.4, T.z + oz, 1.8, 0.3, 1.8, C.stoneD); }
   // keep silhouette: corner buttresses, a string course, arrow slits, banners
   for (const [ox, oz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
     block(T.x + ox * 3.9, 0, T.z + oz * 3.9, 1.6, topY - 8, 1.6, C.stoneD);
@@ -278,7 +285,7 @@ export function buildLevel(world) {
   }
   for (let yy = 10; yy < topY - 6; yy += 8) deco(T.x, yy, T.z, 7.4, 0.5, 7.4, C.stoneL);
   deco(T.x, 0, T.z, 8.2, 6, 8.2, '#4a4642');                                    // plinth rising out of the mist
-  for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; const f = 5.5 / Math.max(Math.abs(Math.cos(a)), Math.abs(Math.sin(a))); deco(T.x + Math.cos(a) * (f - 0.2), topY - 1.9, T.z + Math.sin(a) * (f - 0.2), 0.7, 0.9, 0.7, C.stoneL); }   // corbel ring
+  for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; const f = 8.8 / Math.max(Math.abs(Math.cos(a)), Math.abs(Math.sin(a))); deco(T.x + Math.cos(a) * (f - 0.25), topY - 1.9, T.z + Math.sin(a) * (f - 0.2), 0.7, 0.9, 0.7, C.stoneL); }   // corbel ring
   for (let yy = 14; yy < topY - 6; yy += 6) for (const [ox, oz, w, d] of [[3.55, 0, 0.14, 0.7], [-3.55, 0, 0.14, 0.7], [0, 3.55, 0.7, 0.14], [0, -3.55, 0.7, 0.14]]) deco(T.x + ox, yy - 0.25, T.z + oz, w, 2.1, d, C.stoneL);  // slit frames
   deco(T.x + 3.6, topY - 9, T.z - 2, 0.1, 8, 1.6, C.banner); deco(T.x - 3.6, topY - 9, T.z + 2, 0.1, 8, 1.6, C.banner); deco(T.x + 2, topY - 9, T.z + 3.6, 1.6, 8, 0.1, C.banner); deco(T.x - 2, topY - 9, T.z - 3.6, 1.6, 8, 0.1, C.banner);
   for (const [ox, oz] of [[3.6, -2], [-3.6, 2]]) deco(T.x + ox, topY - 1, T.z + oz, 0.14, 0.25, 2.0, C.gold); for (const [ox, oz] of [[2, 3.6], [-2, -3.6]]) deco(T.x + ox, topY - 1, T.z + oz, 2.0, 0.25, 0.14, C.gold);
@@ -294,6 +301,19 @@ export function buildLevel(world) {
   L.torches.push({ x: T.x + 4.6, y: topY + 1.5, z: T.z + 4.6 }, { x: T.x - 4.6, y: topY + 1.5, z: T.z - 4.6 });
   L.topY = topY; L.tower = T;
 
+  // collectibles: 8 crests tucked around the castle + hearts on the route
+  L.crests = [
+    { x: -25.5, y: 1.0, z: 20 },
+    { x: -16, y: 1.9, z: -6 },
+    { x: 7, y: 1.7, z: -42 },
+    { x: 30, y: 12.5, z: 36 },
+    { x: -27.5, y: 5.2, z: 20.5 },
+    { x: 0, y: 12.4, z: 32 },
+
+    { x: T.x - 8.2, y: topY + 1.2, z: T.z - 8.2 },
+  ];
+  { const gp = L.spiral.find(sp => sp.gap); if (gp) L.crests.push({ x: gp.x, y: gp.y - 0.9, z: gp.z }); }
+  L.hearts = [ { x: -3, y: 8.1, z: 32 }, { x: -34.5, y: 16.2, z: 26 }, { x: T.x, y: topY + 0.1, z: T.z + 7.5 } ];
   // ---------------- MESHES ----------------
   L.mesh = boxesMesh(stat);
   // platform meshes

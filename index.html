@@ -16,6 +16,7 @@
   #hp { left: 28px; top: 24px; display: flex; gap: 7px; }
   #hp i { width: 22px; height: 22px; background: #2a1c22; border: 2px solid var(--gold2); transform: rotate(45deg) scale(0.85); box-shadow: inset 0 0 0 2px var(--ink), 0 0 10px rgba(0,0,0,.6); transition: background .15s; }
   #hp i.on { background: var(--red); box-shadow: inset 0 0 0 2px var(--ink), 0 0 12px rgba(201,58,58,.6); }
+  #crests { left: 28px; top: 58px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px; color: var(--gold); opacity: .85; }
   #alt { right: 28px; top: 24px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px; color: var(--gold); opacity: 0.8; }
   #boss { display: none; left: 50%; transform: translateX(-50%); bottom: 44px; width: 460px; }
   #boss .name { text-align: center; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 6px; margin-bottom: 8px; color: var(--gold); }
@@ -75,13 +76,14 @@
 <div class="hud" id="flash"></div>
 <div class="hud" id="hp"></div>
 <div class="hud" id="alt">ALT 0m</div>
+<div class="hud" id="crests">✦ 0/8</div>
 <div class="hud" id="boss"><div class="name">THE SIEGE CAPTAIN</div><div class="bar"><div id="bossfill"></div></div></div>
 <div class="hud" id="toast"></div>
 <div class="hud" id="objective"></div>
 <div class="hud" id="marker">▼</div>
 <div class="hud" id="reticle"></div>
 <div class="hud" id="bosscard"><div class="l1">THE SIEGE CAPTAIN</div><div class="l2">breaker of walls</div></div>
-<div class="overlay" id="fell"><h2>FELL</h2><div class="small">The red mist is the edge. Back to the last checkpoint.</div></div>
+<div class="overlay" id="fell"><h2>FELL</h2><div class="small">Only sky below. Back to the last checkpoint.</div></div>
 <div class="hud" id="charge"><div></div></div>
 <div class="hud" id="combo"></div>
 <div class="hud" id="prompt">E — KICK THE LADDER</div>
@@ -91,17 +93,19 @@
   <div class="frame">
     <h1>RAMPART</h1>
     <div class="sub">A KNIGHT'S CLIMB AT DUSK</div>
-    <p>The keep is under siege. Learn the blade in the training yard, climb from the courtyard to the wall, fight along the battlements, and scale the keep. <b style="color:var(--gold);font-style:normal">Raise the banner under the beacon.</b> The red mist is the edge of the world.</p>
+    <p>A castle adrift in the evening sky, under siege. Learn the blade in the training yard, cross the battlements, and scale the keep. <b style="color:var(--gold);font-style:normal">Raise the banner under the beacon.</b> Eight golden crests are hidden along the way.</p>
     <div class="rule"></div>
     <div class="keys">
       <b>WASD · MOUSE</b><span>move · orbit the camera</span>
-      <b>SPACE</b><span>jump — again in the air to double jump</span>
+      <b>SPACE</b><span>jump — hold for height; it rises with your run speed</span>
       <b>SHIFT</b><span>dash: your dodge, once per jump in the air</span>
+      <b>F</b><span>hold to CHARGE — bowls foes over, breaks barricades</span>
+      <b>F + SPACE</b><span>jump mid-charge for a LONG JUMP</span>
       <b>LEFT CLICK</b><span>sword — a three-hit chain</span>
       <b>Q / MIDDLE</b><span>hold for a charged heavy — breaks shields</span>
       <b>RIGHT CLICK</b><span>hold to block · block at the last instant to parry</span>
-      <b>F</b><span>shield bash — shoves, breaks guards, crosses gaps</span>
-      <b>CTRL / C</b><span>ground pound from the air — shockwave, kicks ladders</span>
+      <b>CTRL / C</b><span>ground pound — shockwave, kicks ladders</span>
+      <b>BOP</b><span>land on a foe's head to strike and bounce</span>
       <b>Z / TAB</b><span>lock on to the nearest foe (again to release)</span>
       <b>E · R</b><span>kick ladder · return to checkpoint</span>
     </div>
