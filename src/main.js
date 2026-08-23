@@ -59,6 +59,9 @@ scene.add(sun); scene.add(sun.target);
 const emberGeo = new THREE.BufferGeometry(); const EMBERS = 260; const emberPos = new Float32Array(EMBERS * 3); const emberVel = [];
 const smokeGeo = new THREE.BufferGeometry(); const SMOKE = 160; const smokePos = new Float32Array(SMOKE * 3); const smokeAge = new Float32Array(SMOKE);
 const softTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+const glowFacers = [];
+function addGlow(parent, color, size = 1.4, op = 0.5) { const gq = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map: softTex, color, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false })); gq.userData.isGlow = true; parent.add(gq); glowFacers.push(gq); return gq; }
+
 const embers = new THREE.Points(emberGeo, new THREE.PointsMaterial({ color: '#ffb24a', size: 0.32, map: softTex, transparent: true, opacity: 0.95, sizeAttenuation: true, depthWrite: false, blending: THREE.AdditiveBlending }));
 const smoke = new THREE.Points(smokeGeo, new THREE.PointsMaterial({ color: '#3a2e34', size: 5, map: softTex, transparent: true, opacity: 0.22, sizeAttenuation: true, depthWrite: false }));
 scene.add(embers); scene.add(smoke);
@@ -85,10 +88,31 @@ emberGeo.setAttribute('position', new THREE.BufferAttribute(emberPos, 3));
 const smokeSrc = [{ x: 2, y: -23, z: -80 }, { x: -25.5, y: 3.6, z: 20 }, { x: -27, y: 2.2, z: 21 }, { x: -12, y: 2, z: 0 }, { x: 12, y: 2, z: 0 }];
 for (let i = 0; i < SMOKE; i++) { const sdx = smokeSrc[i % smokeSrc.length]; smokePos[i * 3] = sdx.x; smokePos[i * 3 + 1] = sdx.y + Math.random() * 12; smokePos[i * 3 + 2] = sdx.z; smokeAge[i] = Math.random() * 8; }
 smokeGeo.setAttribute('position', new THREE.BufferAttribute(smokePos, 3));
+// ambient life: butterflies in the meadow, leaves near oaks, campfire flames, a waterfall
+const FLUT = 10; const flutGeo = new THREE.BufferGeometry(); const flutPos = new Float32Array(FLUT * 3); flutGeo.setAttribute('position', new THREE.BufferAttribute(flutPos, 3));
+const flutter = new THREE.Points(flutGeo, new THREE.PointsMaterial({ color: '#e8d060', size: 0.22, map: softTex, transparent: true, depthWrite: false })); scene.add(flutter);
+const LEAF = 16; const leafGeo = new THREE.BufferGeometry(); const leafPos = new Float32Array(LEAF * 3); const leafSeed = new Float32Array(LEAF); for (let i = 0; i < LEAF; i++) leafSeed[i] = Math.random() * 100;
+leafGeo.setAttribute('position', new THREE.BufferAttribute(leafPos, 3));
+const leaves = new THREE.Points(leafGeo, new THREE.PointsMaterial({ color: '#7a9a4a', size: 0.18, map: softTex, transparent: true, depthWrite: false })); scene.add(leaves);
+const fireGlow = addGlow(scene, '#ff9a3a', 5, 0.0); fireGlow.position.set(2, -22.6, -80);
+const flameMesh = boxesMesh([{ x: 0, y: 0.35, z: 0, w: 0.5, h: 0.7, d: 0.5, c: '#ffb040' }, { x: 0, y: 0.8, z: 0, w: 0.26, h: 0.4, d: 0.26, c: '#ffe08a' }], { shadow: false, material: new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 }) });
+flameMesh.position.set(2, -23.55, -80); scene.add(flameMesh);
+// waterfall: thin animated sheet where the west-bank stream would spill into the gully
+const fallMat = new THREE.MeshBasicMaterial({ color: '#8fc0da', transparent: true, opacity: 0.5, depthWrite: false });
+const fall = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4.6), fallMat); fall.position.set(-10.1, -32.6, -114); fall.rotation.y = Math.PI / 2; scene.add(fall);
+const fallFoam = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 1.0), new THREE.MeshBasicMaterial({ color: '#dceef8', transparent: true, opacity: 0.55, depthWrite: false }));
+fallFoam.rotation.x = -Math.PI / 2; fallFoam.position.set(-10.8, -34.68, -114); scene.add(fallFoam);
 function updateAtmos(dt) {
   const t = game.time;
   for (let i = 0; i < CROWS; i++) { const k = i * 3; const c = i < 8 ? { x: L.tower.x, y: L.topY + 6, z: L.tower.z, r: 9 } : { x: (i % 2 ? 30 : -30), y: 15, z: 32, r: 6 }; const a = t * (0.35 + (i % 3) * 0.1) + i * 1.3; crowPos[k] = c.x + Math.cos(a) * (c.r + (i % 4)); crowPos[k + 1] = c.y + Math.sin(t * 0.9 + i) * 1.5 + (i % 3); crowPos[k + 2] = c.z + Math.sin(a) * (c.r + (i % 4)); }
   crowGeo.attributes.position.needsUpdate = true;
+  for (let i = 0; i < FLUT; i++) { const k = i * 3; const a = t * (0.5 + (i % 4) * 0.13) + i * 2.1; flutPos[k] = -10 + Math.cos(a) * (10 + (i % 5) * 3) + Math.sin(t * 1.7 + i) * 2; flutPos[k + 1] = -29 + Math.sin(t * 2.2 + i * 1.3) * 0.8 + (i % 3) * 0.4; flutPos[k + 2] = -138 + Math.sin(a * 0.8) * 10; }
+  flutGeo.attributes.position.needsUpdate = true;
+  for (let i = 0; i < LEAF; i++) { const k = i * 3; const cyc = ((t * 0.24 + leafSeed[i]) % 6) / 6; const tree = L.trees[i % L.trees.length]; leafPos[k] = tree.x + Math.sin(t * 1.1 + leafSeed[i]) * 1.4; leafPos[k + 1] = tree.y + 3.2 - cyc * 3.4; leafPos[k + 2] = tree.z + Math.cos(t * 0.9 + leafSeed[i]) * 1.4; }
+  leafGeo.attributes.position.needsUpdate = true;
+  flameMesh.scale.set(1 + Math.sin(t * 13) * 0.15, 0.85 + 0.3 * (0.5 + 0.5 * Math.sin(t * 9.7)), 1 + Math.cos(t * 11) * 0.15); flameMesh.rotation.y = t * 2;
+  fireGlow.material.opacity = 0.35 + 0.12 * Math.sin(t * 10.3); fireGlow.lookAt(camera.position);
+  fallMat.opacity = 0.42 + 0.12 * (0.5 + 0.5 * Math.sin(t * 6.1)); fall.position.y = -32.6 + Math.sin(t * 12) * 0.05;
   for (let i = 0; i < EMBERS; i++) { const e = emberVel[i]; e.life -= dt; const k = i * 3; emberPos[k + 1] += dt * (0.8 + (i % 5) * 0.2); emberPos[k] += Math.sin(t * 2 + i) * dt * 0.4; emberPos[k + 2] += Math.cos(t * 1.7 + i * 0.3) * dt * 0.4; if (e.life <= 0) { e.life = 1.5 + Math.random() * 2.5; emberPos[k] = e.t.x + (Math.random() - 0.5) * 0.4; emberPos[k + 1] = e.t.y; emberPos[k + 2] = e.t.z + (Math.random() - 0.5) * 0.4; } }
   emberGeo.attributes.position.needsUpdate = true;
   for (let i = 0; i < SMOKE; i++) { const k = i * 3; smokeAge[i] += dt; smokePos[k + 1] += dt * 1.4; smokePos[k] += dt * (0.6 + Math.sin(t * 0.5 + i) * 0.3); if (smokeAge[i] > 9) { const sdx = smokeSrc[i % smokeSrc.length]; smokeAge[i] = 0; smokePos[k] = sdx.x; smokePos[k + 1] = sdx.y; smokePos[k + 2] = sdx.z; } }
@@ -129,8 +153,6 @@ const CRESTS = [
 const crestMesh = () => { const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 0.8, h: 1.0, d: 0.14, c: '#e3c070' }, { x: 0, y: 0.08, z: 0.09, w: 0.32, h: 0.5, d: 0.03, c: '#8a2d2d' }, { x: 0, y: -0.58, z: 0, w: 0.5, h: 0.22, d: 0.14, c: '#e3c070' }, { x: 0, y: 0.62, z: 0, w: 0.5, h: 0.16, d: 0.14, c: '#e3c070' }], { shadow: false }); return m; };
 const crestSpawns = {};   // key -> {m, c} once the crest is physically in the world
 function spawnCrest(key, x, y, z) { if (crestSpawns[key] || (game.crestsGot || {})[key]) return; const m = crestMesh(); m.position.set(x, y + 1.0, z); scene.add(m); addGlow(m, '#ffd27a', 2.6, 0.55); crestSpawns[key] = { m, c: { x, y, z } }; spawnFx('parry', { x, y: y + 1, z }, 16); audio.play('checkpoint'); }
-const glowFacers = [];
-function addGlow(parent, color, size = 1.4, op = 0.5) { const gq = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map: softTex, color, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false })); gq.userData.isGlow = true; parent.add(gq); glowFacers.push(gq); return gq; }
 const shardMeshes = [];
 for (const c of L.shards) { const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 0.26, h: 0.5, d: 0.26, c: '#7ad0e8' }, { x: 0, y: 0.32, z: 0, w: 0.14, h: 0.16, d: 0.14, c: '#b8ecf8' }], { shadow: false, material: new THREE.MeshBasicMaterial({ vertexColors: true }) }); m.position.set(c.x, c.y + 0.6, c.z); scene.add(m); addGlow(m, '#7ad0e8', 1.3, 0.45); shardMeshes.push({ m, c, got: false }); }
 const pennantMeshes = [];
@@ -199,7 +221,7 @@ function updateRace(dt) {
 // gully water: two offset translucent planes shimmering
 let waterMeshes = [];
 if (L.water) {
-  const wm = new THREE.Mesh(new THREE.PlaneGeometry(L.water.w, L.water.d), new THREE.MeshBasicMaterial({ color: '#3a5a74', transparent: true, opacity: 0.62, depthWrite: false }));
+  const wm = new THREE.Mesh(new THREE.PlaneGeometry(L.water.w, L.water.d), new THREE.MeshBasicMaterial({ color: '#4a7290', transparent: true, opacity: 0.55, depthWrite: false }));
   wm.rotation.x = -Math.PI / 2; wm.position.set(L.water.x, L.water.y, L.water.z); scene.add(wm);
   const wm2 = new THREE.Mesh(new THREE.PlaneGeometry(L.water.w, L.water.d), new THREE.MeshBasicMaterial({ color: '#6a92b0', transparent: true, opacity: 0.25, depthWrite: false, blending: THREE.AdditiveBlending }));
   wm2.rotation.x = -Math.PI / 2; wm2.position.set(L.water.x, L.water.y + 0.06, L.water.z); scene.add(wm2);
@@ -833,7 +855,7 @@ function win() {
   document.exitPointerLock();
 }
 function showMenu(on) { document.getElementById('menu').classList.toggle('show', on && game.started && !game.won); game.paused = on; }
-function start() { if (game.started) return; game.started = true; spawnCrest('peaks', L.peakCrest.x, L.peakCrest.y, L.peakCrest.z); spawnCrest('grotto', L.grotto.x, L.grotto.y, L.grotto.z); spawnCrest('shadow', L.balcony.x, L.balcony.y, L.balcony.z); setTimeout(() => { if (!game.boardOpen) showBoard(true); }, 600); document.getElementById('title').classList.add('hide'); audio.resume(); music.start(); cam.yaw = Math.PI; cam.pitch = 0.38; cam.idle = 0; toast('Reach the keep. Raise the banner.'); }
+function start() { if (game.started) return; game.started = true; spawnCrest('peaks', L.peakCrest.x, L.peakCrest.y, L.peakCrest.z); spawnCrest('grotto', L.grotto.x, L.grotto.y, L.grotto.z); spawnCrest('shadow', L.balcony.x, L.balcony.y, L.balcony.z); setTimeout(() => { if (!game.boardOpen) showBoard(true); }, 600); document.getElementById('title').classList.add('hide'); audio.resume(); music.start(); cam.yaw = Math.PI; cam.pitch = 0.38; cam.idle = 0; toast('Reclaim the eight crests of the Vale.', 3.5); }
 for (const ev of ['mousedown', 'click']) document.getElementById('title').addEventListener(ev, () => { if (!game.started) { start(); requestLock(); } });
 document.getElementById('menu').addEventListener('mousedown', () => { if (lockFallback) showMenu(false); else requestLock(); });
 document.getElementById('retry').onclick = () => { document.getElementById('dead').classList.remove('show'); requestLock(); };
