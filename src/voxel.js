@@ -1,0 +1,121 @@
+import * as THREE from '../vendor/three.module.js';
+
+// Merge a list of {x,y,z,w,h,d,c} boxes into one flat-shaded geometry with
+// vertex colours. x,y,z = centre. Cheap and chunky.
+export function boxesGeometry(list) {
+  const pos = [], nor = [], col = [];
+  const faces = [
+    { n: [1, 0, 0], v: [[1, -1, -1], [1, 1, -1], [1, 1, 1], [1, -1, 1]] },
+    { n: [-1, 0, 0], v: [[-1, -1, 1], [-1, 1, 1], [-1, 1, -1], [-1, -1, -1]] },
+    { n: [0, 1, 0], v: [[-1, 1, -1], [-1, 1, 1], [1, 1, 1], [1, 1, -1]] },
+    { n: [0, -1, 0], v: [[-1, -1, 1], [-1, -1, -1], [1, -1, -1], [1, -1, 1]] },
+    { n: [0, 0, 1], v: [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]] },
+    { n: [0, 0, -1], v: [[1, -1, -1], [-1, -1, -1], [-1, 1, -1], [1, 1, -1]] },
+  ];
+  const tmp = new THREE.Color();
+  for (const b of list) {
+    tmp.set(b.c);
+    const hw = b.w / 2, hh = b.h / 2, hd = b.d / 2;
+    for (const f of faces) {
+      // face shading baked slightly so it reads even with flat lights
+      const shade = f.n[1] === 1 ? 1.0 : f.n[1] === -1 ? 0.55 : (f.n[0] !== 0 ? 0.82 : 0.9);
+      const r = tmp.r * shade, g = tmp.g * shade, bl = tmp.b * shade;
+      const idx = [0, 1, 2, 0, 2, 3];
+      for (const i of idx) {
+        const v = f.v[i];
+        pos.push(b.x + v[0] * hw, b.y + v[1] * hh, b.z + v[2] * hd);
+        nor.push(f.n[0], f.n[1], f.n[2]);
+        col.push(r, g, bl);
+      }
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  return geo;
+}
+
+export const MAT = new THREE.MeshLambertMaterial({ vertexColors: true });
+
+export function boxesMesh(list, opts = {}) {
+  const m = new THREE.Mesh(boxesGeometry(list), opts.material || MAT);
+  m.castShadow = opts.shadow !== false; m.receiveShadow = true;
+  return m;
+}
+
+// ---------- character rigs ----------
+// Silhouette hierarchy: big torso, small head, clear sword + shield masses.
+export function knightRig(palette = {}) {
+  const P = Object.assign({ armor: '#8d94a3', trim: '#c9a24a', cloth: '#7a2d2d', skin: '#e2b48c', steel: '#d8dde5', shield: '#7a2d2d' }, palette);
+  const g = new THREE.Group();
+  const torso = boxesMesh([
+    { x: 0, y: 0.95, z: 0, w: 0.62, h: 0.6, d: 0.4, c: P.armor },
+    { x: 0, y: 0.62, z: 0, w: 0.5, h: 0.16, d: 0.32, c: P.cloth },   // tabard hem
+    { x: 0, y: 1.0, z: 0.21, w: 0.2, h: 0.35, d: 0.03, c: P.trim },  // chest crest
+    { x: 0, y: 1.3, z: 0, w: 0.7, h: 0.12, d: 0.46, c: P.armor },   // pauldron line
+  ]);
+  const head = new THREE.Group();
+  head.add(boxesMesh([
+    { x: 0, y: 0, z: 0, w: 0.36, h: 0.38, d: 0.36, c: P.armor },
+    { x: 0, y: -0.04, z: 0.19, w: 0.3, h: 0.08, d: 0.02, c: '#1a1a22' }, // visor slit
+    { x: 0, y: 0.22, z: -0.02, w: 0.06, h: 0.22, d: 0.3, c: P.cloth },   // plume
+  ]));
+  head.position.set(0, 1.55, 0);
+  const legL = boxesMesh([{ x: 0, y: -0.3, z: 0, w: 0.2, h: 0.6, d: 0.22, c: P.armor }]);
+  const legR = legL.clone();
+  legL.position.set(-0.16, 0.62, 0); legR.position.set(0.16, 0.62, 0);
+  // sword arm (right) pivot at shoulder
+  const armR = new THREE.Group();
+  armR.add(boxesMesh([{ x: 0, y: -0.22, z: 0, w: 0.16, h: 0.44, d: 0.16, c: P.armor }]));
+  const sword = boxesMesh([
+    { x: 0, y: 0.0, z: 0.08, w: 0.07, h: 0.07, d: 0.2, c: '#3a2a1a' },   // grip
+    { x: 0, y: 0.0, z: 0.2, w: 0.3, h: 0.05, d: 0.05, c: P.trim },      // guard
+    { x: 0, y: 0.0, z: 0.75, w: 0.1, h: 0.035, d: 1.05, c: P.steel },   // blade
+  ]);
+  sword.position.set(0, -0.42, 0.05);
+  armR.add(sword);
+  armR.position.set(0.4, 1.2, 0);
+  // shield arm (left)
+  const armL = new THREE.Group();
+  armL.add(boxesMesh([{ x: 0, y: -0.22, z: 0, w: 0.16, h: 0.44, d: 0.16, c: P.armor }]));
+  const shield = boxesMesh([
+    { x: 0, y: -0.2, z: 0.1, w: 0.5, h: 0.7, d: 0.07, c: P.shield },
+    { x: 0, y: -0.2, z: 0.145, w: 0.12, h: 0.45, d: 0.02, c: P.trim },
+    { x: 0, y: -0.2, z: 0.145, w: 0.38, h: 0.1, d: 0.02, c: P.trim },
+  ]);
+  shield.position.set(-0.1, -0.05, 0.05);
+  armL.add(shield);
+  armL.position.set(-0.4, 1.2, 0);
+  g.add(torso, head, legL, legR, armR, armL);
+  g.userData = { torso, head, legL, legR, armR, armL, sword, shield };
+  return g;
+}
+
+export function gruntRig(kind = 'grunt') {
+  const pal = {
+    grunt: { armor: '#5a5a4a', trim: '#2a2a22', cloth: '#3d4a2e', skin: '#c9a07a', steel: '#b9bec6', shield: '#4a3a2a' },
+    shield: { armor: '#6a6a7a', trim: '#c9a24a', cloth: '#2e3a4a', skin: '#c9a07a', steel: '#b9bec6', shield: '#3b4a6a' },
+    crossbow: { armor: '#4a4a3a', trim: '#2a2a22', cloth: '#6a4a2e', skin: '#c9a07a', steel: '#b9bec6', shield: '#4a3a2a' },
+    swarm: { armor: '#3a3a32', trim: '#2a2a22', cloth: '#5a3a2a', skin: '#c9a07a', steel: '#9a9ea6', shield: '#4a3a2a' },
+    captain: { armor: '#2a2a33', trim: '#d8b050', cloth: '#5a1a1a', skin: '#c9a07a', steel: '#e0e4ea', shield: '#5a1a1a' },
+  }[kind];
+  const g = knightRig(pal);
+  if (kind === 'shield' || kind === 'captain') {
+    g.userData.shield.scale.set(1.5, 1.4, 1);
+    g.userData.shield.position.y = 0.05;
+  }
+  if (kind === 'crossbow') {
+    g.userData.sword.visible = false;
+    g.userData.shield.visible = false;
+    const xbow = boxesMesh([
+      { x: 0, y: 0, z: 0.3, w: 0.08, h: 0.08, d: 0.7, c: '#3a2a1a' },
+      { x: 0, y: 0, z: 0.55, w: 0.7, h: 0.04, d: 0.06, c: '#6a4a2a' },
+    ]);
+    xbow.position.set(0, -0.4, 0.1);
+    g.userData.armR.add(xbow);
+  }
+  if (kind === 'swarm') { g.scale.set(0.85, 0.85, 0.85); g.userData.shield.visible = false; }
+  if (kind === 'captain') { g.scale.set(1.45, 1.45, 1.45); }
+  return g;
+}

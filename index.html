@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RAMPART</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root { --gold: #e3c070; --gold2: #b8902e; --ink: #14101a; --cream: #f3e6c8; --red: #c93a3a; }
+  html, body { margin: 0; height: 100%; background: var(--ink); overflow: hidden; font-family: 'Crimson Pro', Georgia, serif; color: var(--cream); }
+  #c { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
+  .hud { position: fixed; pointer-events: none; user-select: none; }
+  #vig { inset: 0; background: radial-gradient(ellipse at center, rgba(180,20,20,0) 45%, rgba(160,10,10,.85) 100%); opacity: 0; transition: opacity .12s; }
+  #flash { inset: 0; background: radial-gradient(ellipse at center, rgba(255,255,255,.55), rgba(255,240,200,0) 70%); opacity: 0; }
+  #hp { left: 28px; top: 24px; display: flex; gap: 7px; }
+  #hp i { width: 22px; height: 22px; background: #2a1c22; border: 2px solid var(--gold2); transform: rotate(45deg) scale(0.85); box-shadow: inset 0 0 0 2px var(--ink), 0 0 10px rgba(0,0,0,.6); transition: background .15s; }
+  #hp i.on { background: var(--red); box-shadow: inset 0 0 0 2px var(--ink), 0 0 12px rgba(201,58,58,.6); }
+  #alt { right: 28px; top: 24px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px; color: var(--gold); opacity: 0.8; }
+  #boss { display: none; left: 50%; transform: translateX(-50%); bottom: 44px; width: 460px; }
+  #boss .name { text-align: center; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 6px; margin-bottom: 8px; color: var(--gold); }
+  #boss .bar { height: 9px; background: #1f1418; border: 1px solid var(--gold2); box-shadow: 0 0 14px rgba(0,0,0,.7); }
+  #bossfill { height: 100%; background: linear-gradient(90deg, #8a2020, #d04040); width: 100%; transition: width .15s; }
+  #toast { left: 50%; top: 14%; transform: translateX(-50%); font-family: 'Cinzel', serif; font-size: 20px; letter-spacing: 5px; color: var(--gold); opacity: 0; transition: opacity .35s; text-shadow: 0 2px 12px #000, 0 0 30px rgba(227,192,112,.3); white-space: nowrap; }
+  #toast.show { opacity: 1; }
+  #charge { display: none; left: 50%; top: 56%; transform: translateX(-50%); width: 96px; height: 5px; background: #1f1418; border: 1px solid var(--gold2); }
+  #charge > div { height: 100%; background: var(--gold); width: 0; }
+  #charge.full > div { background: #fff; box-shadow: 0 0 10px #fff; }
+  #prompt { display: none; left: 50%; top: 63%; transform: translateX(-50%); font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 3px; background: rgba(10,6,14,.6); padding: 7px 14px; border: 1px solid var(--gold2); color: var(--gold); }
+  #tune { display: none; right: 16px; top: 60px; bottom: 16px; overflow: auto; width: 240px; background: rgba(10,6,14,.9); padding: 10px; font: 12px monospace; pointer-events: auto; }
+  #tune.show { display: block; }
+  #tune label { display: flex; justify-content: space-between; margin: 2px 0; } #tune input { width: 80px; background: #221; color: #fe8; border: 1px solid #664; }
+
+  .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transition: opacity .7s; }
+  #title { background: linear-gradient(180deg, rgba(14,8,18,.55) 0%, rgba(14,8,18,.25) 40%, rgba(14,8,18,.7) 100%); }
+  #title .frame { padding: 34px 56px 30px; border: 1px solid rgba(227,192,112,.35); background: rgba(12,7,16,.55); backdrop-filter: blur(3px); box-shadow: 0 0 0 6px rgba(12,7,16,.35), 0 30px 80px rgba(0,0,0,.6); max-width: 760px; }
+  #title h1 { font-family: 'Cinzel', serif; font-weight: 900; font-size: 84px; letter-spacing: 22px; margin: 0 0 2px 22px; color: var(--cream); text-shadow: 0 0 40px rgba(255,154,58,.35), 0 3px 0 #5a2a26, 0 8px 24px rgba(0,0,0,.8); }
+  #title .sub { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 7px; color: var(--gold); margin-bottom: 18px; }
+  #title .rule { width: 220px; height: 1px; margin: 14px auto; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+  #title p { font-size: 18px; line-height: 1.55; opacity: .9; max-width: 560px; margin: 0 auto; font-style: italic; }
+  .keys { display: grid; grid-template-columns: auto auto; gap: 3px 22px; font-size: 15px; text-align: left; margin: 18px auto 0; opacity: .85; width: max-content; }
+  .keys b { color: var(--gold); font-weight: 600; font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 1px; padding-top: 2px; }
+  .go { margin-top: 24px; font-family: 'Cinzel', serif; font-size: 15px; letter-spacing: 6px; color: var(--gold); animation: pulse 1.8s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  #title.hide { opacity: 0; pointer-events: none; }
+  #menu, #dead, #win { display: none; background: radial-gradient(ellipse at 50% 40%, rgba(60,30,40,.6), rgba(10,6,14,.94)); } #menu.show, #dead.show, #win.show { display: flex; }
+  .overlay h2 { font-family: 'Cinzel', serif; font-weight: 700; font-size: 44px; letter-spacing: 12px; margin: 0 0 10px; color: var(--cream); }
+  #dead h2 { color: var(--red); } #win h2 { color: var(--gold); font-size: 40px; }
+  .overlay .small { font-size: 18px; font-style: italic; opacity: .85; letter-spacing: 1px; }
+  button { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 4px; background: rgba(40,24,30,.8); color: var(--cream); border: 1px solid var(--gold2); padding: 12px 28px; cursor: pointer; margin-top: 22px; }
+  button:hover { background: rgba(80,40,40,.9); }
+  #credits { position: fixed; bottom: 14px; right: 18px; font-size: 12px; letter-spacing: 2px; opacity: .45; font-family: 'Cinzel', serif; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud" id="vig"></div>
+<div class="hud" id="flash"></div>
+<div class="hud" id="hp"></div>
+<div class="hud" id="alt">ALT 0m</div>
+<div class="hud" id="boss"><div class="name">THE SIEGE CAPTAIN</div><div class="bar"><div id="bossfill"></div></div></div>
+<div class="hud" id="toast"></div>
+<div class="hud" id="charge"><div></div></div>
+<div class="hud" id="prompt">E — KICK THE LADDER</div>
+<div id="tune"></div>
+
+<div class="overlay" id="title">
+  <div class="frame">
+    <h1>RAMPART</h1>
+    <div class="sub">A KNIGHT'S CLIMB AT DUSK</div>
+    <p>The keep is under siege. Climb from the courtyard to the wall, fight along the battlements, and scale the keep. Raise the banner at the top.</p>
+    <div class="rule"></div>
+    <div class="keys">
+      <b>WASD · MOUSE</b><span>move · orbit the camera</span>
+      <b>SPACE</b><span>jump — again in the air to double jump</span>
+      <b>SHIFT</b><span>dash: your dodge, once per jump in the air</span>
+      <b>LEFT CLICK</b><span>sword — a three-hit chain</span>
+      <b>Q / MIDDLE</b><span>hold for a charged heavy — breaks shields</span>
+      <b>RIGHT CLICK</b><span>hold to block · block at the last instant to parry</span>
+      <b>F</b><span>shield bash — shoves, breaks guards, crosses gaps</span>
+      <b>CTRL / C</b><span>ground pound from the air — shockwave, kicks ladders</span>
+      <b>E · TAB · R</b><span>kick ladder · lock on · return to checkpoint</span>
+    </div>
+    <div class="go">CLICK TO BEGIN</div>
+  </div>
+</div>
+<div class="overlay" id="menu"><h2>PAUSED</h2><div class="small">click to resume · T for tuning</div></div>
+<div class="overlay" id="dead"><h2>FALLEN</h2><div class="small">The wall holds without you.</div><button id="retry">RISE AGAIN</button></div>
+<div class="overlay" id="win"><h2>THE BANNER FLIES</h2><div class="small" id="winstats"></div><div class="small" style="margin-top:10px">The keep holds.</div></div>
+<div id="credits">RAMPART · a voxel siege</div>
+
+<script type="module" src="src/main.js"></script>
+<script>
+  setTimeout(() => { if (!window.RAMPART) { const t = document.querySelector('#title .go'); if (t) t.textContent = 'FAILED TO LOAD — CHECK CONSOLE'; } }, 4000);
+</script>
+</body>
+</html>
