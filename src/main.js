@@ -12,7 +12,7 @@ const FIXED = 1 / 120;
 const VALE = new URLSearchParams(location.search).get('vale') === '2' ? 2 : 1;
 
 // ---------------- settings (persisted) ----------------
-const SETTINGS_DEFAULT = { volume: 0.5, music: 0.35, sens: 1.0, invertY: false, shake: true, fov: 62, shadows: 'soft', pixelRatio: 1, glows: true, particles: 1, grade: 'dusk', reduceMotion: false, dmgNumbers: true };
+const SETTINGS_DEFAULT = { volume: 0.5, music: 0.35, sens: 1.0, invertY: false, shake: true, fov: 62, shadows: 'soft', pixelRatio: 1, glows: true, particles: 1, grade: 'dusk', reduceMotion: false, dmgNumbers: true, camDist: 1, hudScale: 1, timer: false, touchSize: 1, leftHanded: false };
 let SET = { ...SETTINGS_DEFAULT };
 try { Object.assign(SET, JSON.parse(localStorage.getItem('rampart_settings') || '{}')); } catch (e) {}
 function saveSettings() { try { localStorage.setItem('rampart_settings', JSON.stringify(SET)); } catch (e) {} }
@@ -313,6 +313,22 @@ function updatePickups(dt) {
 // hall banners: one kindles per crest earned
 const hallBannerMeshes = [];
 for (const hb of (L.hallBanners || [])) { const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 1.3, h: 2.6, d: 0.08, c: '#4e2a30' }, { x: 0, y: 0.2, z: 0.05, w: 0.5, h: 0.6, d: 0.02, c: '#3a2226' }, { x: 0, y: -1.15, z: 0, w: 1.3, h: 0.3, d: 0.09, c: '#5a4630' }], { shadow: false }); m.position.set(hb.x, hb.y, hb.z + hb.face * 0.35); scene.add(m); hallBannerMeshes.push({ m, hb, lit: false }); }
+let trophyMeshes = [];
+function refreshTrophies() {
+  if (!L.trophies) return;
+  for (const m of trophyMeshes) scene.remove(m); trophyMeshes = [];
+  for (const tr of L.trophies) {
+    let earned = false;
+    if (tr.key === 'captain') earned = !!(game.crestsGot || {}).captain;
+    if (tr.key === 'marshal') { try { const d2 = JSON.parse(localStorage.getItem('rampart_save_' + SLOT + '_v2') || 'null'); earned = !!(d2 && d2.crestsGot && d2.crestsGot.captain); } catch (e) {} }
+    if (!earned) continue;
+    const m = tr.key === 'captain'
+      ? boxesMesh([{ x: 0, y: 0.22, z: 0, w: 0.44, h: 0.44, d: 0.44, c: '#2a2a33' }, { x: 0, y: 0.5, z: 0, w: 0.5, h: 0.12, d: 0.5, c: '#d8b050' }, { x: -0.14, y: 0.62, z: 0, w: 0.1, h: 0.3, d: 0.1, c: '#d8b050' }, { x: 0.14, y: 0.62, z: 0, w: 0.1, h: 0.3, d: 0.1, c: '#d8b050' }, { x: 0, y: 0.16, z: 0.23, w: 0.34, h: 0.09, d: 0.02, c: '#1a1a22' }])
+      : boxesMesh([{ x: 0, y: 0.2, z: 0, w: 0.4, h: 0.4, d: 0.4, c: '#3a2c34' }, { x: 0, y: 0.14, z: 0.21, w: 0.3, h: 0.08, d: 0.02, c: '#ff6a2a' }, { x: 0, y: 0.52, z: 0, w: 0.18, h: 0.24, d: 0.18, c: '#ff9a3a' }]);
+    m.position.set(tr.x, tr.y, tr.z); scene.add(m); trophyMeshes.push(m);
+    if (tr.key === 'marshal') addGlow(m, '#ff6a2a', 1.6, 0.4).position.y = 0.5;
+  }
+}
 function refreshHallBanners() {
   const n = game.crests || 0;
   for (let i = 0; i < hallBannerMeshes.length; i++) { const b = hallBannerMeshes[i]; if (i < n && !b.lit) { b.lit = true; scene.remove(b.m); const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 1.3, h: 2.6, d: 0.08, c: '#8a2d2d' }, { x: 0, y: 0.2, z: 0.06 * b.hb.face, w: 0.55, h: 0.7, d: 0.03, c: '#e3c070' }, { x: 0, y: -1.15, z: 0, w: 1.3, h: 0.3, d: 0.09, c: '#c9a24a' }], { shadow: false }); m.position.set(b.hb.x, b.hb.y, b.hb.z + b.hb.face * 0.35); scene.add(m); b.m = m; } }
@@ -522,6 +538,7 @@ const game = {
   releaseAttackToken(e) { if (this.attackToken === e) this.attackToken = null; },
   onEnemyDied(e) {
     this.player.kills++;
+    if (!e.cfg.passive) { this.killsBy = this.killsBy || {}; this.killsBy[e.kind] = (this.killsBy[e.kind] || 0) + 1; }
     if (e.kind === 'captain') { this.bossDead = true; this.storm = 0; this.deathCine = 3.2; this.deathCineTarget = e; this.slowmo = 1.4; cam.shake = 1.2; this.flash = 0.8; audio.play('bossdie'); for (let k = 0; k < 4; k++) spawnFx('die', { x: e.pos.x, y: e.pos.y + 1 + k * 0.4, z: e.pos.z }, 14); for (let k = 0; k < 2; k++) spawnFx('parry', { x: e.pos.x, y: e.pos.y + 1.4, z: e.pos.z }, 20); setTimeout(() => { toast('The Siege Captain falls.', 3); spawnCrest('captain', L.goal.x + 1.5, L.goal.y, L.goal.z); }, 1200); }
     if (this.player.lockTarget === e) { this.player.lockTarget = null; cam.lock = null; }
   },
@@ -545,7 +562,75 @@ const cam = new ChaseCam(camera, world); cam.tower = { x: L.tower.x, z: L.tower.
 const player = new Player(world, game); game.player = player;
 player.body.pos.x = L.start.x; player.body.pos.y = L.start.y; player.body.pos.z = L.start.z; player.body.syncAabb();
 cam.target.set(L.start.x, L.start.y + 1.2, L.start.z);
-const playerRig = knightRig(); scene.add(playerRig);
+const HER_DEFS = {
+  colours: { label: 'THE COLOURS', opts: { crimson: ['#8a2d2d', '#7a2020'], azure: ['#2d4a8a', '#20356a'], verdant: ['#2d6a3a', '#1f4a28'], violet: ['#5a2d7a', '#42205a'], gold: ['#b8902e', '#8a6a1e'], sable: ['#26262e', '#1a1a22'] } },
+  armor: { label: 'THE ARMOUR', opts: { steel: '#aeb4c2', dark: '#6a7080', bronze: '#a08a5a', blackened: '#3c3a44' } },
+  trim: { label: 'THE TRIM', opts: { gold: '#d8b050', silver: '#c8ccd4', copper: '#c07848' } },
+};
+let HER = { colours: 'crimson', armor: 'steel', trim: 'gold' };
+try { const h = JSON.parse(localStorage.getItem('rampart_heraldry') || 'null'); if (h) HER = Object.assign(HER, h); } catch (e) {}
+function heraldryPalette() {
+  const col = HER_DEFS.colours.opts[HER.colours] || HER_DEFS.colours.opts.crimson;
+  return { cloth: col[0], shield: col[0], cape: col[1], armor: HER_DEFS.armor.opts[HER.armor] || '#aeb4c2', trim: HER_DEFS.trim.opts[HER.trim] || '#d8b050' };
+}
+let playerRig = knightRig(heraldryPalette()); scene.add(playerRig);
+function applyHeraldry() {
+  try { localStorage.setItem('rampart_heraldry', JSON.stringify(HER)); } catch (e) {}
+  const old = playerRig; scene.remove(old);
+  playerRig = knightRig(heraldryPalette()); scene.add(playerRig);
+  playerRig.position.copy(old.position); playerRig.rotation.y = old.rotation.y;
+}
+function buildHeraldry() {
+  const rows = document.getElementById('herrows'); rows.innerHTML = '';
+  for (const key in HER_DEFS) {
+    const def = HER_DEFS[key];
+    const row = document.createElement('div'); row.className = 'herrow';
+    const lab = document.createElement('div'); lab.className = 'hlabel'; lab.textContent = def.label; row.appendChild(lab);
+    const sws = document.createElement('div'); sws.className = 'swatches';
+    for (const name in def.opts) {
+      const v = def.opts[name]; const c = Array.isArray(v) ? v[0] : v;
+      const sw = document.createElement('div'); sw.className = 'sw' + (HER[key] === name ? ' on' : ''); sw.style.background = c; sw.title = name;
+      sw.onclick = () => { HER[key] = name; applyHeraldry(); buildHeraldry(); audio.play('checkpoint'); };
+      sws.appendChild(sw);
+    }
+    row.appendChild(sws); rows.appendChild(row);
+  }
+}
+let herReturn = null;
+function showHeraldry(on, from) {
+  if (on) { herReturn = from || null; buildHeraldry(); }
+  document.getElementById('heraldry').style.display = on ? 'flex' : 'none';
+  if (!on && herReturn === 'pause') document.getElementById('menu').classList.add('show');
+  audio.play('ui');
+}
+document.getElementById('btnHerClose').onclick = () => showHeraldry(false);
+// ---------------- bestiary ----------------
+const BESTIARY = [
+  { kind: 'grunt', ic: '\u2694', name: 'CAMP GRUNT', d: 'A levy blade of the siege host. Rushes straight in and swings wide.', w: 'Parry the swing; a bop staggers the whole rush.' },
+  { kind: 'shield', ic: '\u26e8', name: 'SHIELDMAN', d: 'Advances behind a tower shield. Your sword turns on it.', w: 'A charged heavy breaks the guard \u2014 or bop the helm.' },
+  { kind: 'crossbow', ic: '\u27b3', name: 'CROSSBOWMAN', d: 'Perches high and looses bolts on a slow rhythm.', w: 'Block at the last instant to parry the bolt back.' },
+  { kind: 'swarm', ic: '\u2620', name: 'SWARMLING', d: 'Hunched, quick, and never alone.', w: 'The CHARGE bowls a whole pack over.' },
+  { kind: 'bomber', ic: '\u2299', name: 'BOMBARDIER', d: 'Lobs powder bombs in a high arc from behind the line.', w: 'Close the gap \u2014 his own blasts hurt his own side.' },
+  { kind: 'hound', ic: '\u16c1', name: 'WAR HOUND', d: 'Lunges low and fast, then circles for another pass.', w: 'Dash through the lunge and strike the turn.' },
+  { kind: 'captain', ic: '\u2655', name: 'SIEGE CAPTAIN \u00b7 EMBER MARSHAL', d: 'Breaker of walls. Braces at half strength; the storm answers his rage.', w: 'Bop the braced guard from above, or break it with a heavy.' },
+];
+function showBestiary(on) {
+  const el = document.getElementById('bestiary');
+  if (on) {
+    const rows = document.getElementById('bestrows'); rows.innerHTML = '';
+    const met = game.met || {}, kb = game.killsBy || {};
+    for (const b of BESTIARY) {
+      const seen = met[b.kind] || (kb[b.kind] || 0) > 0;
+      const row = document.createElement('div'); row.className = 'bestrow' + (seen ? '' : ' unseen');
+      row.innerHTML = seen
+        ? '<div class="bic2">' + b.ic + '</div><div><div class="bn">' + b.name + '</div><div class="bd">' + b.d + '</div><div class="bw">' + b.w + '</div></div><div class="bk">SLAIN ' + (kb[b.kind] || 0) + '</div>'
+        : '<div class="bic2">?</div><div><div class="bn">? ? ?</div><div class="bd">This page waits for its foe.</div></div><div class="bk"></div>';
+      rows.appendChild(row);
+    }
+  }
+  el.style.display = on ? 'flex' : 'none'; audio.play('ui');
+}
+document.getElementById('btnBestClose').onclick = () => showBestiary(false);
 const playerMat = MAT.clone(); playerRig.traverse(o => { if (o.isMesh) o.material = playerMat; });
 const swordTrail = new THREE.Mesh(new THREE.RingGeometry(0.9, 2.1, 24, 1, -0.2, 2.2), new THREE.MeshBasicMaterial({ color: '#fff0c0', transparent: true, opacity: 0.5, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
 swordTrail.geometry.rotateX(-Math.PI / 2); swordTrail.visible = false; scene.add(swordTrail);
@@ -618,6 +703,10 @@ function applySettings() {
   cam.sens = 0.0022 * SET.sens;
   if (audio.master) audio.master.gain.value = SET.volume;
   if (music.bus) music.bus.gain.value = SET.music;
+  cam.dist = 7.5 * SET.camDist;
+  for (const [id, org] of [['hp', 'left top'], ['crests', 'left top'], ['pennantsHud', 'left top'], ['shardsHud', 'left top'], ['alt', 'right top'], ['compass', 'center top'], ['objective', 'center top'], ['timer', 'right top']]) { const el = document.getElementById(id); if (el) { el.style.transformOrigin = org; el.style.transform = (id === 'compass' || id === 'objective' ? 'translateX(-50%) ' : '') + 'scale(' + SET.hudScale + ')'; } }
+  { const tm = document.getElementById('timer'); if (tm) tm.style.display = SET.timer ? 'block' : 'none'; }
+  { const tu = document.getElementById('touchui'); if (tu) { tu.classList.toggle('lefty', !!SET.leftHanded); const st2 = document.getElementById('stick'), tb = document.getElementById('tbtns'); if (st2) { st2.style.transformOrigin = SET.leftHanded ? 'right bottom' : 'left bottom'; st2.style.transform = 'scale(' + SET.touchSize + ')'; } if (tb) { tb.style.transformOrigin = SET.leftHanded ? 'left bottom' : 'right bottom'; tb.style.transform = 'scale(' + SET.touchSize + ')'; } } }
   for (const gq of torchGlows) gq.visible = SET.glows;
   for (const gq of glowFacers) gq.visible = SET.glows;
   saveSettings();
@@ -636,6 +725,11 @@ const OPT_DEFS = [
   { key: 'shake', label: 'SCREEN SHAKE', type: 'toggle' },
   { key: 'reduceMotion', label: 'REDUCE MOTION', type: 'toggle' },
   { key: 'dmgNumbers', label: 'DAMAGE NUMBERS', type: 'toggle' },
+  { key: 'camDist', label: 'CAMERA DISTANCE', type: 'range', min: 0.8, max: 1.4, step: 0.05 },
+  { key: 'hudScale', label: 'HUD SCALE', type: 'range', min: 0.8, max: 1.25, step: 0.05 },
+  { key: 'timer', label: 'SPEEDRUN TIMER', type: 'toggle' },
+  { key: 'touchSize', label: 'TOUCH BUTTON SIZE', type: 'range', min: 0.8, max: 1.5, step: 0.05 },
+  { key: 'leftHanded', label: 'LEFT-HANDED TOUCH', type: 'toggle' },
 ];
 function buildOptions() {
   const rows = document.getElementById('optrows'); rows.innerHTML = '';
@@ -666,6 +760,7 @@ let optionsFrom = 'file';
 function showOptions(on, from) { if (from) optionsFrom = from; document.getElementById('options').style.display = on ? 'flex' : 'none'; if (on) buildOptions(); else if (optionsFrom === 'file') document.getElementById('fileselect').style.display = 'flex'; else showMenu(true); }
 document.getElementById('btnOptions').onclick = () => { document.getElementById('fileselect').style.display = 'none'; showOptions(true, 'file'); };
 document.getElementById('btnOptClose').onclick = () => showOptions(false);
+document.getElementById('btnHeraldry').onclick = () => { document.getElementById('menu').classList.remove('show'); showHeraldry(true, 'pause'); };
 document.getElementById('btnMoves').onclick = () => { document.getElementById('menu').classList.remove('show'); const mv = document.getElementById('moves'); const grid = document.getElementById('movesGrid'); if (!grid.childElementCount) { const src = document.getElementById('keysGrid'); const cl = src.cloneNode(true); cl.style.margin = '10px auto 0'; grid.appendChild(cl); } mv.style.display = 'flex'; audio.play('ui'); };
 document.getElementById('btnMovesClose').onclick = () => { document.getElementById('moves').style.display = 'none'; document.getElementById('menu').classList.add('show'); audio.play('ui'); };
 document.getElementById('btnPauseOptions').onclick = () => { document.getElementById('menu').classList.remove('show'); showOptions(true, 'pause'); };
@@ -695,7 +790,7 @@ function slotKey(i) { return 'rampart_save_' + i + (VALE === 2 ? '_v2' : ''); }
 function readSlot(i) { try { return JSON.parse(localStorage.getItem(slotKey(i)) || 'null'); } catch (e) { return null; } }
 function saveGame() {
   if (!SLOT || !game.started) return;
-  const data = { tips: game.tips || {}, braziers: (L.braziers || []).map(b2 => b2.lit), crestsGot: game.crestsGot || {}, pennants: pennantMeshes.map(p => p.got), shards: shardMeshes.map(sh => sh.got), pennantCount: game.pennants || 0, shardCount: game.shards || 0, checkpoint: game.checkpoint, time: (readSlot(SLOT)?.time || 0) + game.time - (game.lastSaveTime || 0), deaths: game.deaths, campDone: !!game.campDone };
+  const data = { killsBy: game.killsBy || {}, met: game.met || {}, tips: game.tips || {}, braziers: (L.braziers || []).map(b2 => b2.lit), crestsGot: game.crestsGot || {}, pennants: pennantMeshes.map(p => p.got), shards: shardMeshes.map(sh => sh.got), pennantCount: game.pennants || 0, shardCount: game.shards || 0, checkpoint: game.checkpoint, time: (readSlot(SLOT)?.time || 0) + game.time - (game.lastSaveTime || 0), deaths: game.deaths, campDone: !!game.campDone };
   game.lastSaveTime = game.time;
   try { localStorage.setItem(slotKey(SLOT), JSON.stringify(data)); } catch (e) {}
 }
@@ -705,13 +800,13 @@ function loadSlot(i) {
   game.crestsGot = d.crestsGot || {}; game.crests = Object.keys(game.crestsGot).length;
   (d.pennants || []).forEach((got, k) => { if (got && pennantMeshes[k]) { pennantMeshes[k].got = true; pennantMeshes[k].m.visible = false; } });
   (d.shards || []).forEach((got, k) => { if (got && shardMeshes[k]) { shardMeshes[k].got = true; shardMeshes[k].m.visible = false; } });
-  game.pennants = d.pennantCount || 0; game.shards = d.shardCount || 0; game.deaths = d.deaths || 0; game.campDone = !!d.campDone; game.tips = d.tips || {};
+  game.pennants = d.pennantCount || 0; game.shards = d.shardCount || 0; game.deaths = d.deaths || 0; game.campDone = !!d.campDone; game.tips = d.tips || {}; game.killsBy = d.killsBy || {}; game.met = d.met || {};
   if (game.campDone) game.campWave = 2;
   (d.braziers || []).forEach((lit, k) => { if (lit && L.braziers && L.braziers[k] && !L.braziers[k].lit) lightBeacon(L.braziers[k]); });
   game.checkpoint = Math.min(d.checkpoint || 0, L.checkpoints.length - 1);
   const cp = L.checkpoints[game.checkpoint];
   player.body.pos.x = cp.x; player.body.pos.y = cp.y; player.body.pos.z = cp.z; player.body.syncAabb(); cam.target.set(cp.x, cp.y + 1.2, cp.z);
-  refreshHallBanners(); renderBoard();
+  refreshHallBanners(); refreshTrophies(); renderBoard();
 }
 function fmtTime(t) { const m = (t / 60) | 0, sec = (t % 60) | 0; return m + ':' + String(sec).padStart(2, '0'); }
 function buildSlots() {
@@ -809,6 +904,7 @@ if (IS_TOUCH) {
   bindBtn('tPnd', () => { touch.pnd = true; });
   bindBtn('tInteract', () => { touch.interactP = true; });
   bindBtn('tBoard', () => { showBoard(!game.boardOpen); });
+  bindBtn('tPause', () => { showMenu(!game.paused); });
 }
 let rumblePad = null;
 function rumble(strong, weak, ms) { try { if (rumblePad && rumblePad.vibrationActuator) rumblePad.vibrationActuator.playEffect('dual-rumble', { duration: ms, strongMagnitude: strong, weakMagnitude: weak }); } catch (e) {} }
@@ -975,6 +1071,8 @@ function updateTips() {
   for (const t of TIP_SPOTS) { if (game.tips && game.tips[t.key]) continue; if (Math.hypot(t.x - player.pos.x, t.z - player.pos.z) < t.r) { tipOnce(t.key, t.text); break; } }
 }
 function tryInteract() {
+  if (L.armoury && Math.hypot(L.armoury.x - player.pos.x, L.armoury.z - player.pos.z) < 2.4) { showHeraldry(true); return; }
+  if (L.lectern && Math.hypot(L.lectern.x - player.pos.x, L.lectern.z - player.pos.z) < 2.4) { showBestiary(true); return; }
   if (L.trainingPost && Math.hypot(L.trainingPost.x - player.pos.x, L.trainingPost.z - player.pos.z) < 2.6) {
     game.trainingOn = true; game.trainStep = 0; game.trainHits = 0; game.trainBreak = false; game.trainParry = false; game.trainBop = false;
     // revive the pells for a fresh drill
@@ -1141,6 +1239,7 @@ function renderHud(dt) {
   // hp pips
   let s = ''; for (let i = 0; i < P.hp; i++) s += `<i class="${i < player.hp ? 'on' : ''}"></i>`; hud.hp.innerHTML = s;
   hud.hp.classList.toggle('low', player.hp <= 1 && !player.dead);
+  if (SET.timer) { const tm = document.getElementById('timer'); if (tm) tm.textContent = fmtTime(game.time); }
   const boss = game.enemies.find(e => e.boss && !e.dead && e.aggroed);
   hud.boss.style.display = boss ? 'block' : 'none'; if (boss) hud.bossFill.style.width = (boss.hp / boss.maxHp * 100) + '%';
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) hud.toast.classList.remove('show'); }
@@ -1156,9 +1255,11 @@ function renderHud(dt) {
   const nearBeacon = L.braziers && L.braziers.some(bz => !bz.lit && Math.hypot(bz.x - player.pos.x, bz.z - player.pos.z) < 2.4 && Math.abs(bz.y - player.pos.y) < 3);
   const nearGate = L.returnGate && Math.hypot(L.returnGate.x - player.pos.x, L.returnGate.z - player.pos.z) < 2.4;
   const nearTrain = L.trainingPost && !game.trainingOn && Math.hypot(L.trainingPost.x - player.pos.x, L.trainingPost.z - player.pos.z) < 2.6;
+  const nearArm = L.armoury && Math.hypot(L.armoury.x - player.pos.x, L.armoury.z - player.pos.z) < 2.4;
+  const nearLec = L.lectern && Math.hypot(L.lectern.x - player.pos.x, L.lectern.z - player.pos.z) < 2.4;
   const nearTable = L.warTable && Math.hypot(L.warTable.x - player.pos.x, L.warTable.z - player.pos.z) < 2.8;
-  hud.prompt.textContent = near ? 'E \u2014 KICK THE LADDER' : nearTable ? 'E \u2014 THE WAR TABLE' : nearBeacon ? 'E \u2014 RELIGHT THE BEACON' : nearGate ? 'E \u2014 RETURN TO PENNANT VALE' : nearTrain ? 'E \u2014 BEGIN THE DRILL' : 'E \u2014 RACE THE SQUIRE';
-  hud.prompt.style.display = (near || nearSquire || nearTable || nearBeacon || nearGate || nearTrain) ? 'block' : 'none';
+  hud.prompt.textContent = near ? 'E \u2014 KICK THE LADDER' : nearTable ? 'E \u2014 THE WAR TABLE' : nearBeacon ? 'E \u2014 RELIGHT THE BEACON' : nearGate ? 'E \u2014 RETURN TO PENNANT VALE' : nearTrain ? 'E \u2014 BEGIN THE DRILL' : nearArm ? 'E \u2014 THE ARMOURY' : nearLec ? 'E \u2014 THE BESTIARY' : 'E \u2014 RACE THE SQUIRE';
+  hud.prompt.style.display = (near || nearSquire || nearTable || nearBeacon || nearGate || nearTrain || nearArm || nearLec) ? 'block' : 'none';
   { const ti = document.getElementById('tInteract'); if (ti) ti.style.display = (IS_TOUCH && (near || nearSquire || nearTable || nearBeacon || nearGate)) ? 'flex' : 'none'; }
   hud.alt.textContent = 'ALT ' + player.pos.y.toFixed(0) + 'm';
   // objective + off-screen marker
@@ -1217,7 +1318,7 @@ function crestGet(key) {
   el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 3400);
   const cc = document.getElementById('crests'); cc.classList.remove('pop'); void cc.offsetWidth; cc.classList.add('pop');
   audio.play('crestget');
-  renderBoard(); refreshHallBanners(); say(CREST_LINES[key] || '');
+  renderBoard(); refreshHallBanners(); refreshTrophies(); say(CREST_LINES[key] || '');
 }
 const CREST_LINES = VALE === 2 ? {
   captain: 'The Marshal falls. The moor exhales.',

@@ -369,6 +369,25 @@ export function buildLevel(world) {
     block(hx, 0, hz, 4.6, 1.1, 2.8, C.woodD); deco(hx, 1.1, hz, 4.2, 0.08, 2.4, '#caa96a');
     deco(hx - 0.9, 1.2, hz + 0.3, 0.7, 0.06, 0.5, '#66854a'); deco(hx + 0.6, 1.2, hz - 0.4, 0.5, 0.06, 0.4, '#7d7468'); deco(hx + 1.2, 1.25, hz + 0.5, 0.3, 0.12, 0.3, C.stoneL);
     L.warTable = { x: hx, y: 1.2, z: hz };
+    // the armoury stand: dress your colours
+    deco(hx + 3.5, 0, hz - 7.2, 1.3, 0.25, 1.3, C.woodD);
+    deco(hx + 3.5, 0.25, hz - 7.2, 0.24, 1.9, 0.24, C.woodD);
+    deco(hx + 3.5, 1.35, hz - 7.2, 1.2, 0.16, 0.3, C.wood);
+    deco(hx + 3.5, 0.85, hz - 7.2, 0.6, 0.55, 0.34, '#aeb4c2');
+    deco(hx + 3.5, 1.7, hz - 7.2, 0.36, 0.34, 0.36, '#aeb4c2');
+    deco(hx + 3.5, 2.0, hz - 7.25, 0.07, 0.3, 0.2, '#8a2d2d');
+    deco(hx + 2.9, 0.7, hz - 7.05, 0.44, 0.6, 0.09, '#8a2d2d'); deco(hx + 2.9, 0.7, hz - 7.0, 0.48, 0.64, 0.04, '#d8b050');
+    L.armoury = { x: hx + 3.5, y: 0.1, z: hz - 7.2 };
+    // the bestiary lectern: know your foe
+    deco(hx - 3.5, 0, hz - 7.2, 1.1, 0.22, 1.1, C.woodD);
+    deco(hx - 3.5, 0.22, hz - 7.2, 0.26, 1.1, 0.26, C.woodD);
+    deco(hx - 3.5, 1.3, hz - 7.2, 0.95, 0.14, 0.7, C.wood);
+    deco(hx - 3.5, 1.44, hz - 7.2, 0.8, 0.07, 0.55, '#e8e0c8'); deco(hx - 3.5, 1.44, hz - 7.2, 0.1, 0.09, 0.57, '#5a3a1a');
+    L.lectern = { x: hx - 3.5, y: 0.1, z: hz - 7.2 };
+    // trophy plinths flanking the hearth (main.js sets the trophies by deed)
+    deco(hx + 6.6, 0, hz - 5.6, 1.0, 1.0, 1.0, C.stoneL); deco(hx + 6.6, 1.0, hz - 5.6, 1.1, 0.1, 1.1, C.stoneD);
+    deco(hx + 6.6, 0, hz + 3.6, 1.0, 1.0, 1.0, C.stoneL); deco(hx + 6.6, 1.0, hz + 3.6, 1.1, 0.1, 1.1, C.stoneD);
+    L.trophies = [{ x: hx + 6.6, y: 1.1, z: hz - 5.6, key: 'captain' }, { x: hx + 6.6, y: 1.1, z: hz + 3.6, key: 'marshal' }];
     // fireplace on the east wall
     deco(hx + 7.4, 0, hz, 0.6, 3, 3.4, C.stoneL); deco(hx + 7.3, 0.2, hz, 0.5, 1.6, 2.2, '#1a1418'); L.torches.push({ x: hx + 7, y: 0.9, z: hz });
     brazier(hx - 6.5, 0, hz - 6.5); brazier(hx - 6.5, 0, hz + 6.5);
