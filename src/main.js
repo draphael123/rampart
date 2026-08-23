@@ -108,6 +108,24 @@ gateMesh.position.set(0, 0, -15); scene.add(gateMesh);
 // landing ring under player (iso-readability lesson: elevation needs a shadow anchor)
 const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.5, 24), new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0.6, depthWrite: false }));
 ring.rotation.x = -Math.PI / 2; scene.add(ring);
+// danger ring under whoever holds the attack token (telegraph on the floor, hue channel: amber → white)
+const dangerRing = new THREE.Mesh(new THREE.RingGeometry(0.7, 1.0, 28), new THREE.MeshBasicMaterial({ color: '#ff9a2a', transparent: true, opacity: 0.0, depthWrite: false, blending: THREE.AdditiveBlending }));
+dangerRing.rotation.x = -Math.PI / 2; scene.add(dangerRing);
+// floating combat text
+const floatPool = [];
+function floatText(pos, text, cls = '') {
+  let f = floatPool.find(x => !x.alive);
+  if (!f) { f = { el: document.createElement('div'), alive: false }; f.el.className = 'ftext'; document.body.appendChild(f.el); floatPool.push(f); }
+  f.alive = true; f.t = 0; f.pos = { x: pos.x, y: pos.y, z: pos.z }; f.el.textContent = text; f.el.className = 'ftext ' + cls; f.el.style.display = 'block';
+}
+function updateFloatText(dt) {
+  for (const f of floatPool) {
+    if (!f.alive) continue; f.t += dt; if (f.t > 0.9) { f.alive = false; f.el.style.display = 'none'; continue; }
+    const v = new THREE.Vector3(f.pos.x, f.pos.y + f.t * 1.4, f.pos.z).project(camera);
+    if (v.z > 1) { f.el.style.display = 'none'; continue; } f.el.style.display = 'block';
+    f.el.style.left = ((v.x + 1) / 2 * innerWidth) + 'px'; f.el.style.top = ((1 - v.y) / 2 * innerHeight) + 'px'; f.el.style.opacity = f.t < 0.6 ? 1 : (0.9 - f.t) / 0.3;
+  }
+}
 
 // ------------------------------------------------------------------ game
 const audio = new Audio(); const music = new Music(audio);
@@ -124,13 +142,14 @@ const game = {
       if (r === 'dup') continue;
       any = true;
       const hp = { x: e.pos.x, y: e.pos.y + 1.1, z: e.pos.z };
-      if (r === 'guard') { this.fx('clank', hp); audio.play('clank'); this.player.body.vel.x *= -0.3; this.player.body.vel.z *= -0.3; }
-      else if (r === 'guardbreak') { this.fx('break', hp); audio.play('break'); cam.shake = 0.6; this.hitstop = 0.07; }
+      if (r === 'guard') { this.fx('clank', hp); audio.play('clank'); floatText(hp, 'GUARDED', 'dim'); this.player.body.vel.x *= -0.3; this.player.body.vel.z *= -0.3; }
+      else if (r === 'guardbreak') { this.fx('break', hp); audio.play('break'); floatText(hp, 'GUARD BREAK', 'big'); cam.shake = 0.6; this.hitstop = 0.07; }
       else {
         spawnFx('hit', hp, box.kind === 'heavy' ? 18 : 10, this.player.fwd()); audio.play(box.kind === 'heavy' ? 'heavyhit' : 'hit');
         this.hitstop = box.kind === 'heavy' ? 0.09 : (box.kind === 'light' && this.player.combo === 2 ? 0.07 : 0.045);
         cam.shake = Math.max(cam.shake, box.kind === 'heavy' ? 0.55 : 0.22); cam.punch = box.kind === 'heavy' ? 0.5 : 0.25;
-        e.hitFlash = 0.1; this.player.stats.hitsLanded++;
+        e.hitFlash = 0.1; this.player.stats.hitsLanded++; floatText(hp, String(box.dmg), box.kind === 'heavy' ? 'big' : '');
+        if (r === 'dead') { e.body.vel.x = -(this.player.pos.x - e.pos.x) * 3; e.body.vel.z = -(this.player.pos.z - e.pos.z) * 3; e.body.vel.y = 6; }
         if (r === 'dead') { this.slowmo = 0.28; cam.shake = Math.max(cam.shake, 0.5); this.fx('die', hp); }
       }
     }
@@ -186,10 +205,10 @@ const game = {
     if (p.dead || !overlap(box, p.body.aabb)) return;
     const r = p.takeHit(dmg, e.pos, opts);
     const hp = { x: p.pos.x, y: p.pos.y + 1.1, z: p.pos.z };
-    if (r === 'hit') { this.fx('hurt', hp); audio.play('hurt'); cam.shake = 0.7; this.hitstop = 0.06; this.vignette = 1; }
-    else if (r === 'blocked') { this.fx('clank', hp); audio.play('clank'); cam.shake = 0.2; }
+    if (r === 'hit') { this.fx('hurt', hp); audio.play('hurt'); cam.shake = 0.7; this.hitstop = 0.06; this.vignette = 1; floatText(hp, '-' + dmg, 'hurt'); }
+    else if (r === 'blocked') { this.fx('clank', hp); audio.play('clank'); cam.shake = 0.2; floatText(hp, 'BLOCKED', 'dim'); }
     else if (r === 'parried') {
-      this.fx('parry', hp); audio.play('parry'); cam.shake = 0.4; this.hitstop = 0.14; this.flash = 0.6; this.slowmo = 0.2;
+      this.fx('parry', hp); audio.play('parry'); cam.shake = 0.4; this.hitstop = 0.14; this.flash = 0.6; this.slowmo = 0.2; floatText(hp, 'PARRY', 'big gold');
       e.stun = 1.4; e.guardUp = false; e.state = 'flinch'; e.t = 0; e.telegraph = 0; this.releaseAttackToken(e);
       e.body.vel.x = (e.pos.x - p.pos.x) * 3; e.body.vel.z = (e.pos.z - p.pos.z) * 3;
     }
@@ -375,7 +394,7 @@ function step(dt, inp) {
   player.events.length = 0;
   // enemies
   for (const e of game.enemies) {
-    if (e.dead) { e.deathT += dt; continue; }
+    if (e.dead) { e.deathT += dt; if (e.deathT < 1.0) { e.body.vel.y -= 32 * dt; e.body.vel.x *= 0.97; e.body.vel.z *= 0.97; e.body.move(world, e.body.vel.x * dt, e.body.vel.y * dt, e.body.vel.z * dt); } continue; }
     if (game.noEnemies) continue;
     // wake-up radius only matters in 3D distance; also skip far ones for perf
     const d = Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z, (e.pos.y - player.pos.y) * 0.5);
@@ -469,7 +488,8 @@ function animateRig(rig, ent, dt, isPlayer) {
   const ph = isPlayer ? runPhase : ent.runPhase;
   const leg = moving ? Math.sin(ph) * 0.8 : (b.grounded ? 0 : 0.45);
   u.legL.rotation.x = leg; u.legR.rotation.x = -leg;
-  u.torso.position.y = moving ? Math.abs(Math.sin(ph)) * 0.06 : 0;
+  u.torso.position.y = moving ? Math.abs(Math.sin(ph)) * 0.06 : Math.sin(game.time * 2.2 + (isPlayer ? 0 : ent.id)) * 0.015;
+  if (!moving && b.grounded) { u.armR.rotation.z = Math.sin(game.time * 2.2) * 0.03; }
   u.head.position.y = 1.55 + u.torso.position.y;
   // defaults
   let armR = moving ? -Math.sin(ph) * 0.4 : 0, armL = moving ? Math.sin(ph) * 0.4 : 0, armRy = 0, armRz = 0, lean = 0, shieldUp = 0;
@@ -505,7 +525,7 @@ function animateRig(rig, ent, dt, isPlayer) {
     // hurt flash
     playerMat.emissive.set(ent.state === S.HURT ? '#ff3030' : (ent.iframes > 0 && ent.state === S.DASH ? '#80c0ff' : '#000000'));
   } else {
-    if (ent.dead) { const k = Math.min(1, ent.deathT * 2.2); rig.rotation.x = -Math.PI / 2 * k; rig.rotation.z = 0.3 * k; rig.position.y -= Math.max(0, ent.deathT - 0.6) * 1.2; u.mat.emissive.set('#000'); u.mat.transparent = true; u.mat.opacity = Math.max(0, 1 - Math.max(0, ent.deathT - 0.7) * 1.6); }
+    if (ent.dead) { const k = Math.min(1, ent.deathT * 2.2); rig.rotation.x = -Math.PI / 2 * k; rig.rotation.z = 0.3 * k; rig.rotation.y = ent.facing + ent.deathT * 5; rig.position.y -= Math.max(0, ent.deathT - 0.6) * 1.2; u.mat.emissive.set('#000'); u.mat.transparent = true; u.mat.opacity = Math.max(0, 1 - Math.max(0, ent.deathT - 0.7) * 1.6); }
     else {
       rig.rotation.x = 0;
       if (st === 'slamwind') { armR = -2.8; armL = -2.8; lean = -0.35; }
@@ -637,7 +657,13 @@ function render(dt) {
     if (!b.mesh) { b.mesh = boxesMesh([{ x: 0, y: 0, z: 0, w: 0.06, h: 0.06, d: 0.7, c: '#d8c8a0' }, { x: 0, y: 0, z: 0.33, w: 0.1, h: 0.1, d: 0.08, c: '#3a3d44' }], { shadow: false }); scene.add(b.mesh); }
     b.mesh.position.set(b.pos.x, b.pos.y, b.pos.z); b.mesh.lookAt(b.pos.x + b.vel.x, b.pos.y + b.vel.y, b.pos.z + b.vel.z);
   }
-  updateFx(dt);
+  updateFx(dt); updateFloatText(dt);
+  // danger ring under the foe that's winding up
+  { const a = game.attackToken; const show = a && !a.dead && (a.state === 'windup' || a.state === 'slamwind' || a.state === 'swing' || a.state === 'slam'); dangerRing.material.opacity = show ? 0.55 + 0.3 * Math.sin(game.time * 18) : 0; if (show) { dangerRing.position.set(a.pos.x, a.pos.y + 0.04, a.pos.z); const r = a.state === 'slamwind' || a.state === 'slam' ? (a.cfg.slam ? a.cfg.slam.radius : 2) : (a.cfg.reach + 0.3) * 0.9; dangerRing.scale.setScalar(r); dangerRing.material.color.set(a.state === 'swing' || a.state === 'slam' ? '#fff6d0' : (a.telegraph > 0.75 ? '#ff4a2a' : '#ff9a2a')); } }
+  // fog grading: higher = clearer and cooler
+  { const h = Math.max(0, Math.min(1, (player.pos.y - 5) / 45)); scene.fog.near = 40 + h * 40; scene.fog.far = 140 + h * 80; scene.fog.color.setRGB(0.23 + 0.04 * h, 0.16 + 0.06 * h, 0.21 + 0.12 * h); }
+  // low-hp heartbeat
+  if (player.hp <= 2 && !player.dead && game.started && !game.won) { game.heart = (game.heart || 0) + dt; if (game.heart > 1.1) { game.heart = 0; audio.play('heart'); } }
   // landing ring: project down to the first surface
   const h = world.raycast({ x: player.pos.x, y: player.pos.y + 0.05, z: player.pos.z }, { x: 0, y: -1, z: 0 }, 60, b => b.tag !== 'field');
   if (h) { ring.position.set(player.pos.x, player.pos.y + 0.05 - h.t + 0.02, player.pos.z); ring.visible = !player.body.grounded; ring.material.opacity = Math.max(0.2, 0.8 - h.t * 0.03); ring.scale.setScalar(1 + Math.min(1.5, h.t * 0.08)); } else ring.visible = false;

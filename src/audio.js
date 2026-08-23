@@ -22,6 +22,7 @@ export class Audio {
     const now = performance.now(); if (this.last[name] && now - this.last[name] < 40) return; this.last[name] = now;
     switch (name) {
       case 'jump': this.tone(300, 620, 0.12, 'square', 0.12); break;
+      case 'heart': this.tone(70, 50, 0.12, 'sine', 0.25); this.tone(60, 45, 0.1, 'sine', 0.18, 0.18); break;
       case 'step': this.noise(0.05, 0.05, 600); break;
       case 'land': this.noise(0.09, 0.12, 300); this.tone(120, 60, 0.08, 'sine', 0.1); break;
       case 'djump': this.tone(420, 900, 0.14, 'square', 0.12); this.noise(0.08, 0.05, 2000); break;
@@ -66,6 +67,9 @@ export class Music {
     this.lp = lp;
     this.droneGain.gain.linearRampToValueAtTime(0.5, c.currentTime + 3);
     this.drumGain = c.createGain(); this.drumGain.gain.value = 0; this.drumGain.connect(this.bus);
+    // wind: looped noise through a slowly wandering bandpass
+    { const n = c.sampleRate * 4; const buf = c.createBuffer(1, n, c.sampleRate); const d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      const src = c.createBufferSource(); src.buffer = buf; src.loop = true; const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.6; const g = c.createGain(); g.gain.value = 0.05; src.connect(bp); bp.connect(g); g.connect(this.a.master); src.start(); this.wind = { bp, g }; }
     this.t0 = c.currentTime; this.next = c.currentTime + 0.1;
   }
   kick(t, g = 1) { const c = this.a.ctx; const o = c.createOscillator(), gn = c.createGain(); o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(38, t + 0.25); gn.gain.setValueAtTime(0.9 * g, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.45); o.connect(gn); gn.connect(this.drumGain); o.start(t); o.stop(t + 0.5); }
@@ -77,6 +81,7 @@ export class Music {
     this.target = intensity;
     this.intensity += (this.target - this.intensity) * Math.min(1, dt * (this.target > this.intensity ? 3 : 0.5));
     this.drumGain.gain.value = 0.15 + 0.85 * this.intensity;
+    if (this.wind) { const t = c.currentTime; this.wind.bp.frequency.value = 420 + Math.sin(t * 0.23) * 180 + Math.sin(t * 0.61) * 90; this.wind.g.gain.value = 0.035 + 0.025 * (0.5 + 0.5 * Math.sin(t * 0.17)); }
     this.lp.frequency.value = 180 + 500 * this.intensity;
     // schedule a bar ahead
     const bpm = 96; const spb = 60 / bpm;

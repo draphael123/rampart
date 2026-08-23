@@ -101,6 +101,11 @@ export function buildLevel(world) {
   // ---------------- ZONE A: COURTYARD ----------------
   block(0, -2, 10, 60, 2, 48, C.ground); deco(0, -0.01, 10, 60, 0.02, 48, C.ground);
   deco(-6, 0.0, 4, 6, 0.03, 5, C.dirt); deco(9, 0.0, 14, 7, 0.03, 4, C.dirt);
+  // stone courses (mortar lines) on the curtain wall's inner face and the keep; scorch marks from the siege
+  for (let yy = 1.2; yy < 6.2; yy += 1.25) deco(0, yy, 29.98, 62, 0.08, 0.04, '#4e4a44');
+  for (let yy = 1.5; yy < 9; yy += 1.6) { deco(-29.98, yy, 10, 0.04, 0.08, 52, '#4e4a44'); deco(29.98, yy, 10, 0.04, 0.08, 52, '#4e4a44'); }
+  for (const [sx, sz, sw] of [[-16, 29.95, 3], [9, 29.95, 2.4], [22, 29.95, 3.5]]) { deco(sx, 0, sz, sw, 2.6 + rnd() * 1.5, 0.06, '#2a2220'); deco(sx + 0.4, 0, sz - 0.01, sw * 0.5, 1.2, 0.06, '#1a1412'); }
+  for (let i = 0; i < 6; i++) deco(-29.95, 1 + rnd() * 5, -10 + rnd() * 36, 0.06, 0.12 + rnd() * 2, 0.12, '#2a2622');
   // cobbled road from gate to gate, worn patches, grass tufts
   for (let z = -13; z < 29; z += 1.1) for (let x = -2.2; x <= 2.2; x += 1.1) deco(x + (rnd() - 0.5) * 0.2, 0.0, z + (rnd() - 0.5) * 0.2, 1.0, 0.04 + rnd() * 0.03, 1.0, rnd() < 0.5 ? '#7a7468' : '#6e6a5e');
   for (let z = 2; z < 24; z += 1.1) for (let x = 3.3; x <= 24; x += 1.1) { if (rnd() < 0.25) continue; deco(x, 0.0, z, 1.0, 0.035, 1.0, rnd() < 0.5 ? '#756f62' : '#6a665a'); if (z > 4 && z < 6 && x > 22) {} }
