@@ -102,6 +102,7 @@ export function gruntRig(kind = 'grunt') {
     pell: { armor: '#8a6a3a', trim: '#5a3a1a', cloth: '#6a4a2a', skin: '#8a6a3a', steel: '#6a4a2a', shield: '#6a4a2a' },
     pellshield: { armor: '#8a6a3a', trim: '#5a3a1a', cloth: '#6a4a2a', skin: '#8a6a3a', steel: '#6a4a2a', shield: '#4a5a7a' },
     drill: { armor: '#6a6a5a', trim: '#3a3a2a', cloth: '#4a5a3e', skin: '#c9a07a', steel: '#b9bec6', shield: '#4a3a2a' },
+    defender: { armor: '#8d94a3', trim: '#c9a24a', cloth: '#7a2d2d', skin: '#e2b48c', steel: '#d8dde5', shield: '#7a2d2d' },
     drillbow: { armor: '#6a6a5a', trim: '#3a3a2a', cloth: '#5a4a3e', skin: '#c9a07a', steel: '#b9bec6', shield: '#4a3a2a' },
   }[kind];
   const g = knightRig(pal);
@@ -109,7 +110,7 @@ export function gruntRig(kind = 'grunt') {
     g.userData.shield.scale.set(1.5, 1.4, 1);
     g.userData.shield.position.y = 0.05;
   }
-  if (kind === 'crossbow' || kind === 'drillbow') {
+  if (kind === 'crossbow' || kind === 'drillbow' || kind === 'defender') {
     g.userData.sword.visible = false;
     g.userData.shield.visible = false;
     const xbow = boxesMesh([

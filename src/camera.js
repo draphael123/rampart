@@ -63,7 +63,7 @@ export class ChaseCam {
     const d = { x: dir.x, y: dir.y, z: dir.z };
     let want = this.dist;
     const hit = this.world.raycast(o, d, this.dist, b => b.tag !== 'field');
-    if (hit) want = Math.max(1.2, hit.t - 0.35);
+    if (hit) want = Math.max(1.0, hit.t - 0.55);
     // pull in fast, push out slow
     this.curDist += (want - this.curDist) * Math.min(1, (want < this.curDist ? 20 : 3) * dt);
     if (this.punch > 0) this.punch = Math.max(0, this.punch - dt * 4);

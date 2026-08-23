@@ -11,6 +11,7 @@ export const E = {
   pell:     { hp: 3, speed: 0, windup: 9, swing: 0.1, recover: 9, dmg: 0, reach: 0, aggro: 0, stop: 0, passive: true },
   pellshield: { hp: 3, speed: 0, windup: 9, swing: 0.1, recover: 9, dmg: 0, reach: 0, aggro: 0, stop: 0, passive: true, guardBreak: 2.0 },
   drill:    { hp: 4, speed: 2.4, windup: 1.1, swing: 0.2, recover: 1.4, dmg: 1, reach: 1.6, aggro: 9, stop: 1.3 },
+  defender: { hp: 99, speed: 0, windup: 9, swing: 0.1, recover: 9, dmg: 0, reach: 0, aggro: 0, stop: 0, passive: true, friendly: true },
   drillbow: { hp: 1, speed: 0, windup: 1.4, swing: 0.1, recover: 2.4, dmg: 1, reach: 14, aggro: 12, stop: 0, boltSpeed: 9, bow: true },
 };
 
@@ -169,6 +170,7 @@ export class Enemy {
   // returns 'guard' | 'hit' | 'dead'
   takeHit(dmg, fromPos, opts = {}) {
     if (this.dead) return 'dead';
+    if (this.cfg.friendly) return 'dup';
     if (opts.once) { if (this.hitIds.has(opts.once)) return 'dup'; this.hitIds.add(opts.once); }
     const dx = fromPos.x - this.pos.x, dz = fromPos.z - this.pos.z;
     const len = Math.hypot(dx, dz) || 1;

@@ -13,11 +13,23 @@ export function buildLevel(world) {
   const stat = L.static;
 
   // block: adds both a collision box and a render box (centre x,z; bottom y)
+  // per-box colour jitter so big stone faces don't read as flat paint
+  let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const jit = (c) => { if (typeof c !== 'string' || !c.startsWith('#') || c.length !== 7) return c; const k = 0.93 + rnd() * 0.14; const n = parseInt(c.slice(1), 16); const r = Math.min(255, ((n >> 16) & 255) * k) | 0, g = Math.min(255, ((n >> 8) & 255) * k) | 0, b = Math.min(255, (n & 255) * k) | 0; return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0'); };
   const block = (x, y, z, w, h, d, c, opts = {}) => {
     if (!opts.noCollide) world.add(new Box(x, y, z, w, h, d, opts));
-    stat.push({ x, y: y + h / 2, z, w, h, d, c });
+    stat.push({ x, y: y + h / 2, z, w, h, d, c: jit(c) });
   };
-  const deco = (x, y, z, w, h, d, c) => stat.push({ x, y: y + h / 2, z, w, h, d, c });
+  const deco = (x, y, z, w, h, d, c) => stat.push({ x, y: y + h / 2, z, w, h, d, c: jit(c) });
+  // little prop kits
+  const crate = (x, y, z, s = 1.1) => block(x, y, z, s, s, s, rnd() < 0.5 ? C.wood : C.woodD);
+  const barrel = (x, y, z) => { block(x, y, z, 0.9, 1.1, 0.9, C.wood); deco(x, y + 0.3, z, 0.96, 0.08, 0.96, C.iron); deco(x, y + 0.75, z, 0.96, 0.08, 0.96, C.iron); };
+  const hay = (x, y, z) => block(x, y, z, 1.3, 0.9, 1.1, '#b89a4a');
+  const brazier = (x, y, z) => { deco(x, y, z, 0.7, 0.9, 0.7, C.iron); deco(x, y + 0.9, z, 0.9, 0.25, 0.9, C.iron); L.torches.push({ x, y: y + 1.25, z }); };
+  const arrows = (x, y, z, n = 4) => { for (let i = 0; i < n; i++) deco(x + (rnd() - 0.5) * 1.4, y, z + (rnd() - 0.5) * 1.4, 0.06, 0.7 + rnd() * 0.3, 0.06, C.woodD); };
+  const rubble = (x, y, z, n = 5) => { for (let i = 0; i < n; i++) deco(x + (rnd() - 0.5) * 2.2, y, z + (rnd() - 0.5) * 2.2, 0.3 + rnd() * 0.5, 0.2 + rnd() * 0.4, 0.3 + rnd() * 0.5, rnd() < 0.5 ? C.stoneD : C.stone); };
+  const puddle = (x, z, w, d) => deco(x, 0.005, z, w, 0.01, d, '#3a3340');
+  const slits = (x, y, z, n, dx, dz) => { for (let i = 0; i < n; i++) deco(x + dx * i, y, z + dz * i, dx ? 0.3 : 0.06, 1.4, dz ? 0.3 : 0.06, '#1a1418'); };
   const crenels = (x0, x1, y, z, c = C.stoneL) => { for (let x = x0; x <= x1; x += 2) block(x, y, z, 0.9, 0.7, 0.7, c); };
   const stairs = (x, y, z, dir, steps, rise = 0.4, run = 0.7, width = 3, c = C.stone) => {
     for (let i = 0; i < steps; i++) {
@@ -89,6 +101,11 @@ export function buildLevel(world) {
   // ---------------- ZONE A: COURTYARD ----------------
   block(0, -2, 10, 60, 2, 48, C.ground); deco(0, -0.01, 10, 60, 0.02, 48, C.ground);
   deco(-6, 0.0, 4, 6, 0.03, 5, C.dirt); deco(9, 0.0, 14, 7, 0.03, 4, C.dirt);
+  // cobbled road from gate to gate, worn patches, grass tufts
+  for (let z = -13; z < 29; z += 1.1) for (let x = -2.2; x <= 2.2; x += 1.1) deco(x + (rnd() - 0.5) * 0.2, 0.0, z + (rnd() - 0.5) * 0.2, 1.0, 0.04 + rnd() * 0.03, 1.0, rnd() < 0.5 ? '#7a7468' : '#6e6a5e');
+  for (let z = 2; z < 24; z += 1.1) for (let x = 3.3; x <= 24; x += 1.1) { if (rnd() < 0.25) continue; deco(x, 0.0, z, 1.0, 0.035, 1.0, rnd() < 0.5 ? '#756f62' : '#6a665a'); if (z > 4 && z < 6 && x > 22) {} }
+  for (let i = 0; i < 26; i++) { const gx = -28 + rnd() * 56, gz = -12 + rnd() * 40; if (Math.abs(gx) < 3) continue; deco(gx, 0, gz, 0.25, 0.22 + rnd() * 0.2, 0.25, rnd() < 0.5 ? '#5f7a3a' : '#4e6a30'); deco(gx + 0.3, 0, gz + 0.2, 0.2, 0.18, 0.2, '#5a7236'); }
+  for (let i = 0; i < 9; i++) { const gx = -26 + rnd() * 52, gz = -12 + rnd() * 40; deco(gx, 0.0, gz, 2 + rnd() * 4, 0.025, 1.5 + rnd() * 3, rnd() < 0.5 ? C.dirt : '#615f48'); }
   block(-17, 0, -15, 28, 10, 2, C.stoneD); block(17, 0, -15, 28, 10, 2, C.stoneD); block(-31, 0, 10, 2, 12, 52, C.stoneD); block(31, 0, 10, 2, 12, 52, C.stoneD);
   block(0, 0, 32, 62, 6.5, 4, C.stone); deco(0, 0, 30.01, 62, 6.5, 0.02, C.stoneD);
   deco(0, 0, 29.9, 4, 5, 0.3, C.iron); deco(0, 5, 29.9, 6, 1, 0.3, C.stoneL);
@@ -99,7 +116,28 @@ export function buildLevel(world) {
   block(-14, 0, 14, 2.4, 1.0, 2.4, C.stoneL); deco(-14, 1.0, 14, 1.6, 0.2, 1.6, C.iron);
   deco(-14.9, 1, 14, 0.2, 2.2, 0.2, C.wood); deco(-13.1, 1, 14, 0.2, 2.2, 0.2, C.wood); deco(-14, 3.1, 14, 2.4, 0.3, 1.2, C.roof);
   block(4, 0, 20, 3, 0.9, 1.6, C.woodD); deco(2.6, 0.1, 20, 0.3, 1.2, 1.2, C.iron); deco(5.4, 0.1, 20, 0.3, 1.2, 1.2, C.iron);
-  for (const [bx, bz] of [[-3, 24], [-4.2, 24.4], [-3.4, 25.5], [20, 3], [21.2, 3.6]]) block(bx, 0, bz, 0.9, 1.1, 0.9, C.wood);
+  for (const [bx, bz] of [[-3, 24], [-4.2, 24.4], [-3.4, 25.5], [20, 3], [21.2, 3.6]]) barrel(bx, 0, bz);
+  // LIVED-IN: the courtyard is a garrison mid-siege
+  hay(-20, 0, 2); hay(-21.3, 0, 2.4); hay(-20.6, 0.9, 2.2);
+  crate(-24, 0, 8); crate(-24, 1.1, 8, 0.9); crate(-22.8, 0, 8.6); barrel(-25.5, 0, 10);
+  // smithy stall against the west wall
+  deco(-27.5, 0, 18, 0.25, 3.2, 0.25, C.wood); deco(-23.5, 0, 18, 0.25, 3.2, 0.25, C.wood); deco(-27.5, 0, 22, 0.25, 3.2, 0.25, C.wood); deco(-23.5, 0, 22, 0.25, 3.2, 0.25, C.wood);
+  deco(-25.5, 3.2, 20, 4.8, 0.3, 4.8, C.roof); deco(-25.5, 0, 20, 1.2, 0.9, 0.8, C.iron); deco(-25.5, 0.9, 20, 0.5, 0.3, 0.4, C.iron); brazier(-27, 0, 21);
+  deco(-24, 0, 19, 0.2, 1.8, 2.4, C.wood); for (let i = 0; i < 3; i++) deco(-24, 0.3, 18.2 + i * 0.8, 0.1, 1.4, 0.12, C.steel);
+  // sandbags and a fallen ladder by the gate, arrows stuck in the ground
+  for (let i = 0; i < 5; i++) deco(-6 + i * 1.1, 0, 27.5, 1.1, 0.5, 0.7, '#7a6a4a'); for (let i = 0; i < 4; i++) deco(-5.5 + i * 1.1, 0.5, 27.5, 1.1, 0.5, 0.7, '#8a7a5a');
+  deco(14, 0.1, 25, 0.9, 0.14, 7, C.woodD); for (let i = 0; i < 9; i++) deco(14, 0.2, 22 + i * 0.7, 0.8, 0.08, 0.1, C.wood);
+  arrows(4, 0, 8, 6); arrows(-9, 0, 20, 5); arrows(18, 0, 14, 4);
+  rubble(22, 0, 26, 7); rubble(-19, 0, 26, 6); puddle(-8, 12, 4, 3); puddle(16, 2, 3, 2.2);
+  brazier(-12, 0, 0); brazier(12, 0, 0);
+  // a broken siege ladder leaning on the inside of the east wall, a dead cart
+  deco(28.5, 0, 14, 0.25, 6, 0.25, C.wood); deco(29.5, 0, 14, 0.25, 6, 0.25, C.wood); for (let i = 0; i < 8; i++) deco(29, 0.5 + i * 0.7, 14, 1.0, 0.08, 0.12, C.woodD);
+  block(-16, 0, -6, 3, 0.9, 1.6, C.woodD); deco(-17.4, 0.1, -6, 0.3, 1.2, 1.2, C.iron); deco(-14.6, 0.1, -6, 0.3, 1.2, 1.2, C.iron); hay(-16, 0.9, -6);
+  // arrow slits and a roof on the gatehouse
+  slits(-24, 3.5, 29.9, 5, 4, 0); slits(8, 3.5, 29.9, 5, 4, 0); slits(-30.05, 4, -6, 6, 0, 5); slits(30.05, 4, -6, 6, 0, 5);
+  // gatehouse: an arch over the walk (piers have collision, the walk passes under)
+  block(0, 8, 30.35, 1.6, 3.2, 0.7, C.stoneL); block(0, 8, 33.75, 1.6, 3.2, 0.7, C.stoneL);
+  block(0, 11.2, 32, 2.2, 0.8, 4.6, C.stoneL); deco(0, 12, 32, 6.4, 1, 3.8, C.roof); deco(0, 13, 32, 4.4, 1, 2.6, C.roof); deco(0, 14, 32, 2.2, 0.9, 1.4, C.roof); deco(0, 14.9, 32, 0.3, 2, 0.3, C.wood); deco(0.7, 15.9, 32, 1.4, 0.9, 0.06, C.banner);
   stairs(26, 0, 4, { x: 0, z: 1 }, 20, 0.4, 0.8, 3.2);
   block(26, 7.6, 21.5, 3.2, 0.4, 4, C.stone);
   block(26, 7.6, 28.5, 3.2, 0.4, 3, C.stone);
@@ -130,6 +168,12 @@ export function buildLevel(world) {
   crenels(28, 32, 12, 36); crenels(28, 32, 12, 28);
   // stair up the east tower from the walk: small blocks
   block(27.5, 8, 29.2, 1.2, 1.0, 1.2, C.stone); block(28.6, 8, 29.2, 1.2, 2.0, 1.2, C.stone); block(29.7, 8, 29.2, 1.2, 3.0, 1.2, C.stone);
+  // the wall is manned: buckets, oil cauldron, rope, arrows in the boards, friendly archers
+  barrel(-24, 8, 30.9); barrel(20, 8, 30.9); deco(24, 8, 31, 0.9, 0.7, 0.9, C.iron); deco(24, 8.7, 31, 1.1, 0.2, 1.1, '#2a1a10');
+  deco(-4, 8, 31, 0.8, 0.35, 0.8, C.woodD); deco(15, 8, 33, 0.8, 0.35, 0.8, C.woodD);
+  arrows(-26, 8, 32, 5); arrows(-1, 8, 33, 4); arrows(17, 8, 31.5, 5);
+  brazier(29, 12, 30); brazier(-29, 12, 30);
+  L.spawns.push({ kind: 'defender', x: -24.5, y: 8.1, z: 33, facing: 0 }, { kind: 'defender', x: 2, y: 8.1, z: 33, facing: 0 }, { kind: 'defender', x: 24, y: 8.1, z: 33, facing: 0 }, { kind: 'defender', x: 30, y: 12.1, z: 35, facing: 0 });
   // enemies on the walk
   L.spawns.push({ kind: 'shield', x: 18, y: 8.1, z: 32 }, { kind: 'grunt', x: -18, y: 8.1, z: 32 });
   L.spawns.push({ kind: 'crossbow', x: 30, y: 12.1, z: 32, perch: true });

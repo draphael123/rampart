@@ -19,7 +19,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#2a1f2e');
 scene.fog = new THREE.Fog('#3a2a36', 40, 140);
-const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 300);
+const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 320);
 
 const hemi = new THREE.HemisphereLight('#c4a4a8', '#5a4632', 2.4); scene.add(hemi);
 scene.add(new THREE.AmbientLight('#5a4a5a', 0.5));
@@ -57,6 +57,11 @@ const softTex = (() => { const cv = document.createElement('canvas'); cv.width =
 const embers = new THREE.Points(emberGeo, new THREE.PointsMaterial({ color: '#ffb24a', size: 0.32, map: softTex, transparent: true, opacity: 0.95, sizeAttenuation: true, depthWrite: false, blending: THREE.AdditiveBlending }));
 const smoke = new THREE.Points(smokeGeo, new THREE.PointsMaterial({ color: '#3a2e34', size: 5, map: softTex, transparent: true, opacity: 0.22, sizeAttenuation: true, depthWrite: false }));
 scene.add(embers); scene.add(smoke);
+// crows circling the keep and the towers; faint stars high up
+const CROWS = 14; const crowGeo = new THREE.BufferGeometry(); const crowPos = new Float32Array(CROWS * 3); crowGeo.setAttribute('position', new THREE.BufferAttribute(crowPos, 3));
+const crows = new THREE.Points(crowGeo, new THREE.PointsMaterial({ color: '#141018', size: 0.42, sizeAttenuation: true, transparent: true, alphaTest: 0.3 })); scene.add(crows);
+crows.material.map = softTex; crows.material.needsUpdate = true;
+{ const n = 220; const sp = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, e = 0.25 + Math.random() * 1.2; sp[i * 3] = Math.cos(a) * Math.cos(e) * 250; sp[i * 3 + 1] = Math.sin(e) * 250; sp[i * 3 + 2] = Math.sin(a) * Math.cos(e) * 250; } const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(sp, 3)); scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: '#fff4e0', size: 1.1, transparent: true, opacity: 0.55, fog: false }))); }
 // ------------------------------------------------------------------ world
 const world = new World();
 const L = buildLevel(world);
@@ -79,6 +84,8 @@ for (let i = 0; i < SMOKE; i++) { const sdx = smokeSrc[i % smokeSrc.length]; smo
 smokeGeo.setAttribute('position', new THREE.BufferAttribute(smokePos, 3));
 function updateAtmos(dt) {
   const t = game.time;
+  for (let i = 0; i < CROWS; i++) { const k = i * 3; const c = i < 8 ? { x: L.tower.x, y: L.topY + 6, z: L.tower.z, r: 9 } : { x: (i % 2 ? 30 : -30), y: 15, z: 32, r: 6 }; const a = t * (0.35 + (i % 3) * 0.1) + i * 1.3; crowPos[k] = c.x + Math.cos(a) * (c.r + (i % 4)); crowPos[k + 1] = c.y + Math.sin(t * 0.9 + i) * 1.5 + (i % 3); crowPos[k + 2] = c.z + Math.sin(a) * (c.r + (i % 4)); }
+  crowGeo.attributes.position.needsUpdate = true;
   for (let i = 0; i < EMBERS; i++) { const e = emberVel[i]; e.life -= dt; const k = i * 3; emberPos[k + 1] += dt * (0.8 + (i % 5) * 0.2); emberPos[k] += Math.sin(t * 2 + i) * dt * 0.4; emberPos[k + 2] += Math.cos(t * 1.7 + i * 0.3) * dt * 0.4; if (e.life <= 0) { e.life = 1.5 + Math.random() * 2.5; emberPos[k] = e.t.x + (Math.random() - 0.5) * 0.4; emberPos[k + 1] = e.t.y; emberPos[k + 2] = e.t.z + (Math.random() - 0.5) * 0.4; } }
   emberGeo.attributes.position.needsUpdate = true;
   for (let i = 0; i < SMOKE; i++) { const k = i * 3; smokeAge[i] += dt; smokePos[k + 1] += dt * 1.4; smokePos[k] += dt * (0.6 + Math.sin(t * 0.5 + i) * 0.3); if (smokeAge[i] > 9) { const sdx = smokeSrc[i % smokeSrc.length]; smokeAge[i] = 0; smokePos[k] = sdx.x; smokePos[k + 1] = sdx.y; smokePos[k + 2] = sdx.z; } }
@@ -442,7 +449,7 @@ function toggleLock() {
   let best = null, bd = 16;
   const f = player.fwd();
   for (const e of game.enemies) {
-    if (e.dead) continue;
+    if (e.dead || e.cfg.friendly) continue;
     const dx = e.pos.x - player.pos.x, dz = e.pos.z - player.pos.z; const d = Math.hypot(dx, dz);
     if (d > 16 || Math.abs(e.pos.y - player.pos.y) > 5) continue;
     const score = d - ((dx * f.x + dz * f.z) / (d || 1)) * 4;
@@ -486,7 +493,9 @@ function animateRig(rig, ent, dt, isPlayer) {
     if (ent.squash) { ent.squash.t -= dt; const k = Math.max(0, ent.squash.t / 0.14); const s = 1 + (ent.squash.s - 1) * k; rig.scale.set(1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); if (ent.squash.t <= 0) { ent.squash = null; rig.scale.set(1, 1, 1); } }
     else if (!b.grounded) { const s = 1 + Math.max(-0.08, Math.min(0.1, b.vel.y * 0.008)); rig.scale.set(1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); }
     else rig.scale.set(1, 1, 1);
-    // footsteps
+    // fade the knight when the camera is pulled in tight so it never fills the screen
+  { const cd = cam.curDist; const fade = cd < 2.6 ? Math.max(0, (cd - 1.2) / 1.4) : 1; playerMat.transparent = fade < 1; playerMat.opacity = fade; playerMat.depthWrite = fade > 0.5; }
+  // footsteps
     if (moving) { const ph2 = Math.floor(ph / Math.PI); if (ph2 !== ent.lastStep) { ent.lastStep = ph2; audio.play('step'); if (sp > 5) spawnFx('dust', { x: b.pos.x, y: b.pos.y, z: b.pos.z }, 2); } }
     ent.landVy = b.grounded ? 0 : b.vel.y;
     // sword trail during hit windows
@@ -507,6 +516,7 @@ function animateRig(rig, ent, dt, isPlayer) {
       else if (st === 'flinch') { lean = -0.3; armR = -0.5; }
       else if (st === 'climb') { const c = Math.sin(game.time * 8); u.legL.rotation.x = c * 0.8; u.legR.rotation.x = -c * 0.8; armR = -2.2 + c * 0.4; armL = -2.2 - c * 0.4; }
       if (ent.kind === 'crossbow' && st !== 'windup' && st !== 'swing') { armR = -1.2; }
+      if (ent.cfg.friendly) { const cyc = (game.time * 0.5 + ent.id * 0.37) % 1; armR = cyc < 0.6 ? -1.3 - cyc * 0.4 : -1.0; lean = cyc < 0.6 ? -0.1 : 0.15; if (cyc > 0.6 && cyc < 0.62 && !ent.shotThis) { ent.shotThis = true; spawnFx('boltstick', { x: b.pos.x, y: b.pos.y + 1.4, z: b.pos.z + 0.6 }, 2, { x: 0, z: 1 }); } if (cyc < 0.5) ent.shotThis = false; rig.rotation.y = ent.facing + Math.sin(game.time * 0.3 + ent.id) * 0.25; }
       if (ent.guardUp && ent.stun <= 0 && st !== 'climb') shieldUp = 1;
       if (ent.stun > 0) { lean = 0.3; shieldUp = 0; armL = 0.8; u.head.rotation.z = Math.sin(game.time * 12) * 0.2; } else u.head.rotation.z = 0;
       // telegraph is a colour channel: grey → amber → white flash on swing
@@ -562,7 +572,7 @@ function renderHud(dt) {
   if (Math.abs(camera.fov - wantFov) > 0.05) { camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 14); camera.updateProjectionMatrix(); }
   // enemy health bars
   for (const e of game.enemies) {
-    const show = !e.dead && (e.aggroed || e.hp < e.maxHp);
+    const show = !e.dead && !e.cfg.friendly && (e.aggroed || e.hp < e.maxHp);
     if (!show) { if (e.bar) e.bar.style.display = 'none'; continue; }
     if (!e.bar) { e.bar = document.createElement('div'); e.bar.className = 'ebar'; e.bar.innerHTML = '<div></div>'; document.body.appendChild(e.bar); }
     const p = new THREE.Vector3(e.pos.x, e.pos.y + 2.1 * e.scale, e.pos.z).project(camera);
