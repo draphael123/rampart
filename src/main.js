@@ -9,10 +9,17 @@ import { Audio, Music } from './audio.js';
 
 const FIXED = 1 / 120;
 
+// ---------------- settings (persisted) ----------------
+const SETTINGS_DEFAULT = { volume: 0.5, music: 0.35, sens: 1.0, invertY: false, shake: true, fov: 62, shadows: 'soft', pixelRatio: 1, glows: true, particles: 1, grade: 'dusk', reduceMotion: false, dmgNumbers: true };
+let SET = { ...SETTINGS_DEFAULT };
+try { Object.assign(SET, JSON.parse(localStorage.getItem('rampart_settings') || '{}')); } catch (e) {}
+function saveSettings() { try { localStorage.setItem('rampart_settings', JSON.stringify(SET)); } catch (e) {} }
+
+
 // ------------------------------------------------------------------ scene
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5) * (SET.pixelRatio || 1));
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.32;
@@ -166,11 +173,11 @@ function updatePickups(dt) {
     if (Math.hypot(cr.c.x - player.pos.x, cr.c.z - player.pos.z) < 1.6 && Math.abs(cr.c.y + 0.8 - player.pos.y) < 2.2) {
       scene.remove(cr.m); crestSpawns[key] = null;
       game.crestsGot = game.crestsGot || {}; game.crestsGot[key] = true; game.crests = Object.keys(game.crestsGot).length;
-      crestGet(key);
+      crestGet(key); saveGame();
     }
   }
-  for (const sh of shardMeshes) { if (sh.got) continue; sh.m.rotation.y += dt * 3; sh.m.position.y = sh.c.y + 0.6 + Math.sin(game.time * 2.6 + sh.c.x) * 0.1; if (Math.hypot(sh.c.x - player.pos.x, sh.c.z - player.pos.z) < 1.3 && Math.abs(sh.c.y + 0.6 - player.pos.y) < 2) { sh.got = true; sh.m.visible = false; game.shards = (game.shards || 0) + 1; audio.play('ui'); spawnFx('parry', { x: sh.c.x, y: sh.c.y + 0.6, z: sh.c.z }, 5); if (game.shards >= 30 && !(game.crestsGot || {}).shards) { game.crestsGot = game.crestsGot || {}; game.crestsGot.shards = true; game.crests = Object.keys(game.crestsGot).length; crestGet('shards'); } } }
-  for (const pn of pennantMeshes) { if (pn.got) continue; pn.m.rotation.y += dt * 2.4; if (Math.hypot(pn.c.x - player.pos.x, pn.c.z - player.pos.z) < 1.3 && Math.abs(pn.c.y + 0.8 - player.pos.y) < 2) { pn.got = true; pn.m.visible = false; game.pennants = (game.pennants || 0) + 1; audio.play('ui'); spawnFx('hit', { x: pn.c.x, y: pn.c.y + 1, z: pn.c.z }, 10); toast('Pennant ' + game.pennants + ' of 8', 1.6); if (game.pennants >= 8) { spawnCrest('pennants', L.shrine.x, L.shrine.y, L.shrine.z); toast('The shrine kindles ' + '\u2014' + ' a crest rises in the meadow', 4); } } }
+  for (const sh of shardMeshes) { if (sh.got) continue; sh.m.rotation.y += dt * 3; sh.m.position.y = sh.c.y + 0.6 + Math.sin(game.time * 2.6 + sh.c.x) * 0.1; if (Math.hypot(sh.c.x - player.pos.x, sh.c.z - player.pos.z) < 1.3 && Math.abs(sh.c.y + 0.6 - player.pos.y) < 2) { sh.got = true; sh.m.visible = false; game.shards = (game.shards || 0) + 1; audio.play('ui'); if (game.shards % 5 === 0) saveGame(); spawnFx('parry', { x: sh.c.x, y: sh.c.y + 0.6, z: sh.c.z }, 5); if (game.shards >= 30 && !(game.crestsGot || {}).shards) { game.crestsGot = game.crestsGot || {}; game.crestsGot.shards = true; game.crests = Object.keys(game.crestsGot).length; crestGet('shards'); } } }
+  for (const pn of pennantMeshes) { if (pn.got) continue; pn.m.rotation.y += dt * 2.4; if (Math.hypot(pn.c.x - player.pos.x, pn.c.z - player.pos.z) < 1.3 && Math.abs(pn.c.y + 0.8 - player.pos.y) < 2) { pn.got = true; pn.m.visible = false; game.pennants = (game.pennants || 0) + 1; audio.play('ui'); spawnFx('hit', { x: pn.c.x, y: pn.c.y + 1, z: pn.c.z }, 10); toast('Pennant ' + game.pennants + ' of 8', 1.6); saveGame(); if (game.pennants >= 8) { spawnCrest('pennants', L.shrine.x, L.shrine.y, L.shrine.z); toast('The shrine kindles ' + '\u2014' + ' a crest rises in the meadow', 4); } } }
   for (const h of heartMeshes) { h.cd = Math.max(0, h.cd - dt); h.m.visible = h.cd <= 0; if (h.cd <= 0) { h.m.rotation.y += dt * 2.4; if (player.hp < P.hp && Math.hypot(h.c.x - player.pos.x, h.c.z - player.pos.z) < 1.2 && Math.abs(h.c.y + 0.6 - player.pos.y) < 1.6) { h.cd = 30; player.hp = Math.min(P.hp, player.hp + 1); audio.play('checkpoint'); spawnFx('hurt', { x: h.c.x, y: h.c.y + 0.8, z: h.c.z }, 8); } } }
   document.getElementById('crests').textContent = '\u2726 ' + (game.crests || 0) + '/8';
   document.getElementById('pennantsHud').textContent = '\u25b8 ' + (game.pennants || 0) + '/8';
@@ -240,6 +247,7 @@ dangerRing.rotation.x = -Math.PI / 2; scene.add(dangerRing);
 // floating combat text
 const floatPool = [];
 function floatText(pos, text, cls = '') {
+  if (!SET.dmgNumbers && (cls === '' || cls === 'hurt' || cls === 'big')) return;
   let f = floatPool.find(x => !x.alive);
   if (!f) { f = { el: document.createElement('div'), alive: false }; f.el.className = 'ftext'; document.body.appendChild(f.el); floatPool.push(f); }
   f.alive = true; f.t = 0; f.pos = { x: pos.x, y: pos.y, z: pos.z }; f.el.textContent = text; f.el.className = 'ftext ' + cls; f.el.style.display = 'block';
@@ -442,7 +450,7 @@ function spawnFx(kind, pos, count, dir) {
     dust: { n: 5, c: '#9a8a6a', sp: 2, life: 0.3, s: 0.1 }, boltstick: { n: 4, c: '#d8c8a0', sp: 3, life: 0.3, s: 0.08 },
     die: { n: 20, c: '#4a4a4a', sp: 5, life: 0.7, s: 0.18 },
   }[kind] || { n: 6, c: '#fff', sp: 4, life: 0.3, s: 0.1 };
-  const N = count || spec.n;
+  const N = Math.max(1, Math.round((count || spec.n) * (SET.particles || 1)));
   for (let i = 0; i < N; i++) {
     let f = fxPool.find(x => !x.alive);
     if (!f) { f = { mesh: new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: '#fff' })), alive: false }; scene.add(f.mesh); fxPool.push(f); }
@@ -465,9 +473,116 @@ function updateFx(dt) {
 }
 
 // ------------------------------------------------------------------ input
+function applySettings() {
+  renderer.setPixelRatio(Math.max(0.5, Math.min(devicePixelRatio * 1.5, devicePixelRatio * SET.pixelRatio)));
+  sun.castShadow = SET.shadows !== 'off';
+  renderer.shadowMap.type = SET.shadows === 'soft' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+  renderer.toneMappingExposure = SET.grade === 'bright' ? 1.5 : SET.grade === 'moody' ? 1.12 : 1.32;
+  hemi.intensity = SET.grade === 'bright' ? 3.3 : SET.grade === 'moody' ? 2.4 : 2.9;
+  cam.sens = 0.0022 * SET.sens;
+  if (audio.master) audio.master.gain.value = SET.volume;
+  if (music.bus) music.bus.gain.value = SET.music;
+  for (const gq of torchGlows) gq.visible = SET.glows;
+  for (const gq of glowFacers) gq.visible = SET.glows;
+  saveSettings();
+}
+const OPT_DEFS = [
+  { key: 'volume', label: 'SOUND VOLUME', type: 'range', min: 0, max: 1, step: 0.05 },
+  { key: 'music', label: 'MUSIC VOLUME', type: 'range', min: 0, max: 1, step: 0.05 },
+  { key: 'sens', label: 'CAMERA SPEED', type: 'range', min: 0.4, max: 2.2, step: 0.1 },
+  { key: 'invertY', label: 'INVERT CAMERA Y', type: 'toggle' },
+  { key: 'fov', label: 'FIELD OF VIEW', type: 'range', min: 52, max: 78, step: 1 },
+  { key: 'shadows', label: 'SHADOWS', type: 'select', opts: ['soft', 'hard', 'off'] },
+  { key: 'pixelRatio', label: 'RENDER SCALE', type: 'select', opts: [0.75, 1, 1.25] },
+  { key: 'grade', label: 'COLOR GRADE', type: 'select', opts: ['dusk', 'bright', 'moody'] },
+  { key: 'glows', label: 'LIGHT GLOWS', type: 'toggle' },
+  { key: 'particles', label: 'PARTICLES', type: 'select', opts: [0.5, 1, 1.5] },
+  { key: 'shake', label: 'SCREEN SHAKE', type: 'toggle' },
+  { key: 'reduceMotion', label: 'REDUCE MOTION', type: 'toggle' },
+  { key: 'dmgNumbers', label: 'DAMAGE NUMBERS', type: 'toggle' },
+];
+function buildOptions() {
+  const rows = document.getElementById('optrows'); rows.innerHTML = '';
+  for (const d of OPT_DEFS) {
+    const row = document.createElement('div'); row.className = 'optrow';
+    const lab = document.createElement('span'); lab.className = 'olabel'; lab.textContent = d.label; row.appendChild(lab);
+    if (d.type === 'range') {
+      const inp = document.createElement('input'); inp.type = 'range'; inp.min = d.min; inp.max = d.max; inp.step = d.step; inp.value = SET[d.key];
+      const val = document.createElement('span'); val.className = 'oval'; val.textContent = (+SET[d.key]).toFixed(d.step < 1 ? 2 : 0);
+      inp.oninput = () => { SET[d.key] = +inp.value; val.textContent = (+inp.value).toFixed(d.step < 1 ? 2 : 0); applySettings(); audio.play('ui'); };
+      row.appendChild(inp); row.appendChild(val);
+    } else if (d.type === 'toggle') {
+      const sp = document.createElement('span'); row.appendChild(sp);
+      const t = document.createElement('span'); t.className = 'otoggle' + (SET[d.key] ? '' : ' off'); t.textContent = SET[d.key] ? 'ON' : 'OFF';
+      t.onclick = () => { SET[d.key] = !SET[d.key]; t.textContent = SET[d.key] ? 'ON' : 'OFF'; t.className = 'otoggle' + (SET[d.key] ? '' : ' off'); applySettings(); audio.play('ui'); };
+      row.appendChild(t);
+    } else {
+      const sp = document.createElement('span'); row.appendChild(sp);
+      const sel = document.createElement('select');
+      for (const o of d.opts) { const op = document.createElement('option'); op.value = o; op.textContent = String(o).toUpperCase(); if (String(SET[d.key]) === String(o)) op.selected = true; sel.appendChild(op); }
+      sel.onchange = () => { const v = sel.value; SET[d.key] = isNaN(+v) ? v : +v; applySettings(); audio.play('ui'); };
+      row.appendChild(sel);
+    }
+    rows.appendChild(row);
+  }
+}
+let optionsFrom = 'file';
+function showOptions(on, from) { if (from) optionsFrom = from; document.getElementById('options').style.display = on ? 'flex' : 'none'; if (on) buildOptions(); else if (optionsFrom === 'file') document.getElementById('fileselect').style.display = 'flex'; else showMenu(true); }
+document.getElementById('btnOptions').onclick = () => { document.getElementById('fileselect').style.display = 'none'; showOptions(true, 'file'); };
+document.getElementById('btnOptClose').onclick = () => showOptions(false);
+document.getElementById('btnPauseOptions').onclick = () => { document.getElementById('menu').classList.remove('show'); showOptions(true, 'pause'); };
+document.getElementById('btnResume').onclick = () => { if (lockFallback) showMenu(false); else requestLock(); };
+document.getElementById('btnQuit').onclick = () => { saveGame(); location.reload(); };
+
+// ---------------- save slots ----------------
+let SLOT = 0;
+function slotKey(i) { return 'rampart_save_' + i; }
+function readSlot(i) { try { return JSON.parse(localStorage.getItem(slotKey(i)) || 'null'); } catch (e) { return null; } }
+function saveGame() {
+  if (!SLOT || !game.started) return;
+  const data = { crestsGot: game.crestsGot || {}, pennants: pennantMeshes.map(p => p.got), shards: shardMeshes.map(sh => sh.got), pennantCount: game.pennants || 0, shardCount: game.shards || 0, checkpoint: game.checkpoint, time: (readSlot(SLOT)?.time || 0) + game.time - (game.lastSaveTime || 0), deaths: game.deaths, campDone: !!game.campDone };
+  game.lastSaveTime = game.time;
+  try { localStorage.setItem(slotKey(SLOT), JSON.stringify(data)); } catch (e) {}
+}
+function loadSlot(i) {
+  SLOT = i; const d = readSlot(i);
+  if (!d) return;
+  game.crestsGot = d.crestsGot || {}; game.crests = Object.keys(game.crestsGot).length;
+  (d.pennants || []).forEach((got, k) => { if (got && pennantMeshes[k]) { pennantMeshes[k].got = true; pennantMeshes[k].m.visible = false; } });
+  (d.shards || []).forEach((got, k) => { if (got && shardMeshes[k]) { shardMeshes[k].got = true; shardMeshes[k].m.visible = false; } });
+  game.pennants = d.pennantCount || 0; game.shards = d.shardCount || 0; game.deaths = d.deaths || 0; game.campDone = !!d.campDone;
+  if (game.campDone) game.campWave = 2;
+  game.checkpoint = Math.min(d.checkpoint || 0, L.checkpoints.length - 1);
+  const cp = L.checkpoints[game.checkpoint];
+  player.body.pos.x = cp.x; player.body.pos.y = cp.y; player.body.pos.z = cp.z; player.body.syncAabb(); cam.target.set(cp.x, cp.y + 1.2, cp.z);
+  refreshHallBanners(); renderBoard();
+}
+function fmtTime(t) { const m = (t / 60) | 0, sec = (t % 60) | 0; return m + ':' + String(sec).padStart(2, '0'); }
+function buildSlots() {
+  const el = document.getElementById('slots'); el.innerHTML = '';
+  for (let i = 1; i <= 3; i++) {
+    const d = readSlot(i);
+    const row = document.createElement('div'); row.className = 'slotrow' + (d ? '' : ' empty');
+    row.innerHTML = '<span class="sic">' + (d ? '\u2726' : '\u2727') + '</span><span class="sname">' + (d ? 'TALE ' + i : 'NEW TALE') + '</span><span class="sprog">' + (d ? ('\u2726 ' + Object.keys(d.crestsGot || {}).length + '/8 \u00b7 ' + fmtTime(d.time || 0)) : '\u2014') + '</span>' + (d ? '<span class="serase">ERASE</span>' : '<span></span>');
+    row.onclick = (ev) => {
+      if (ev.target.classList.contains('serase')) { if (row.dataset.confirm) { localStorage.removeItem(slotKey(i)); buildSlots(); } else { row.dataset.confirm = '1'; ev.target.textContent = 'SURE?'; } return; }
+      audio.resume(); audio.play('checkpoint');
+      document.getElementById('fileselect').style.display = 'none';
+      document.getElementById('title').classList.remove('hide'); document.getElementById('title').style.display = 'flex';
+      pendingSlot = i;
+    };
+    el.appendChild(row);
+  }
+}
+let pendingSlot = 0;
+setInterval(() => { if (game.started && !game.paused && !game.won) saveGame(); }, 10000);
 const keys = {}; let mouseDX = 0, mouseDY = 0; const pressed = {};
 const KEYMAP = { KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right', ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
   Space: 'jump', ShiftLeft: 'dash', ShiftRight: 'dash', KeyQ: 'heavy', KeyF: 'bash', ControlLeft: 'pound', KeyC: 'board', KeyE: 'interact', Tab: 'lock', KeyZ: 'lock', KeyR: 'respawn', KeyT: 'tune', Escape: 'menu', KeyJ: 'light', KeyK: 'block' };
+let atSplash = true;
+function leaveSplash() { if (!atSplash) return; atSplash = false; audio.resume(); audio.play('checkpoint'); document.getElementById('splash').style.display = 'none'; buildSlots(); document.getElementById('fileselect').style.display = 'flex'; }
+document.getElementById('splash').addEventListener('mousedown', leaveSplash);
+addEventListener('keydown', e => { if (atSplash) { leaveSplash(); return; } }, true);
 addEventListener('keydown', e => {
   const k = KEYMAP[e.code]; if (!k) return; e.preventDefault();
   if (!keys[k]) pressed[k] = true; keys[k] = true;
@@ -593,7 +708,7 @@ function step(dt, inp) {
   // checkpoints
   for (let i = game.checkpoint + 1; i < L.checkpoints.length; i++) {
     const c = L.checkpoints[i];
-    if (Math.hypot(c.x - player.pos.x, c.z - player.pos.z) < 3 && Math.abs(c.y - player.pos.y) < 2) { game.checkpoint = i; toast('Checkpoint: ' + c.name); audio.play('checkpoint'); }
+    if (Math.hypot(c.x - player.pos.x, c.z - player.pos.z) < 3 && Math.abs(c.y - player.pos.y) < 2) { game.checkpoint = i; toast('Checkpoint: ' + c.name); audio.play('checkpoint'); saveGame(); }
   }
   // boss intro: first time the player stands on the arena near the captain
   if (!game.bossIntroDone) { const cap = game.enemies.find(e => e.boss && !e.dead); if (cap && player.pos.y > L.topY - 0.5 && Math.hypot(cap.pos.x - player.pos.x, cap.pos.z - player.pos.z) < 11) { game.bossIntroDone = true; game.bossIntro = 2.6; game.slowmo = 2.6; cap.aggroed = true; cap.state = 'chase'; player.lockTarget = cap; cam.lock = cap; cam.idle = 0; audio.play('roar'); document.getElementById('bosscard').classList.add('show'); setTimeout(() => document.getElementById('bosscard').classList.remove('show'), 3200); cam.shake = 0.6; for (let k = 0; k < 3; k++) spawnFx('shock', { x: cap.pos.x, y: cap.pos.y + 0.1, z: cap.pos.z }, 10); } }
@@ -805,8 +920,9 @@ function renderHud(dt) {
   if (player.lockTarget && !player.lockTarget.dead) { const lp = new THREE.Vector3(player.lockTarget.pos.x, player.lockTarget.pos.y + 1.0 * player.lockTarget.scale, player.lockTarget.pos.z).project(camera); if (lp.z < 1) { ret.style.display = 'block'; ret.style.left = ((lp.x + 1) / 2 * innerWidth) + 'px'; ret.style.top = ((1 - lp.y) / 2 * innerHeight) + 'px'; } else ret.style.display = 'none'; }
   else ret.style.display = 'none';
   // dash FOV kick
-  const spdF = Math.min(4, Math.max(0, (Math.hypot(player.body.vel.x, player.body.vel.z) - 6) * 0.6));
-  const wantFov = 62 + spdF + (player.state === S.DASH || player.state === S.RUSH ? 8 : 0) + (game.slowmo > 0 ? -4 : 0);
+  if (!SET.shake || SET.reduceMotion) cam.shake = 0;
+  const spdF = SET.reduceMotion ? 0 : Math.min(4, Math.max(0, (Math.hypot(player.body.vel.x, player.body.vel.z) - 6) * 0.6));
+  const wantFov = SET.fov + spdF + (!SET.reduceMotion && (player.state === S.DASH || player.state === S.RUSH) ? 8 : 0) + (game.slowmo > 0 ? -4 : 0);
   if (Math.abs(camera.fov - wantFov) > 0.05) { camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 14); camera.updateProjectionMatrix(); }
   // enemy health bars
   for (const e of game.enemies) {
@@ -857,7 +973,7 @@ function win() {
   document.exitPointerLock();
 }
 function showMenu(on) { document.getElementById('menu').classList.toggle('show', on && game.started && !game.won); game.paused = on; }
-function start() { if (game.started) return; game.started = true; spawnCrest('peaks', L.peakCrest.x, L.peakCrest.y, L.peakCrest.z); spawnCrest('grotto', L.grotto.x, L.grotto.y, L.grotto.z); spawnCrest('shadow', L.balcony.x, L.balcony.y, L.balcony.z); setTimeout(() => { if (!game.boardOpen) showBoard(true); }, 600); document.getElementById('title').classList.add('hide'); audio.resume(); music.start(); cam.yaw = Math.PI; cam.pitch = 0.38; cam.idle = 0; toast('Reclaim the eight crests of the Vale.', 3.5); }
+function start() { if (game.started) return; if (atSplash || document.getElementById('fileselect').style.display === 'flex') return; game.started = true; if (pendingSlot) loadSlot(pendingSlot); applySettings(); spawnCrest('peaks', L.peakCrest.x, L.peakCrest.y, L.peakCrest.z); spawnCrest('grotto', L.grotto.x, L.grotto.y, L.grotto.z); spawnCrest('shadow', L.balcony.x, L.balcony.y, L.balcony.z); setTimeout(() => { if (!game.boardOpen) showBoard(true); }, 600); document.getElementById('title').classList.add('hide'); audio.resume(); music.start(); cam.yaw = Math.PI; cam.pitch = 0.38; cam.idle = 0; toast('Reclaim the eight crests of the Vale.', 3.5); }
 for (const ev of ['mousedown', 'click']) document.getElementById('title').addEventListener(ev, () => { if (!game.started) { start(); requestLock(); } });
 document.getElementById('menu').addEventListener('mousedown', () => { if (lockFallback) showMenu(false); else requestLock(); });
 document.getElementById('retry').onclick = () => { document.getElementById('dead').classList.remove('show'); requestLock(); };
@@ -887,7 +1003,7 @@ function frame(now) {
   if (game.started && !game.paused && !game.won) {
     acc += dt * (game.slowmo > 0 ? 0.35 : 1);
     const inp = collectInput();
-    cam.input(mouseDX, mouseDY); mouseDX = mouseDY = 0;
+    cam.input(mouseDX, (SET.invertY ? -1 : 1) * mouseDY); mouseDX = mouseDY = 0;
     let first = true;
     while (acc >= FIXED) { step(FIXED, first ? inp : { ...inp, jump: false, dash: false, light: false, heavy: false, bash: false, pound: false, interact: false, lock: false, respawn: false }); acc -= FIXED; first = false; }
   }
@@ -946,6 +1062,7 @@ const ZERO = { mx: 0, mz: 0, jump: false, jumpHeld: false, dash: false, light: f
 window.RAMPART = {
   game, player, world, L, P, E, cam, scene, renderer, camera, updatePickups, updateRace, raceState, startRace, renderBoard,
   collectInput, animateRig,
+  debugStart() { atSplash = false; pendingSlot = 0; for (const id of ['splash', 'fileselect', 'options', 'title']) document.getElementById(id).style.display = 'none'; document.getElementById('title').classList.add('hide'); game.started = true; applySettings(); },
   shot() { render(0); return fetch('/shot', { method: 'POST', body: canvas.toDataURL('image/png') }).then(r => r.text()); },
   start() { start(); game.paused = false; },
   step(dt = FIXED, inp = {}) { step(dt, { ...ZERO, ...inp }); },

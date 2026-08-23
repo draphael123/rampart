@@ -76,7 +76,8 @@
   #crestcard #crestcardname { font-family: 'Cinzel', serif; font-weight: 900; font-size: 34px; letter-spacing: 8px; color: var(--cream); text-shadow: 0 2px 12px #000; margin-top: 6px; }
   #crestcard #crestcardcount { font-family: 'Cinzel', serif; font-size: 15px; letter-spacing: 5px; color: var(--gold); margin-top: 8px; }
   .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transition: opacity .7s; }
-  #title { background: linear-gradient(180deg, rgba(14,8,18,.55) 0%, rgba(14,8,18,.25) 40%, rgba(14,8,18,.7) 100%); }
+  #splash, #fileselect, #options { z-index: 60; background: radial-gradient(ellipse at 50% 35%, rgba(24,26,60,.92), rgba(8,8,22,.97)); }
+  #title { z-index: 55; background: linear-gradient(180deg, rgba(14,8,18,.55) 0%, rgba(14,8,18,.25) 40%, rgba(14,8,18,.7) 100%); }
   #title .frame { padding: 34px 56px 30px; border: 1px solid rgba(227,192,112,.35); background: rgba(12,7,16,.55); backdrop-filter: blur(3px); box-shadow: 0 0 0 6px rgba(12,7,16,.35), 0 30px 80px rgba(0,0,0,.6); max-width: 760px; }
   #title h1 { font-family: 'Cinzel', serif; font-weight: 900; font-size: 84px; letter-spacing: 22px; margin: 0 0 2px 22px; color: var(--cream); text-shadow: 0 0 40px rgba(255,154,58,.35), 0 3px 0 #5a2a26, 0 8px 24px rgba(0,0,0,.8); }
   #title .sub { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 7px; color: var(--gold); margin-bottom: 18px; }
@@ -93,6 +94,20 @@
   .overlay .small { font-size: 18px; font-style: italic; opacity: .85; letter-spacing: 1px; }
   button { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 4px; background: rgba(40,24,30,.8); color: var(--cream); border: 1px solid var(--gold2); padding: 12px 28px; cursor: pointer; margin-top: 22px; }
   button:hover { background: rgba(80,40,40,.9); }
+  .slotrow { display: grid; grid-template-columns: 54px 1fr auto auto; align-items: center; gap: 14px; padding: 14px 18px; margin: 10px 0; border: 1px solid rgba(227,192,112,.35); background: rgba(255,255,255,.04); cursor: pointer; text-align: left; transition: background .15s, border-color .15s; }
+  .slotrow:hover { background: rgba(227,192,112,.12); border-color: var(--gold); }
+  .slotrow .sic { font-size: 30px; color: var(--gold); } .slotrow.empty .sic { color: #4a4e6a; }
+  .slotrow .sname { font-family: 'Cinzel', serif; font-size: 17px; letter-spacing: 3px; color: var(--cream); }
+  .slotrow .sprog { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 2px; color: var(--gold); opacity: .85; }
+  .slotrow .serase { font-size: 12px; letter-spacing: 2px; color: #b06060; opacity: .7; padding: 4px 8px; border: 1px solid rgba(176,96,96,.4); }
+  .slotrow .serase:hover { opacity: 1; background: rgba(176,96,96,.18); }
+  .optrow { display: grid; grid-template-columns: 200px 1fr auto; align-items: center; gap: 14px; padding: 8px 4px; border-bottom: 1px solid rgba(227,192,112,.12); }
+  .optrow .olabel { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 2px; color: var(--cream); }
+  .optrow input[type=range] { width: 100%; accent-color: #c9a24a; }
+  .optrow .oval { font-size: 13px; color: var(--gold); min-width: 52px; text-align: right; font-family: 'Cinzel', serif; }
+  .optrow .otoggle { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 2px; color: var(--gold); cursor: pointer; border: 1px solid rgba(227,192,112,.4); padding: 5px 14px; }
+  .optrow .otoggle.off { color: #6a6e8a; border-color: rgba(106,110,138,.4); }
+  .optrow select { background: #1a1a2e; color: var(--cream); border: 1px solid rgba(227,192,112,.4); font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 1px; padding: 5px 8px; }
   #credits { position: fixed; bottom: 14px; right: 18px; font-size: 12px; letter-spacing: 2px; opacity: .45; font-family: 'Cinzel', serif; }
 </style>
 </head>
@@ -133,7 +148,30 @@
   <div id="crestcardcount">✦ 1 of 4</div>
 </div>
 
-<div class="overlay" id="title">
+<div class="overlay" id="splash">
+  <h1 style="font-family:'Cinzel',serif;font-weight:900;font-size:110px;letter-spacing:26px;margin:0 0 6px 26px;color:var(--cream);text-shadow:0 0 50px rgba(255,154,58,.45),0 5px 0 #5a2a26,0 10px 30px rgba(0,0,0,.85)">RAMPART</h1>
+  <div style="font-family:'Cinzel',serif;font-size:14px;letter-spacing:8px;color:var(--gold);margin-bottom:40px">A KNIGHT'S CLIMB AT DUSK</div>
+  <div class="go">PRESS ANY KEY</div>
+  <div style="position:fixed;bottom:20px;font-size:12px;letter-spacing:2px;opacity:.4;font-family:'Cinzel',serif">v0.9 &middot; PENNANT VALE</div>
+</div>
+<div class="overlay" id="fileselect" style="display:none">
+  <div class="bframe" style="min-width:560px">
+    <div class="btitle" style="font-size:34px;letter-spacing:9px">SELECT A FILE</div>
+    <div class="bsub">THREE BANNERS, THREE TALES</div>
+    <div id="slots"></div>
+    <div style="display:flex;gap:18px;justify-content:center;margin-top:20px">
+      <button id="btnOptions" type="button">OPTIONS</button>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="options" style="display:none">
+  <div class="bframe" style="min-width:600px;max-height:86vh;overflow:auto">
+    <div class="btitle" style="font-size:30px;letter-spacing:8px">OPTIONS</div>
+    <div id="optrows" style="text-align:left;margin-top:18px"></div>
+    <button id="btnOptClose" type="button" style="margin-top:18px">DONE</button>
+  </div>
+</div>
+<div class="overlay" id="title" style="display:none">
   <div class="frame">
     <h1>RAMPART</h1>
     <div class="sub">A KNIGHT'S CLIMB AT DUSK</div>
@@ -157,9 +195,14 @@
     <div class="go">CLICK TO BEGIN</div>
   </div>
 </div>
-<div class="overlay" id="menu"><h2>PAUSED</h2><div class="small">click to resume · T for tuning</div></div>
+<div class="overlay" id="menu"><h2>PAUSED</h2>
+  <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+    <button id="btnResume" type="button">RESUME</button>
+    <button id="btnPauseOptions" type="button">OPTIONS</button>
+    <button id="btnQuit" type="button">SAVE &amp; QUIT TO TITLE</button>
+  </div></div>
 <div class="overlay" id="dead"><h2>FALLEN</h2><div class="small">The wall holds without you.</div><button id="retry">RISE AGAIN</button></div>
-<div class="overlay" id="win"><h2>THE VALE IS YOURS</h2><div class="small" id="winstats"></div><div class="small" style="margin-top:10px">The keep holds.</div></div>
+<div class="overlay" id="win"><div class="ccrest" style="font-size:80px;color:var(--gold);text-shadow:0 0 50px rgba(227,192,112,.9)">✦</div><h2>THE VALE IS YOURS</h2><div class="small" id="winstats"></div><div class="small" style="margin-top:10px">Eight banners hang in the Great Hall. Beyond the clouds, another vale waits.</div></div>
 <div id="credits">RAMPART · a voxel siege</div>
 
 <script type="module" src="src/main.js"></script>

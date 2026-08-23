@@ -197,7 +197,7 @@ export function buildLevel(world) {
 
   // --- THE PEAKS: spire chain from the watchtower top, north-west, pure movement
   const spires = [ [-27, -50, 0], [-32, -40, 3.5], [-36, -30, 7], [-38, -19, 10.5] ];
-  for (const [sx, sz, sy] of spires) { block(sx, sy - 26, sz, 2.6, 26, 2.6, C.rockD); deco(sx, sy - 0.01, sz, 2.7, 0.04, 2.7, C.grassD); deco(sx, sy - 4, sz, 3.2, 0.5, 3.2, C.rock); }
+  for (const [sx, sz, sy] of spires) { block(sx, sy - 26, sz, 2.6, 26, 2.6, C.rockD); deco(sx, sy - 0.05, sz, 2.9, 0.34, 2.9, C.grass); deco(sx, sy - 0.34, sz, 3.0, 0.2, 3.0, C.grassD); deco(sx, sy - 4, sz, 3.2, 0.5, 3.2, C.rock); for (let yy = sy - 22; yy < sy - 5; yy += 5) deco(sx, yy, sz, 2.72, 0.4, 2.72, rnd() < 0.5 ? C.rock : '#584f46'); }
   L.peakCrest = { x: spires[3][0], y: spires[3][2] + 0.6, z: spires[3][1] };
   sign(WT.x - 2.8, -5.4, WT.z - 2.4, 'the peaks:\nlong jumps west', -2.2);
 
@@ -375,6 +375,10 @@ export function buildLevel(world) {
   block(T.x, 0, T.z, 7, topY - 1, 7, C.stoneD);
   block(T.x, topY - 1, T.z, 18, 1, 18, C.stone);
   deco(T.x, topY - 0.02, T.z, 18, 0.02, 18, C.stoneL);
+  // arena floor: gold inlay ring + worn center
+  for (let k = 0; k < 20; k++) { const a2 = k / 20 * Math.PI * 2; deco(T.x + Math.cos(a2) * 5.4, topY, T.z + Math.sin(a2) * 5.4, 0.7, 0.025, 0.7, '#b8952e'); }
+  deco(T.x, topY + 0.005, T.z, 3.2, 0.02, 3.2, '#8f867a'); deco(T.x, topY + 0.01, T.z, 2.2, 0.02, 2.2, '#b8952e');
+  for (let k = 0; k < 8; k++) deco(T.x - 7 + rnd() * 14, topY, T.z - 7 + rnd() * 14, 0.8 + rnd(), 0.02, 0.6 + rnd(), '#8a8276');
   deco(T.x, topY - 2.6, T.z, 13, 1.8, 13, C.stoneD); deco(T.x, topY - 4, T.z, 10, 1.6, 10, '#4a4642');
   L.arenaCrenels = [];
   const acren = (x, z, w, d) => { if (L.arenaNotch && Math.hypot(x - L.arenaNotch.x, z - L.arenaNotch.z) < 1.9) return; const bx = world.add(new Box(x, topY, z, w, 1, d)); const m = boxesMesh([{ x: 0, y: 0.5, z: 0, w, h: 1, d, c: C.stoneL }]); m.position.set(x, topY, z); bx.crumbleMesh = m; L.props.add(m); L.arenaCrenels.push(bx); };
