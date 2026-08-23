@@ -280,6 +280,14 @@ export function buildLevel(world) {
   for (let z = -13; z < 29; z += 1.1) for (let x = -2.2; x <= 2.2; x += 1.1) deco(x + (rnd() - 0.5) * 0.2, 0.0, z + (rnd() - 0.5) * 0.2, 1.0, 0.04 + rnd() * 0.03, 1.0, rnd() < 0.5 ? '#7a7468' : '#6e6a5e');
   for (let i = 0; i < 26; i++) { const gx = -28 + rnd() * 56, gz = -12 + rnd() * 40; if (Math.abs(gx) < 3) continue; tuft(gx, 0, gz); }
   for (let i = 0; i < 9; i++) { const gx = -26 + rnd() * 52, gz = -12 + rnd() * 40; deco(gx, 0.0, gz, 2 + rnd() * 4, 0.025, 1.5 + rnd() * 3, rnd() < 0.5 ? C.dirt : '#615f48'); }
+  // THE CREST DOOR: a sealed door of clouds on a dais (opens at five crests -> SKYREACH)
+  block(-14, 0, -6, 5.6, 0.4, 4.4, C.stoneL);
+  deco(-14, 0.4, -4.2, 4.4, 0.22, 0.9, C.stone); deco(-14, 0.02, -3.4, 5.0, 0.2, 0.7, C.stoneD);
+  block(-15.9, 0.4, -6.6, 0.75, 4.8, 0.95, C.stone); block(-12.1, 0.4, -6.6, 0.75, 4.8, 0.95, C.stone);
+  deco(-14, 5.2, -6.6, 4.6, 0.8, 1.1, C.stoneL); deco(-14, 6.0, -6.6, 3.0, 0.5, 0.9, C.stoneD);
+  deco(-14, 6.5, -6.6, 0.5, 0.6, 0.5, '#d8b050');
+  deco(-16.9, 0, -6.6, 0.6, 0.6, 0.6, C.stoneD); deco(-11.1, 0, -6.6, 0.6, 0.6, 0.6, C.stoneD);
+  L.crestDoor = { x: -14, y: 0.4, z: -6.6 };
   // south wall (two segments + the open gate), side walls with a DOORWAY cut in the west wall at z 24..28
   block(-17, 0, -15, 28, 10, 2, C.stoneD); block(17, 0, -15, 28, 10, 2, C.stoneD);
   block(31, 0, -9.75, 2, 12, 12.5, C.stoneD); block(31, 0, 17.75, 2, 12, 36.5, C.stoneD); block(31, 6, -2, 2, 6, 4, C.stoneD);

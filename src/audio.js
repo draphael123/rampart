@@ -126,16 +126,18 @@ export class Music {
       title: [55, 65.41, 49, 43.65],
       vale1: [55, 43.65, 65.41, 49],
       vale2: [55, 41.2, 43.65, 41.2],
+      vale3: [55, 36.71, 41.2, 55],
       boss: [55, 58.27, 55, 51.91],
     }[M];
-    const SCALE = [220, 246.9, 261.6, 293.7, 329.6, 349.2, 392, 440, 493.9, 523.3];
+    const SCALE = M === 'vale3' ? [220, 246.9, 277.2, 293.7, 329.6, 370, 415.3, 440, 493.9, 554.4] : [220, 246.9, 261.6, 293.7, 329.6, 349.2, 392, 440, 493.9, 523.3];
     const TONES = {
       title: [[0, 2, 4, 7], [2, 4, 6, 9], [6, 1, 3, 8], [5, 0, 2, 7]],
       vale1: [[0, 2, 4, 7], [5, 0, 2, 7], [2, 4, 6, 9], [6, 1, 3, 8]],
       vale2: [[0, 2, 4], [4, 6, 1], [5, 0, 2], [4, 1, 4]],
+      vale3: [[0, 2, 4, 7], [3, 5, 0, 7], [4, 6, 8, 9], [0, 2, 4, 7]],
       boss: [[0, 2, 4], [0, 2, 4], [0, 2, 4], [0, 2, 4]],
     }[M];
-    const bpm = M === 'boss' ? 118 : M === 'vale2' ? 84 : M === 'title' ? 72 : 96;
+    const bpm = M === 'boss' ? 118 : M === 'vale2' ? 84 : M === 'title' ? 72 : M === 'vale3' ? 104 : 96;
     const spb = 60 / bpm;
     while (this.next < c.currentTime + 0.5) {
       const t = this.next; const b = this.beat % 8;
@@ -162,6 +164,13 @@ export class Music {
         const f = SCALE[tones[b % tones.length]] * (b >= 4 ? 1 : 0.5);
         this.note(f, t, 0.05, false);
         if (b === 0) this.note(SCALE[tones[0]] * 0.25, t, 0.06, true);
+      } else if (M === 'vale3') {
+        if (this.intensity < 0.6 && Math.random() < 0.85) {
+          if (b % 2 === 0) { this.melIdx = tones[(Math.random() * tones.length) | 0]; }
+          else { this.melIdx = Math.max(0, Math.min(SCALE.length - 1, this.melIdx + ((Math.random() * 3) | 0) - 1)); }
+          this.note(SCALE[this.melIdx] * (b === 4 ? 2 : 1), t, 0.05 * (1 - this.intensity), false);
+          if (b === 0) this.note(SCALE[tones[0]] * 0.5, t, 0.05, false);
+        }
       } else if (M === 'vale2') {
         if (b % 2 === 0 && Math.random() < 0.55 && this.intensity < 0.6) {
           this.melIdx = Math.max(0, Math.min(SCALE.length - 1, this.melIdx + ((Math.random() * 3) | 0) - 1));
