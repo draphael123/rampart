@@ -347,8 +347,8 @@ function updateRace(dt) {
   const rs = raceState;
   if (rs.state === 'countdown') {
     const prev = Math.ceil(rs.countdown); rs.countdown -= dt; const now = Math.ceil(rs.countdown);
-    if (now !== prev && now > 0) { toast(String(now), 0.8); audio.play('ui'); }
-    if (rs.countdown <= 0) { rs.state = 'running'; toast('GO!', 1); audio.play('checkpoint'); }
+    if (now !== prev && now > 0) { toast(String(now), 0.8); audio.tone(500 + (4 - now) * 140, 500 + (4 - now) * 140, 0.12, 'square', 0.1); }
+    if (rs.countdown <= 0) { rs.state = 'running'; toast('GO!', 1); audio.tone(1040, 1040, 0.3, 'square', 0.12); audio.play('checkpoint'); }
   } else if (rs.state === 'running') {
     const wps = L.raceWaypoints; const target = wps[Math.min(rs.wp + 1, wps.length - 1)];
     const dx = target.x - rs.pos.x, dy = target.y - rs.pos.y, dz = target.z - rs.pos.z;
@@ -449,6 +449,10 @@ function updateTrail() {
   trailGeo.attributes.position.needsUpdate = true;
   trailMat.opacity = trailPts.length > 1 ? 0.45 : 0;
 }
+// souls: a wisp that rises from a fallen foe
+const soulPool = Array.from({ length: 5 }, () => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex, color: '#cfe0ff', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); sp.visible = false; scene.add(sp); return { sp, t: 2 }; });
+function spawnSoul(pos) { const r = soulPool.find(q => q.t >= 2) || soulPool[0]; r.t = 0; r.x = pos.x; r.z = pos.z; r.y0 = pos.y + 1; r.sp.visible = true; }
+function updateSouls(dt) { for (const r of soulPool) { if (r.t >= 2) { r.sp.visible = false; continue; } r.t += dt; const k = r.t / 2; r.sp.position.set(r.x + Math.sin(r.t * 3) * 0.2, r.y0 + k * 3.2, r.z + Math.cos(r.t * 2.3) * 0.2); const s = 0.7 - k * 0.35; r.sp.scale.set(s, s, 1); r.sp.material.opacity = 0.55 * Math.sin(Math.PI * Math.min(1, k * 1.15)); } }
 // impact stars: an anime spike-burst sprite on heavy hits and kills
 const starTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d'); g.translate(32, 32); g.fillStyle = 'rgba(255,255,255,1)'; for (let i = 0; i < 4; i++) { g.rotate(Math.PI / 4 * (i === 0 ? 0 : 1)); g.beginPath(); g.moveTo(0, -30); g.lineTo(5, 0); g.lineTo(0, 30); g.lineTo(-5, 0); g.closePath(); g.fill(); } const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
 const starPool = Array.from({ length: 3 }, () => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: starTex, color: '#fff6d8', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); sp.visible = false; scene.add(sp); return { sp, t: 1 }; });
@@ -498,7 +502,7 @@ const game = {
     }
     return any;
   },
-  breakBarricade(bx) { bx.enabled = false; if (bx.mesh) { bx.mesh.visible = false; } for (let i = 0; i < 3; i++) this.fx('die', { x: bx.cx + (Math.random() - 0.5) * bx.w, y: bx.min.y + 0.5 + i * 0.6, z: bx.cz + (Math.random() - 0.5) * bx.d }); audio.play('break'); cam.shake = 0.6; this.hitstop = 0.06; toast('Barricade smashed', 1.6); },
+  breakBarricade(bx) { bx.enabled = false; if (bx.mesh) { bx.mesh.visible = false; } for (let i = 0; i < 3; i++) this.fx('die', { x: bx.cx + (Math.random() - 0.5) * bx.w, y: bx.min.y + 0.5 + i * 0.6, z: bx.cz + (Math.random() - 0.5) * bx.d }); audio.play('break'); cam.shake = 0.6; this.hitstop = 0.06; shockRing({ x: bx.cx, y: bx.min.y + 0.8, z: bx.cz }, '#d8a860', 1.2); impactStar({ x: bx.cx, y: bx.min.y + 0.9, z: bx.cz }, 1.1); rumble(0.6, 0.6, 180); toast('Barricade smashed', 1.6); },
   enemySlam(e, radius, dmg) {
     const p = this.player; cam.shake = 1.0; audio.play('pound'); this.fx('shock', { x: e.pos.x, y: e.pos.y + 0.1, z: e.pos.z });
     for (let k = 0; k < 16; k++) this.fx('dust', { x: e.pos.x + Math.cos(k / 16 * 6.28) * radius * 0.8, y: e.pos.y + 0.1, z: e.pos.z + Math.sin(k / 16 * 6.28) * radius * 0.8 });
@@ -543,7 +547,7 @@ const game = {
     if (r === 'hit') { this.fx('hurt', hp); audio.play('hurt'); cam.shake = 0.7; this.hitstop = 0.06; this.vignette = 1; this.camRoll = (Math.random() < 0.5 ? -1 : 1) * 0.05; floatText(hp, '-' + dmg, 'hurt'); rumble(0.7, 0.4, 220); const hpEl = document.getElementById('hp'); hpEl.classList.remove('shake'); void hpEl.offsetWidth; hpEl.classList.add('shake'); }
     else if (r === 'blocked') { this.fx('clank', hp); audio.play('clank'); cam.shake = 0.2; floatText(hp, 'BLOCKED', 'dim'); tipOnce('parrytip', 'A block held is safe — a block at the LAST INSTANT is a parry, and staggers them.'); }
     else if (r === 'parried') {
-      this.fx('parry', hp); audio.play('parry'); cam.shake = 0.4; this.hitstop = 0.14; this.flash = 0.6; this.slowmo = 0.2; floatText(hp, 'PARRY', 'big gold'); shockRing(hp, '#fff2c0', 1.1); if (game.trainingOn) game.trainParry = true;
+      this.fx('parry', hp); audio.play('parry'); cam.shake = 0.4; this.hitstop = 0.14; this.flash = 0.6; this.slowmo = 0.2; floatText(hp, 'PARRY', 'big gold'); shockRing(hp, '#fff2c0', 1.1); cam.punch = Math.max(cam.punch, 0.4); if (game.trainingOn) game.trainParry = true;
       e.stun = 1.4; e.guardUp = false; e.state = 'flinch'; e.t = 0; e.telegraph = 0; this.releaseAttackToken(e);
       e.body.vel.x = (e.pos.x - p.pos.x) * 3; e.body.vel.z = (e.pos.z - p.pos.z) * 3;
     }
@@ -584,9 +588,11 @@ const game = {
     this.attackToken = e; return true;
   },
   releaseAttackToken(e) { if (this.attackToken === e) this.attackToken = null; },
+  bombBeep(fuse) { audio.tone(900 + (3.2 - fuse) * 260, 900 + (3.2 - fuse) * 260, 0.05, 'square', 0.055); },
   onAggro(e) { floatText({ x: e.pos.x, y: e.pos.y + 2.1, z: e.pos.z }, '!', 'big'); audio.tone(880, 660, 0.1, 'square', 0.07); },
   onEnemyDied(e) {
     this.player.kills++;
+    if (!e.cfg.passive) spawnSoul(e.pos);
     if (!e.cfg.passive) {
       const now = this.time;
       this.killChain = (this.lastKillT && now - this.lastKillT < 1.5) ? (this.killChain || 1) + 1 : 1;
@@ -1011,7 +1017,7 @@ function step(dt, inp) {
   // events → audio
   for (const ev of player.events) {
     if (ev === 'jump' || ev === 'djump') { audio.play(ev); spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z }); player.squash = { s: 1.18, t: 0.12 }; }
-    else if (ev === 'land') { player.bopChain = 0; const fv = Math.abs(player.landVy || 0); spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z }, Math.min(18, 6 + (fv * 0.5) | 0)); audio.play('land', Math.max(0.7, 1 - fv * 0.012)); if (fv > 19) shockRing({ x: player.pos.x, y: player.pos.y + 0.15, z: player.pos.z }, '#d8cfa0', 0.8); player.squash = { s: 0.78, t: 0.14 }; cam.shake = Math.max(cam.shake, Math.min(0.35, -player.landVy * 0.012)); }
+    else if (ev === 'land') { player.bopChain = 0; const fv = Math.abs(player.landVy || 0); spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z }, Math.min(18, 6 + (fv * 0.5) | 0)); audio.play('land', Math.max(0.7, 1 - fv * 0.012)); cam.punch = Math.max(cam.punch, Math.min(0.45, fv * 0.016)); if (fv > 19) shockRing({ x: player.pos.x, y: player.pos.y + 0.15, z: player.pos.z }, '#d8cfa0', 0.8); player.squash = { s: 0.78, t: 0.14 }; cam.shake = Math.max(cam.shake, Math.min(0.35, -player.landVy * 0.012)); }
     else if (ev === 'longjump') { audio.play('djump'); spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z }, 8); player.squash = { s: 1.25, t: 0.14 }; }
     else if (ev === 'bop') { player.bopChain = (player.bopChain || 0) + 1; audio.play('djump', 1 + Math.min(6, player.bopChain) * 0.13); player.squash = { s: 0.7, t: 0.12 }; }
     else if (ev === 'thud') { audio.play('land'); cam.shake = Math.max(cam.shake, 0.3); }
@@ -1425,7 +1431,7 @@ let sayT = 0;
 function say(text, t = 4.5) { if (!text) return; const el = document.getElementById('dialogue'); el.textContent = text; el.classList.add('show'); sayT = t; }
 function renderBoard() {
   const rows = document.getElementById('boardrows'); if (!rows) return;
-  rows.innerHTML = CRESTS.map(c => { const got = (game.crestsGot || {})[c.key]; return '<div class="brow' + (got ? ' got' : '') + '"><span class="bic">' + (got ? '\u2726' : '\u2727') + '</span><span class="bname">' + c.name + '</span><span class="bhint">' + (got ? 'CLAIMED' : c.hint) + '</span></div>'; }).join('');
+  rows.innerHTML = CRESTS.map((c, ri) => { const got = (game.crestsGot || {})[c.key]; return '<div style="--i:' + ri + '" class="brow' + (got ? ' got' : '') + '"><span class="bic">' + (got ? '\u2726' : '\u2727') + '</span><span class="bname">' + c.name + '</span><span class="bhint">' + (got ? 'CLAIMED' : c.hint) + '</span></div>'; }).join('');
   document.getElementById('boardpennants').textContent = 'red pennants: ' + (game.pennants || 0) + ' / 8';
 }
 function showBoard(on) { game.boardOpen = on; document.getElementById('crestboard').classList.toggle('show', on); if (on) renderBoard(); }
@@ -1484,7 +1490,7 @@ function render(dt) {
   updateAtmos(dt); game.slowmo = Math.max(0, game.slowmo - dt); game.vignette = Math.max(0, game.vignette - dt * 1.6); game.flash = Math.max(0, game.flash - dt * 3);
   const moving = Math.hypot(player.body.vel.x, player.body.vel.z) > 1;
   if (game.started && !game.paused && !(game.deathCine > 0)) cam.update(dt, player, moving);
-  updateRings(dt); updateStars(dt); updateTrail();
+  updateRings(dt); updateStars(dt); updateTrail(); updateSouls(dt);
   if (game.camRoll) { if (!SET.reduceMotion) camera.rotateZ(game.camRoll); game.camRoll *= Math.max(0, 1 - dt * 6); if (Math.abs(game.camRoll) < 0.002) game.camRoll = 0; }
   // low-hp heartbeat
   if (game.started && player.hp === 1 && !player.dead && !game.won) {

@@ -265,6 +265,7 @@ export class Bomb {
   }
   update(dt, world, game) {
     this.fuse -= dt; if (this.fuse <= 0) { this.explode(game); return; }
+    this.beepT = (this.beepT || 0) - dt; if (this.beepT <= 0) { this.beepT = this.fuse > 2 ? 0.55 : this.fuse > 1 ? 0.28 : 0.13; if (game.bombBeep) game.bombBeep(this.fuse); }
     this.vel.y -= 22 * dt;
     const d = { x: this.vel.x * dt, y: this.vel.y * dt, z: this.vel.z * dt };
     const len = Math.hypot(d.x, d.y, d.z) || 1e-6;

@@ -83,6 +83,10 @@
   .btitle { font-family: 'Cinzel', serif; font-weight: 900; font-size: 44px; letter-spacing: 12px; color: var(--cream); text-shadow: 0 3px 0 #2a2a5a, 0 0 40px rgba(120,140,255,.4); }
   .bsub { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 6px; color: var(--gold); margin: 6px 0 26px; }
   #boardrows { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  .brow { animation: rowin .4s both; animation-delay: calc(var(--i, 0) * 60ms); }
+  @keyframes rowin { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: none; } }
+  .bframe { animation: framein .32s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes framein { 0% { opacity: 0; transform: scale(.92); } 100% { opacity: 1; transform: scale(1); } }
   .brow { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 16px; padding: 12px 18px; margin: 8px 0; border: 1px solid rgba(227,192,112,.25); background: rgba(255,255,255,.03); text-align: left; min-width: 340px; }
   .brow .bic { font-size: 26px; color: #55597a; } .brow.got .bic { color: var(--gold); text-shadow: 0 0 14px rgba(227,192,112,.8); animation: spin 3s linear infinite; display: inline-block; }
   @keyframes spin { 50% { transform: scaleX(0.2); } }
