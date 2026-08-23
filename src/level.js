@@ -30,7 +30,7 @@ export function buildLevel(world) {
   const rubble = (x, y, z, n = 5) => { for (let i = 0; i < n; i++) deco(x + (rnd() - 0.5) * 2.2, y, z + (rnd() - 0.5) * 2.2, 0.3 + rnd() * 0.5, 0.2 + rnd() * 0.4, 0.3 + rnd() * 0.5, rnd() < 0.5 ? C.stoneD : C.stone); };
   const puddle = (x, z, w, d) => deco(x, 0.005, z, w, 0.01, d, '#3a3340');
   const slits = (x, y, z, n, dx, dz) => { for (let i = 0; i < n; i++) deco(x + dx * i, y, z + dz * i, dx ? 0.3 : 0.06, 1.4, dz ? 0.3 : 0.06, '#1a1418'); };
-  const crenels = (x0, x1, y, z, c = C.stoneL) => { for (let x = x0; x <= x1; x += 2) block(x, y, z, 0.9, 0.7, 0.7, c); };
+  const crenels = (x0, x1, y, z, c = C.stoneL) => { let k = 0; for (let x = x0; x <= x1; x += 2) { block(x, y, z, 0.9, k++ % 3 === 2 ? 0.45 : 0.7, 0.7, c); } };
   const stairs = (x, y, z, dir, steps, rise = 0.4, run = 0.7, width = 3, c = C.stone) => {
     for (let i = 0; i < steps; i++) {
       const sx = x + dir.x * run * i, sz = z + dir.z * run * i;
@@ -130,7 +130,7 @@ export function buildLevel(world) {
   // smithy stall against the west wall
   deco(-27.5, 0, 18, 0.25, 3.2, 0.25, C.wood); deco(-23.5, 0, 18, 0.25, 3.2, 0.25, C.wood); deco(-27.5, 0, 22, 0.25, 3.2, 0.25, C.wood); deco(-23.5, 0, 22, 0.25, 3.2, 0.25, C.wood);
   deco(-25.5, 3.2, 20, 4.8, 0.3, 4.8, C.roof); deco(-25.5, 0, 20, 1.2, 0.9, 0.8, C.iron); deco(-25.5, 0.9, 20, 0.5, 0.3, 0.4, C.iron); brazier(-27, 0, 21);
-  deco(-24, 0, 19, 0.2, 1.8, 2.4, C.wood); for (let i = 0; i < 3; i++) deco(-24, 0.3, 18.2 + i * 0.8, 0.1, 1.4, 0.12, C.steel);
+  deco(-24, 0, 19, 0.2, 1.8, 2.4, C.wood); for (let i = 0; i < 3; i++) deco(-23.85, 0, 18.2 + i * 0.8, 0.1, 1.9, 0.12, '#d8dde5');
   // sandbags and a fallen ladder by the gate, arrows stuck in the ground
   for (let i = 0; i < 5; i++) deco(-6 + i * 1.1, 0, 27.5, 1.1, 0.5, 0.7, '#7a6a4a'); for (let i = 0; i < 4; i++) deco(-5.5 + i * 1.1, 0.5, 27.5, 1.1, 0.5, 0.7, '#8a7a5a');
   deco(14, 0.1, 25, 0.9, 0.14, 7, C.woodD); for (let i = 0; i < 9; i++) deco(14, 0.2, 22 + i * 0.7, 0.8, 0.08, 0.1, C.wood);
@@ -149,7 +149,7 @@ export function buildLevel(world) {
   block(26, 7.6, 21.5, 3.2, 0.4, 4, C.stone);
   block(26, 7.6, 28.5, 3.2, 0.4, 3, C.stone);
   // banners on the south wall
-  for (const bx of [-10, 0, 10]) { deco(bx, 3, -13.9, 1.6, 4, 0.1, C.banner); deco(bx, 7, -13.9, 2, 0.3, 0.2, C.gold); }
+  for (const bx of [-10, 10]) { deco(bx, 3, -13.9, 1.6, 4, 0.1, C.banner); deco(bx, 7, -13.9, 2, 0.3, 0.2, C.gold); }
   L.checkpoints.push({ x: 0, y: 0.1, z: -10, name: 'Courtyard' });
   L.spawns.push({ kind: 'grunt', x: -4, y: 0.1, z: 10 }, { kind: 'grunt', x: 8, y: 0.1, z: 18 });
   L.spawns.push({ kind: 'crossbow', x: 12, y: 2.2, z: 6, perch: true });
@@ -162,6 +162,8 @@ export function buildLevel(world) {
   barricade(-14, 8, 32, 1.2, 4);
   sign(-10.5, 8, 30.6, 'F — shield bash\nbreaks barricades', Math.PI / 2);
   sign(6, 8, 30.6, 'CTRL in the air\nground pound kicks ladders', Math.PI);
+  for (const [a, b] of segs) for (let x = a + 0.6; x < b - 0.5; x += 1.15) for (let z = 30.6; z < 33.6; z += 1.15) { if (rnd() < 0.2) continue; deco(x, 8.0, z, 1.05, 0.03 + rnd() * 0.02, 1.05, rnd() < 0.5 ? '#868078' : '#7a756c'); }
+  for (let i = 0; i < 10; i++) deco(-28 + rnd() * 56, 0.6 + rnd() * 5, 34.02, 0.8 + rnd() * 1.6, 0.4 + rnd() * 1.2, 0.05, rnd() < 0.5 ? '#4f6a3a' : '#405a30');
   // rubble at gap edges
   block(-9.6, 8, 31, 0.8, 0.5, 0.8, C.stoneD); block(-4.4, 8, 33, 0.6, 0.4, 0.6, C.stoneD); block(6.4, 8, 33, 0.8, 0.5, 0.8, C.stoneD);
   // a rubble stepping block in the 6m gap (lands a double jump short of the far side)
@@ -196,6 +198,9 @@ export function buildLevel(world) {
   // siege camp props outside
   // broken stubs of the outer works, poking out of the mist
   for (let i = -24; i <= 24; i += 12) { deco(i, -9, 44, 3, 6 + (i % 24 === 0 ? 3 : 0), 3, C.stoneD); }
+  for (let i = 0; i < 22; i++) { const rx = -60 + rnd() * 120, rz = 38 + rnd() * 40; deco(rx, -8, rz, 1.5 + rnd() * 3, 2 + rnd() * 3.5, 1.5 + rnd() * 3, rnd() < 0.5 ? '#3a2a30' : '#2e2026'); }
+  for (let i = 0; i < 8; i++) { const rx = -58 + rnd() * 20, rz = -10 + rnd() * 40; deco(rx, -8, rz, 1.5 + rnd() * 3, 2 + rnd() * 4, 1.5 + rnd() * 3, '#332630'); }
+  deco(-10, -8, 52, 14, 5, 1.2, '#3a3034'); deco(18, -8, 56, 1.2, 6, 10, '#3a3034'); deco(-38, -8, 48, 10, 4, 1.2, '#3a3034');
   L.checkpoints.push({ x: 26, y: 8.1, z: 28.5, name: 'Wall' });
   // the wall's west end is closed off by the tower; the only way on is down the scaffold
 
@@ -203,20 +208,22 @@ export function buildLevel(world) {
   // hoist at the west end: moving platform between wall (y=8) and tower ledge (y=14)
   // THE SCAFFOLD: from the wall's west end, drop down the inner face of the west wall on builders'
   // scaffolds, cross a slider, then climb pillars back up to the hoist. (wall y=8 → down to 4.5 → up to 11)
-  const scaf = (x, y, z, w = 2.4, d = 2.4) => { block(x, y, z, w, 0.3, d, C.wood); deco(x - w / 2 + 0.15, y - 1.2, z - d / 2 + 0.15, 0.2, 1.2, 0.2, C.woodD); deco(x + w / 2 - 0.15, y - 1.2, z + d / 2 - 0.15, 0.2, 1.2, 0.2, C.woodD); };
+  const scaf = (x, y, z, w = 2.4, d = 2.4) => { block(x, y, z, w, 0.3, d, C.wood); for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) deco(x + ox * (w / 2 - 0.15), 0, z + oz * (d / 2 - 0.15), 0.2, y, 0.2, C.woodD); deco(x, y - 0.12, z, w, 0.12, 0.12, C.woodD); deco(x, y - 0.12, z, 0.12, 0.12, d, C.woodD); };
   scaf(-27.5, 6.6, 25.5); scaf(-27.5, 5.4, 20.5, 2.4, 6); scaf(-27.5, 4.2, 13.5, 2.4, 4);
   const sl1 = world.add(new Box(-24, 4.2, 9, 2.6, 0.3, 2.6, { moving: true, tag: 'slider' }));
   sl1.path = { a: { x: -26, y: 4.2, z: 9 }, b: { x: -18, y: 4.2, z: 9 }, period: 6, phase: 0.2 }; L.platforms.push(sl1);
   scaf(-15.5, 5.5, 9, 2.6, 2.6);
+  barrel(-28.3, 5.7, 22.4); deco(-26.6, 4.5, 14.5, 0.35, 0.5, 0.35, C.iron); L.torches.push({ x: -26.6, y: 5.1, z: 14.5 }); deco(-16.3, 5.8, 8.2, 0.8, 0.5, 0.8, C.woodD);
   // pillar climb north along x≈-16..-22
   block(-16, 0, 13, 2.2, 7.0, 2.2, C.stoneL); block(-18.5, 0, 18, 2.2, 8.2, 2.2, C.stone); block(-21, 0, 22, 2.4, 9.6, 2.4, C.stoneL);
+  for (const [px, py, pz] of [[-16, 7.0, 13], [-18.5, 8.2, 18], [-21, 9.6, 22]]) { deco(px, py - 1.2, pz, 2.6, 0.4, 2.6, C.stoneD); deco(px, py - 2.4, pz, 2.4, 0.3, 2.4, C.stoneD); for (let yy = 1; yy < py - 3; yy += 2.2) deco(px, yy, pz, 2.3, 0.12, 2.3, '#4e4a44'); }
   L.tutorial.push({ z: 19.5, key: 'hoist', text: 'Double jump onto the hoist' });
   L.spawns.push({ kind: 'crossbow', x: -12, y: 2.25, z: 20, perch: true }); block(-12, 0, 20, 2, 2.2, 2, C.stoneD);
   L.checkpoints.push({ x: -15.5, y: 5.6, z: 9, name: 'Scaffold' });
   const hoist = world.add(new Box(-24.5, 12, 27, 4, 0.4, 4, { moving: true, tag: 'hoist' }));
   hoist.path = { a: { x: -24.5, y: 12, z: 27 }, b: { x: -24.5, y: 15.6, z: 27 }, period: 8, phase: 0 };
   L.platforms.push(hoist);
-  deco(-26.4, 0, 27, 0.25, 17, 0.25, C.wood); deco(-22.6, 0, 27, 0.25, 17, 0.25, C.wood); deco(-24.5, 17, 27, 4.4, 0.3, 0.3, C.wood); deco(-24.5, 17.3, 27, 0.8, 0.8, 0.8, C.woodD); deco(-21.3, 15.5, 27, 0.25, 1.8, 0.25, C.wood);
+  deco(-26.4, 0, 27, 0.25, 17, 0.25, C.wood); deco(-22.6, 0, 27, 0.25, 17, 0.25, C.wood); deco(-24.5, 17, 27, 4.4, 0.3, 0.3, C.wood); deco(-24.5, 17.3, 27, 0.8, 0.8, 0.8, C.woodD); deco(-22.4, 17.3, 27, 0.2, 1.4, 0.2, C.wood);
   L.torches.push({ x: -27, y: 9.5, z: 30.2 }, { x: 27, y: 9.5, z: 30.2 });
 
   // ---------------- ZONE C: THE KEEP TOWER ----------------
@@ -242,17 +249,16 @@ export function buildLevel(world) {
     } else {
       const w = (i % 5 === 0 && i % 9 !== 1) ? 2.0 : 2.6;
       block(px, y - 0.5, pz, w, 0.5, w, i % 2 ? C.stone : C.stoneL);
-      // bracket
-      deco((px + T.x) / 2, y - 1.2, (pz + T.z) / 2, 0.6, 0.6, 0.6, C.woodD);
+      // corbel under the platform's inner edge + a stub on the tower face
+      { const rr = Math.hypot(px - T.x, pz - T.z); const ux = (px - T.x) / rr, uz = (pz - T.z) / rr; deco(T.x + ux * (rr - w / 2 + 0.2), y - 1.0, T.z + uz * (rr - w / 2 + 0.2), 0.7, 0.5, 0.7, C.stoneD); const f = 3.5 / Math.max(Math.abs(ux), Math.abs(uz)); deco(T.x + ux * (f + 0.3), y - 1.0, T.z + uz * (f + 0.3), 0.6, 0.5, 0.6, C.stoneD); }
     }
     if (i === 6) L.spawns.push({ kind: 'grunt', x: px, y: y + 0.05, z: pz });
     if (i === 12) { L.checkpoints.push({ x: px, y: y + 0.05, z: pz, name: 'Keep mid' }); }
     if (i % 4 === 2) L.torches.push({ x: px + (T.x - px) * 0.22, y: y + 1.7, z: pz + (T.z - pz) * 0.22 });
     if (i % 3 === 0) { deco(px + (rnd() - 0.5) * 1.2, y, pz + (rnd() - 0.5) * 1.2, 0.3 + rnd() * 0.3, 0.2 + rnd() * 0.2, 0.3 + rnd() * 0.3, C.stoneD); }
-    if (i % 5 === 1) { deco(px + (T.x - px) * 0.5, y - 0.9, pz + (T.z - pz) * 0.5, 0.5, 0.5, 0.5, C.woodD); }
   }
   // tower-face crossbow perches
-  block(T.x + 4.8, 24, T.z - 4.8, 2, 0.5, 2, C.stone); L.spawns.push({ kind: 'crossbow', x: T.x + 4.8, y: 24.55, z: T.z - 4.8, perch: true });
+  block(T.x + 4.4, 24, T.z - 4.4, 2, 0.5, 2, C.stone); deco(T.x + 3.9, 23.2, T.z - 3.9, 0.8, 0.8, 0.8, C.stoneD); L.spawns.push({ kind: 'crossbow', x: T.x + 4.6, y: 24.55, z: T.z - 4.6, perch: true });
   // top platform (y = 40.6) — arena + flag
   const topY = y + RISE;
   block(T.x, 0, T.z, 7, topY - 1, 7, C.stoneD);
@@ -271,6 +277,11 @@ export function buildLevel(world) {
     deco(T.x + ox * 3.9, topY - 8, T.z + oz * 3.9, 2.0, 1.0, 2.0, C.stoneL);
   }
   for (let yy = 10; yy < topY - 6; yy += 8) deco(T.x, yy, T.z, 7.4, 0.5, 7.4, C.stoneL);
+  deco(T.x, 0, T.z, 8.2, 6, 8.2, '#4a4642');                                    // plinth rising out of the mist
+  for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; const f = 5.5 / Math.max(Math.abs(Math.cos(a)), Math.abs(Math.sin(a))); deco(T.x + Math.cos(a) * (f - 0.2), topY - 1.9, T.z + Math.sin(a) * (f - 0.2), 0.7, 0.9, 0.7, C.stoneL); }   // corbel ring
+  for (let yy = 14; yy < topY - 6; yy += 6) for (const [ox, oz, w, d] of [[3.55, 0, 0.14, 0.7], [-3.55, 0, 0.14, 0.7], [0, 3.55, 0.7, 0.14], [0, -3.55, 0.7, 0.14]]) deco(T.x + ox, yy - 0.25, T.z + oz, w, 2.1, d, C.stoneL);  // slit frames
+  deco(T.x + 3.6, topY - 9, T.z - 2, 0.1, 8, 1.6, C.banner); deco(T.x - 3.6, topY - 9, T.z + 2, 0.1, 8, 1.6, C.banner); deco(T.x + 2, topY - 9, T.z + 3.6, 1.6, 8, 0.1, C.banner); deco(T.x - 2, topY - 9, T.z - 3.6, 1.6, 8, 0.1, C.banner);
+  for (const [ox, oz] of [[3.6, -2], [-3.6, 2]]) deco(T.x + ox, topY - 1, T.z + oz, 0.14, 0.25, 2.0, C.gold); for (const [ox, oz] of [[2, 3.6], [-2, -3.6]]) deco(T.x + ox, topY - 1, T.z + oz, 2.0, 0.25, 0.14, C.gold);
   for (let yy = 14; yy < topY - 6; yy += 6) { deco(T.x + 3.52, yy, T.z, 0.06, 1.6, 0.3, '#1a1418'); deco(T.x - 3.52, yy, T.z, 0.06, 1.6, 0.3, '#1a1418'); deco(T.x, yy, T.z + 3.52, 0.3, 1.6, 0.06, '#1a1418'); deco(T.x, yy, T.z - 3.52, 0.3, 1.6, 0.06, '#1a1418'); }
   deco(T.x + 3.55, topY - 14, T.z + 1.2, 0.1, 6, 1.4, C.banner); deco(T.x - 3.55, topY - 20, T.z - 1.2, 0.1, 6, 1.4, C.banner);
   // banners along the north wall's inner face and the towers

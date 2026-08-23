@@ -237,7 +237,7 @@ const game = {
   releaseAttackToken(e) { if (this.attackToken === e) this.attackToken = null; },
   onEnemyDied(e) {
     this.player.kills++;
-    if (e.kind === 'captain') { this.bossDead = true; toast('The Siege Captain falls. Raise the banner.'); }
+    if (e.kind === 'captain') { this.bossDead = true; this.slowmo = 1.4; cam.shake = 1.2; this.flash = 0.8; audio.play('bossdie'); for (let k = 0; k < 4; k++) spawnFx('die', { x: e.pos.x, y: e.pos.y + 1 + k * 0.4, z: e.pos.z }, 14); for (let k = 0; k < 2; k++) spawnFx('parry', { x: e.pos.x, y: e.pos.y + 1.4, z: e.pos.z }, 20); setTimeout(() => toast('The Siege Captain falls. Raise the banner.', 4), 1200); }
     if (this.player.lockTarget === e) { this.player.lockTarget = null; cam.lock = null; }
   },
   playerFell() { if (this.falling) return; this.falling = 0.9; audio.play('fall'); document.getElementById('fell').classList.add('show'); },
@@ -392,6 +392,7 @@ function step(dt, inp) {
   if (game.hitstop > 0) { game.hitstop -= dt; return; }
   game.time += dt;
   updatePlatforms(L, game.time, dt);
+  if (game.bossIntro > 0) inp = { ...inp, mx: 0, mz: 0, jump: false, dash: false, light: false, heavy: false, bash: false, pound: false, block: false, lock: false };
   if (inp.lock) toggleLock();
   if (inp.respawn && !player.dead) { game.respawn(false); }
   if (inp.interact) tryInteract();
@@ -407,6 +408,7 @@ function step(dt, inp) {
   for (const e of game.enemies) {
     if (e.dead) { e.deathT += dt; if (e.deathT < 1.0) { e.body.vel.y -= 32 * dt; e.body.vel.x *= 0.97; e.body.vel.z *= 0.97; e.body.move(world, e.body.vel.x * dt, e.body.vel.y * dt, e.body.vel.z * dt); } continue; }
     if (game.noEnemies) continue;
+    if (game.bossIntro > 0) { if (e.boss) { e.telegraph = 0.5 + 0.5 * Math.sin(game.time * 6); e.face(player.pos); } continue; }
     // wake-up radius only matters in 3D distance; also skip far ones for perf
     const d = Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z, (e.pos.y - player.pos.y) * 0.5);
     if (d > 60) continue;
@@ -439,6 +441,9 @@ function step(dt, inp) {
     const c = L.checkpoints[i];
     if (Math.hypot(c.x - player.pos.x, c.z - player.pos.z) < 3 && Math.abs(c.y - player.pos.y) < 2) { game.checkpoint = i; toast('Checkpoint: ' + c.name); audio.play('checkpoint'); }
   }
+  // boss intro: first time the player stands on the arena near the captain
+  if (!game.bossIntroDone) { const cap = game.enemies.find(e => e.boss && !e.dead); if (cap && player.pos.y > L.topY - 0.5 && Math.hypot(cap.pos.x - player.pos.x, cap.pos.z - player.pos.z) < 11) { game.bossIntroDone = true; game.bossIntro = 2.6; game.slowmo = 2.6; cap.aggroed = true; cap.state = 'chase'; player.lockTarget = cap; cam.lock = cap; cam.idle = 0; audio.play('roar'); document.getElementById('bosscard').classList.add('show'); setTimeout(() => document.getElementById('bosscard').classList.remove('show'), 3200); cam.shake = 0.6; for (let k = 0; k < 3; k++) spawnFx('shock', { x: cap.pos.x, y: cap.pos.y + 0.1, z: cap.pos.z }, 10); } }
+  if (game.bossIntro > 0) { game.bossIntro -= dt; }
   // goal
   if (game.bossDead && !game.won && Math.hypot(L.goal.x - player.pos.x, L.goal.z - player.pos.z) < L.goal.r && Math.abs(player.pos.y - L.goal.y) < 2) win();
   // lock maintenance
@@ -528,7 +533,7 @@ function animateRig(rig, ent, dt, isPlayer) {
     // fade the knight when the camera is pulled in tight so it never fills the screen
   { const cd = cam.curDist; const fade = cd < 2.6 ? Math.max(0, (cd - 1.2) / 1.4) : 1; playerMat.transparent = fade < 1; playerMat.opacity = fade; playerMat.depthWrite = fade > 0.5; }
   // footsteps
-    if (moving) { const ph2 = Math.floor(ph / Math.PI); if (ph2 !== ent.lastStep) { ent.lastStep = ph2; audio.play('step'); if (sp > 5) spawnFx('dust', { x: b.pos.x, y: b.pos.y, z: b.pos.z }, 2); } }
+    if (moving) { const ph2 = Math.floor(ph / Math.PI); if (ph2 !== ent.lastStep) { ent.lastStep = ph2; const gnd = b.ground; audio.play(gnd && (gnd.moving || gnd.tag === 'barricade' || (gnd.h <= 0.31 && gnd.w <= 4.1)) ? 'stepwood' : 'step'); if (sp > 5) spawnFx('dust', { x: b.pos.x, y: b.pos.y, z: b.pos.z }, 2); } }
     ent.landVy = b.grounded ? 0 : b.vel.y;
     // sword trail during hit windows
     const trailOn = (st === S.LIGHT && t >= P.light[ent.combo].hit[0] - 0.02 && t <= P.light[ent.combo].hit[1] + 0.06) || (st === S.HEAVY && t >= P.heavyHit[0] - 0.02 && t <= P.heavyHit[1] + 0.08);

@@ -17,34 +17,41 @@ export class Audio {
     const s = c.createBufferSource(); s.buffer = buf; const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp;
     const gn = c.createGain(); gn.gain.value = g; s.connect(f); f.connect(gn); gn.connect(this.master); s.start(c.currentTime + delay);
   }
+  ring(f, dur, g = 0.2, delay = 0) { const c = this.ctx; if (!c) return; for (const [m, gg] of [[1, 1], [2.76, 0.5], [5.4, 0.3], [8.9, 0.15]]) { const o = c.createOscillator(), gn = c.createGain(); o.type = 'sine'; o.frequency.value = f * m; const t = c.currentTime + delay; gn.gain.setValueAtTime(g * gg, t); gn.gain.exponentialRampToValueAtTime(0.0005, t + dur / (1 + m * 0.3)); o.connect(gn); gn.connect(this.master); o.start(t); o.stop(t + dur + 0.05); } }
+  thump(f0, dur, g = 0.3, delay = 0) { const c = this.ctx; if (!c) return; const o = c.createOscillator(), gn = c.createGain(); o.type = 'sine'; const t = c.currentTime + delay; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(25, f0 * 0.3), t + dur); gn.gain.setValueAtTime(g, t); gn.gain.exponentialRampToValueAtTime(0.001, t + dur); o.connect(gn); gn.connect(this.master); o.start(t); o.stop(t + dur + 0.02); }
+  whoosh(dur, g = 0.2, f0 = 400, f1 = 2400, delay = 0) { const c = this.ctx; if (!c) return; const n = Math.floor(c.sampleRate * dur); const buf = c.createBuffer(1, n, c.sampleRate); const d = buf.getChannelData(0); for (let i = 0; i < n; i++) { const e = Math.sin(Math.PI * i / n); d[i] = (Math.random() * 2 - 1) * e * e; } const src = c.createBufferSource(); src.buffer = buf; const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.2; const t = c.currentTime + delay; bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1, t + dur); const gn = c.createGain(); gn.gain.value = g; src.connect(bp); bp.connect(gn); gn.connect(this.master); src.start(t); }
   play(name) {
     if (!this.ctx) return;
     const now = performance.now(); if (this.last[name] && now - this.last[name] < 40) return; this.last[name] = now;
     switch (name) {
       case 'jump': this.tone(300, 620, 0.12, 'square', 0.12); break;
+      case 'roar': this.tone(90, 40, 1.2, 'sawtooth', 0.35); this.tone(130, 55, 1.0, 'square', 0.2, 0.05); this.noise(0.8, 0.25, 200); break;
+      case 'bossdie': this.tone(160, 30, 1.6, 'sawtooth', 0.3); this.noise(1.2, 0.3, 300); [0.3, 0.6, 0.9].forEach((d, i) => this.tone([392, 523, 659][i], [392, 523, 659][i], 0.8, 'triangle', 0.14, d)); break;
       case 'heart': this.tone(70, 50, 0.12, 'sine', 0.25); this.tone(60, 45, 0.1, 'sine', 0.18, 0.18); break;
-      case 'step': this.noise(0.05, 0.05, 600); break;
-      case 'land': this.noise(0.09, 0.12, 300); this.tone(120, 60, 0.08, 'sine', 0.1); break;
+      case 'step': this.noise(0.04, 0.045, 500 + Math.random() * 300); this.thump(120 + Math.random() * 40, 0.04, 0.05); break;
+      case 'stepwood': this.thump(170 + Math.random() * 40, 0.06, 0.1); this.noise(0.03, 0.03, 900); break;
+      case 'land': this.noise(0.09, 0.12, 300); this.thump(110, 0.12, 0.22); break;
       case 'djump': this.tone(420, 900, 0.14, 'square', 0.12); this.noise(0.08, 0.05, 2000); break;
-      case 'dash': this.noise(0.16, 0.18, 1200); this.tone(200, 80, 0.15, 'sawtooth', 0.08); break;
-      case 'bash': this.noise(0.18, 0.2, 600); this.tone(160, 60, 0.2, 'square', 0.12); break;
-      case 'swing': this.noise(0.1 + Math.random() * 0.05, 0.14, 1500 + Math.random() * 900); this.tone(600 + Math.random() * 200, 250, 0.08, 'sine', 0.04); break;
+      case 'dash': this.whoosh(0.22, 0.26, 200, 1800); break;
+      case 'bash': this.whoosh(0.2, 0.2, 150, 900); this.thump(140, 0.2, 0.3); break;
+      case 'swing': this.whoosh(0.16 + Math.random() * 0.05, 0.22, 300 + Math.random() * 200, 2600 + Math.random() * 800); break;
       case 'charge': this.tone(120, 240, 0.5, 'sawtooth', 0.06); break;
       case 'heavyrelease': this.noise(0.2, 0.22, 900); this.tone(90, 40, 0.25, 'sawtooth', 0.15); break;
-      case 'hit': { const k = 0.85 + Math.random() * 0.35; this.tone(220 * k, 110 * k, 0.09, 'square', 0.22); this.noise(0.06, 0.15, 2600 + Math.random() * 1200); break; }
-      case 'heavyhit': this.tone(140, 50, 0.18, 'square', 0.3); this.noise(0.12, 0.25, 1500); break;
-      case 'clank': { const k = 0.9 + Math.random() * 0.25; this.tone(1400 * k, 900 * k, 0.08, 'triangle', 0.2); this.tone(2200 * k, 1800 * k, 0.05, 'sine', 0.1); break; }
-      case 'break': this.tone(900, 200, 0.25, 'sawtooth', 0.2); this.noise(0.2, 0.2, 2000); break;
-      case 'parry': this.tone(1800, 2600, 0.12, 'sine', 0.25); this.tone(900, 1400, 0.2, 'triangle', 0.15, 0.02); break;
-      case 'block': this.tone(500, 380, 0.06, 'triangle', 0.08); break;
-      case 'hurt': this.tone(180, 70, 0.25, 'sawtooth', 0.25); this.noise(0.15, 0.2, 500); break;
-      case 'pound': this.tone(90, 30, 0.35, 'square', 0.3); this.noise(0.3, 0.3, 300); break;
+      case 'hit': { const k = 0.85 + Math.random() * 0.35; this.thump(180 * k, 0.12, 0.35); this.noise(0.05, 0.18, 2400 + Math.random() * 1400); this.ring(1900 * k, 0.25, 0.06); break; }
+      case 'heavyhit': this.thump(110, 0.28, 0.5); this.noise(0.14, 0.3, 1200); this.ring(1400, 0.5, 0.1, 0.02); break;
+      case 'clank': { const k = 0.9 + Math.random() * 0.25; this.ring(2400 * k, 0.45, 0.16); this.noise(0.03, 0.12, 4000); this.thump(300, 0.06, 0.12); break; }
+      case 'break': this.ring(1100, 0.6, 0.18); this.tone(900, 200, 0.25, 'sawtooth', 0.12); this.noise(0.25, 0.25, 1200); this.thump(90, 0.3, 0.35); break;
+      case 'parry': this.ring(3200, 0.9, 0.22); this.tone(1800, 2600, 0.12, 'sine', 0.2); this.whoosh(0.3, 0.12, 2000, 6000); this.thump(260, 0.08, 0.15); break;
+      case 'block': this.thump(420, 0.05, 0.1); this.noise(0.04, 0.06, 1500); break;
+      case 'hurt': this.thump(160, 0.25, 0.4); this.tone(180, 70, 0.25, 'sawtooth', 0.15); this.noise(0.15, 0.2, 500); break;
+      case 'pound': this.thump(80, 0.45, 0.6); this.noise(0.35, 0.35, 250); this.ring(600, 0.3, 0.06, 0.03); break;
       case 'poundstart': this.tone(400, 700, 0.1, 'square', 0.08); break;
       case 'windup': this.tone(260, 520, 0.3, 'triangle', 0.07); break;
       case 'bolt': this.tone(700, 300, 0.08, 'sawtooth', 0.1); this.noise(0.05, 0.08, 3000); break;
-      case 'die': this.tone(300, 60, 0.4, 'sawtooth', 0.18); this.noise(0.25, 0.15, 800); break;
+      case 'die': this.tone(300, 60, 0.4, 'sawtooth', 0.14); this.noise(0.25, 0.15, 800); this.thump(100, 0.3, 0.3, 0.15); break;
       case 'fall': this.tone(500, 80, 0.6, 'sine', 0.18); break;
-      case 'ladder': this.noise(0.3, 0.2, 400); this.tone(200, 60, 0.4, 'square', 0.1); break;
+      case 'ladder': this.noise(0.4, 0.25, 300); this.thump(120, 0.5, 0.4); [0.15, 0.3, 0.42].forEach(d => this.noise(0.12, 0.15, 500 + Math.random() * 500, d)); break;
+      case 'ui': this.tone(900, 1200, 0.06, 'sine', 0.08); break;
       case 'checkpoint': this.tone(520, 780, 0.15, 'triangle', 0.12); this.tone(780, 1040, 0.2, 'triangle', 0.12, 0.12); break;
       case 'lock': this.tone(1000, 1300, 0.06, 'sine', 0.1); break;
       case 'win': [0, 0.15, 0.3, 0.45].forEach((d, i) => this.tone([520, 660, 780, 1040][i], [520, 660, 780, 1040][i], 0.4, 'triangle', 0.15, d)); break;
@@ -81,6 +88,8 @@ export class Music {
     this.target = intensity;
     this.intensity += (this.target - this.intensity) * Math.min(1, dt * (this.target > this.intensity ? 3 : 0.5));
     this.drumGain.gain.value = 0.15 + 0.85 * this.intensity;
+    // distant battle: far clangs and a horn now and then, below the mix
+    this.far = (this.far || 0) - dt; if (this.far <= 0) { this.far = 1.2 + Math.random() * 2.5; const g = 0.05 * (1 - this.intensity * 0.6); const r = Math.random(); if (r < 0.6) this.a.ring(1500 + Math.random() * 1500, 0.5, g); else if (r < 0.85) this.a.thump(70 + Math.random() * 40, 0.5, g * 2); else this.a.tone(180 + Math.random() * 60, 150, 0.9, 'sawtooth', g * 0.8); }
     if (this.wind) { const t = c.currentTime; this.wind.bp.frequency.value = 420 + Math.sin(t * 0.23) * 180 + Math.sin(t * 0.61) * 90; this.wind.g.gain.value = 0.035 + 0.025 * (0.5 + 0.5 * Math.sin(t * 0.17)); }
     this.lp.frequency.value = 180 + 500 * this.intensity;
     // schedule a bar ahead
