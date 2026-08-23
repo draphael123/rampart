@@ -73,27 +73,39 @@ export function knightRig(palette = {}) {
   };
   const legL = mkLeg(), legR = mkLeg();
   legL.position.set(-0.16, 0.62, 0); legR.position.set(0.16, 0.62, 0);
-  // sword arm (right) pivot at shoulder
+  // sword arm (right): shoulder pivot + elbow (fore) pivot
   const armR = new THREE.Group();
-  armR.add(boxesMesh([{ x: 0, y: -0.22, z: 0, w: 0.16, h: 0.44, d: 0.16, c: P.armor }]));
+  armR.add(boxesMesh([{ x: 0, y: -0.13, z: 0, w: 0.17, h: 0.27, d: 0.17, c: P.armor }, { x: 0, y: 0.0, z: 0, w: 0.22, h: 0.12, d: 0.22, c: P.trim }])); // upper + pauldron cap
+  const foreR = new THREE.Group();
+  foreR.add(boxesMesh([{ x: 0, y: -0.1, z: 0, w: 0.15, h: 0.22, d: 0.15, c: P.armor }, { x: 0, y: -0.21, z: 0, w: 0.17, h: 0.06, d: 0.17, c: P.steel }])); // forearm + gauntlet
   const sword = boxesMesh([
-    { x: 0, y: 0.0, z: 0.08, w: 0.07, h: 0.07, d: 0.2, c: '#3a2a1a' },   // grip
-    { x: 0, y: 0.0, z: 0.2, w: 0.3, h: 0.05, d: 0.05, c: P.trim },      // guard
-    { x: 0, y: 0.0, z: 0.75, w: 0.1, h: 0.035, d: 1.05, c: P.steel },   // blade
+    { x: 0, y: 0.0, z: 0.08, w: 0.07, h: 0.07, d: 0.2, c: '#3a2a1a' },     // grip
+    { x: 0, y: 0.0, z: -0.06, w: 0.1, h: 0.1, d: 0.08, c: P.trim },        // pommel
+    { x: 0, y: 0.0, z: 0.2, w: 0.34, h: 0.06, d: 0.06, c: P.trim },        // guard
+    { x: 0, y: 0.0, z: 0.68, w: 0.11, h: 0.04, d: 0.9, c: P.steel },       // blade
+    { x: 0, y: 0.005, z: 0.62, w: 0.035, h: 0.045, d: 0.72, c: '#8a909c' },// fuller
+    { x: 0, y: 0.0, z: 1.2, w: 0.07, h: 0.035, d: 0.16, c: P.steel },      // tip
   ]);
-  sword.position.set(0, -0.42, 0.05);
-  armR.add(sword);
+  sword.position.set(0, -0.2, 0.05);
+  foreR.add(sword); foreR.position.set(0, -0.26, 0);
+  armR.add(foreR); armR.userData.fore = foreR;
   armR.position.set(0.4, 1.2, 0);
-  // shield arm (left)
+  // shield arm (left): shoulder + elbow
   const armL = new THREE.Group();
-  armL.add(boxesMesh([{ x: 0, y: -0.22, z: 0, w: 0.16, h: 0.44, d: 0.16, c: P.armor }]));
+  armL.add(boxesMesh([{ x: 0, y: -0.13, z: 0, w: 0.17, h: 0.27, d: 0.17, c: P.armor }, { x: 0, y: 0.0, z: 0, w: 0.22, h: 0.12, d: 0.22, c: P.trim }]));
+  const foreL = new THREE.Group();
+  foreL.add(boxesMesh([{ x: 0, y: -0.1, z: 0, w: 0.15, h: 0.22, d: 0.15, c: P.armor }, { x: 0, y: -0.21, z: 0, w: 0.17, h: 0.06, d: 0.17, c: P.steel }]));
   const shield = boxesMesh([
-    { x: 0, y: -0.2, z: 0.1, w: 0.5, h: 0.7, d: 0.07, c: P.shield },
-    { x: 0, y: -0.2, z: 0.145, w: 0.12, h: 0.45, d: 0.02, c: P.trim },
-    { x: 0, y: -0.2, z: 0.145, w: 0.38, h: 0.1, d: 0.02, c: P.trim },
+    { x: 0, y: 0.0, z: 0.1, w: 0.5, h: 0.7, d: 0.07, c: P.shield },
+    { x: 0, y: 0.33, z: 0.11, w: 0.54, h: 0.06, d: 0.09, c: P.trim },      // rim top
+    { x: 0, y: -0.33, z: 0.11, w: 0.54, h: 0.06, d: 0.09, c: P.trim },     // rim bottom
+    { x: -0.24, y: 0.0, z: 0.11, w: 0.06, h: 0.72, d: 0.09, c: P.trim },   // rim left
+    { x: 0.24, y: 0.0, z: 0.11, w: 0.06, h: 0.72, d: 0.09, c: P.trim },    // rim right
+    { x: 0, y: 0.0, z: 0.15, w: 0.16, h: 0.16, d: 0.06, c: P.steel },      // boss
   ]);
-  shield.position.set(-0.1, -0.05, 0.05);
-  armL.add(shield);
+  shield.position.set(-0.08, -0.18, 0.05);
+  foreL.add(shield); foreL.position.set(0, -0.26, 0);
+  armL.add(foreL); armL.userData.fore = foreL;
   armL.position.set(-0.4, 1.2, 0);
   // cape: a flat cloth behind the torso, pivoting at the shoulders so it can swing
   const cape = boxesMesh([{ x: 0, y: -0.5, z: -0.04, w: 0.56, h: 1.0, d: 0.06, c: P.cape }, { x: 0, y: -0.95, z: -0.05, w: 0.6, h: 0.14, d: 0.07, c: P.trim }]);

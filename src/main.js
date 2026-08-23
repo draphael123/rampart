@@ -622,7 +622,7 @@ const KEYMAP = { KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right', ArrowUp:
 let arrivedByTravel = false;
 try { const st = sessionStorage.getItem('rampart_slot'); if (st && new URLSearchParams(location.search).has('vale')) { arrivedByTravel = true; pendingSlot = +st; } else if (st && VALE === 1 && sessionStorage.getItem('rampart_travelback')) { arrivedByTravel = true; pendingSlot = +st; sessionStorage.removeItem('rampart_travelback'); } } catch (e) {}
 let atSplash = true;
-function leaveSplash() { if (!atSplash) return; atSplash = false; audio.resume(); audio.play('checkpoint'); document.getElementById('splash').style.display = 'none'; buildSlots(); document.getElementById('fileselect').style.display = 'flex'; }
+function leaveSplash() { if (!atSplash) return; atSplash = false; audio.resume(); audio.play('checkpoint'); music.start(); document.getElementById('splash').style.display = 'none'; buildSlots(); document.getElementById('fileselect').style.display = 'flex'; }
 if (arrivedByTravel) { atSplash = false; document.getElementById('splash').style.display = 'none'; const t2 = document.getElementById('title'); t2.style.display = 'flex'; t2.classList.remove('hide'); if (VALE === 2) { t2.querySelector('h1').textContent = 'EMBERMOOR'; t2.querySelector('.sub').textContent = 'THE VALE BELOW THE CLOUDS'; t2.querySelector('p').innerHTML = 'Ash, dead trees, and five cold beacons. The Ember Marshal broods on the broken spire. <b style="color:var(--gold);font-style:normal">Four crests sleep here.</b>'; } }
 document.getElementById('splash').addEventListener('mousedown', leaveSplash);
 addEventListener('keydown', e => { if (atSplash) { leaveSplash(); return; } }, true);
@@ -972,6 +972,11 @@ function animateRig(rig, ent, dt, isPlayer) {
     }
   }
   u.armR.rotation.x = armR; u.armR.rotation.y = armRy; u.armR.rotation.z = armRz;
+  if (u.armR.userData && u.armR.userData.fore) {
+    const base = b.grounded ? -0.38 : -0.6;
+    u.armR.userData.fore.rotation.x = base + Math.max(0, Math.min(1.4, armR)) * 0.32 + (moving ? Math.max(0, Math.sin(ph)) * 0.25 : 0);
+    u.armL.userData.fore.rotation.x = shieldUp ? -0.85 : base + Math.max(0, Math.min(1.4, armL)) * 0.32 + (moving ? Math.max(0, -Math.sin(ph)) * 0.25 : 0);
+  }
   u.armL.rotation.x = shieldUp ? -1.4 : armL; u.armL.rotation.y = shieldUp ? 0.9 * Math.min(1, shieldUp) : 0;
   u.armL.position.x = shieldUp ? -0.2 : -0.4; u.armL.position.z = shieldUp ? 0.25 * shieldUp : 0;
   u.torso.rotation.x = lean;
@@ -1183,7 +1188,9 @@ function render(dt) {
   if (L.flag) L.flag.rotation.y = Math.sin(game.time * 2) * 0.15 + (game.bossDead ? 0 : 0);
   renderHud(dt);
   // music intensity: nearby aggroed foes, boss
-  if (game.started) { let inten = 0.15; for (const e of game.enemies) { if (e.dead || !e.aggroed) continue; const d = Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z); if (d < 16) inten = Math.max(inten, e.boss ? 1 : 0.65); } if (game.won) inten = 0; music.update(dt, inten, L.water ? player.pos : null); }
+  { let inten = 0.15, bossNear = false; for (const e of game.enemies) { if (e.dead || !e.aggroed) continue; const d = Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z); if (d < 16) inten = Math.max(inten, e.boss ? 1 : 0.65); if (e.boss && d < 30) bossNear = true; } if (game.won) { inten = 0; bossNear = false; }
+    const mmode = !game.started ? 'title' : bossNear ? 'boss' : VALE === 2 ? 'vale2' : 'vale1';
+    music.update(dt, inten, game.started && L.water ? player.pos : null, mmode); }
   document.getElementById('vig').style.opacity = Math.min(1, game.vignette) * 0.8 + (player.hp <= 2 && !player.dead ? 0.25 + 0.15 * Math.sin(game.time * 6) : 0);
   document.getElementById('flash').style.opacity = game.flash;
   renderer.render(scene, camera);
@@ -1198,6 +1205,7 @@ const ZERO = { mx: 0, mz: 0, jump: false, jumpHeld: false, dash: false, light: f
 window.RAMPART = {
   game, player, world, L, P, E, cam, scene, renderer, camera, updatePickups, updateRace, raceState, startRace, renderBoard,
   collectInput, animateRig,
+  audio, music,
   debugStart() { atSplash = false; pendingSlot = 0; for (const id of ['splash', 'fileselect', 'options', 'title']) document.getElementById(id).style.display = 'none'; document.getElementById('title').classList.add('hide'); game.started = true; applySettings(); ensureWorldCrests(); },
   shot() { render(0); return fetch('/shot', { method: 'POST', body: canvas.toDataURL('image/png') }).then(r => r.text()); },
   start() { start(); game.paused = false; },
