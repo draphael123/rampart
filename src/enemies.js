@@ -238,7 +238,7 @@ export class Bolt {
     const p = game.player;
     if (!p.dead && Math.abs(this.pos.x - p.pos.x) < 0.5 && Math.abs(this.pos.z - p.pos.z) < 0.5 && this.pos.y > p.pos.y && this.pos.y < p.pos.y + 1.7) {
       const r = p.takeHit(1, this.owner.pos, { kb: 5, up: 3 });
-      if (r === 'parried') { this.vel.x *= -1.3; this.vel.z *= -1.3; this.vel.y = 2; this.owner = p; this.life = 2; game.fx('parry', this.pos); game.boltParried = true; return; }
+      if (r === 'parried') { this.vel.x *= -1.3; this.vel.z *= -1.3; this.vel.y = 2; this.owner = p; this.life = 2; game.fx('parry', this.pos); game.boltParried = true; if (game.trainingOn) game.trainParry = true; return; }
       if (r !== 'iframe') this.dead = true;
     }
     // parried bolt hits enemies

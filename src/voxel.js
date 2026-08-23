@@ -63,8 +63,15 @@ export function knightRig(palette = {}) {
     { x: 0, y: 0.5, z: -0.22, w: 0.06, h: 0.14, d: 0.2, c: P.cloth },
   ]));
   head.position.set(0, 1.55, 0);
-  const legL = boxesMesh([{ x: 0, y: -0.3, z: 0, w: 0.2, h: 0.6, d: 0.22, c: P.armor }]);
-  const legR = legL.clone();
+  const mkLeg = () => {
+    const leg = new THREE.Group();
+    leg.add(boxesMesh([{ x: 0, y: -0.16, z: 0, w: 0.2, h: 0.32, d: 0.22, c: P.armor }]));
+    const shin = new THREE.Group();
+    shin.add(boxesMesh([{ x: 0, y: -0.14, z: 0, w: 0.18, h: 0.28, d: 0.2, c: P.armor }, { x: 0, y: -0.28, z: 0.04, w: 0.2, h: 0.1, d: 0.3, c: P.trim }]));
+    shin.position.set(0, -0.32, 0); leg.add(shin); leg.userData.shin = shin;
+    return leg;
+  };
+  const legL = mkLeg(), legR = mkLeg();
   legL.position.set(-0.16, 0.62, 0); legR.position.set(0.16, 0.62, 0);
   // sword arm (right) pivot at shoulder
   const armR = new THREE.Group();

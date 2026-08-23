@@ -139,9 +139,10 @@ export function buildLevel(world) {
   stairs(-3.5, -35, -109.9, { x: -1, z: 0 }, 14, 0.42, 0.55, 2.2, C.rockD);   // wall-hugging ramp, mount from the east
   stairs(-2, -35, -112.4, { x: 0, z: -1 }, 13, 0.42, 0.55, 5.2, C.rockD);
   L.water = { x: 0, y: -34.72, z: -114, w: 55, d: 4.4 };
+  block(0, -35, -114, 1.6, 0.75, 1.4, C.rockL);   // stepping stone carrying the stream pennant
   deco(0, -35.04, -114, 55, 0.05, 4.8, '#31424f');
   for (let wx = -24; wx < 26; wx += 4.5) { deco(wx, -34.98, -116.6, 2.6, 0.06, 0.5, '#8a8276'); deco(wx + 2, -34.98, -111.6, 2.2, 0.06, 0.5, '#8a8276'); }
-  pennant(0, -34.2, -114);
+  pennant(0, -34.25, -114);
   millwheel(-13.4, -35, -114);
   boulder(14, -35, -113, 1.2); tuft(-4, -35, -116, 1); tuft(10, -35, -111, 1);
 
@@ -168,13 +169,13 @@ export function buildLevel(world) {
   L.campArena = { x: 4, y: -24, z: -82 };
   bush(-16, -24, -84); flowers(-14, -24, -78, 4); oak(24, -24, -88, 1.0);
   trebuchet(-12, -24, -73);
-  pennant(8, -21, -78);                       // atop a tent
+  pennant(-9, -21.8, -79);                    // atop the crate stack
   pennant(-20, -24, -74);
   L.tutorial.push({ z: -90, key: 'combat', text: 'Grunts ahead — LEFT CLICK chains, BOP their heads, or CHARGE through them' });
   // ladders lean on the north rise: swarm trickles down into the camp; kick from above
   // (rise B to terrace -16 is just north)
   for (const lx of [-6, 10]) L.ladders.push({ x: lx, z: -71.6, bottom: -24, top: -16, facing: 0, up: true, respawn: 0, spawnEvery: 16, t: 6 + Math.random() * 3 });
-  sign(2, -16, -70.5, 'CTRL in the air:\nground pound\nkicks ladders', Math.PI);
+  sign(2, -16, -69.3, 'CTRL in the air:\nground pound\nkicks ladders', Math.PI);
 
   // --- rise B: camp → terrace (-16), east side stairs (z -76 → -64)
   shelves(20, -76, 20, -64, -24, -16, 10, 14);
@@ -310,6 +311,14 @@ export function buildLevel(world) {
   for (const bx of [-22, -14, 14, 22]) { deco(bx, 2, 29.95, 1.4, 3.6, 0.08, C.banner); deco(bx, 5.6, 29.95, 1.8, 0.25, 0.2, C.gold); }
   deco(30, 6, 27.9, 1.8, 5, 0.1, C.banner); deco(-30, 6, 27.9, 1.8, 5, 0.1, C.banner);
   for (const [sx, sz, sw, sd] of [[0, 29.9, 60, 0.5], [-30.9, 10, 0.5, 50], [30.9, 10, 0.5, 50], [-17, -13.9, 27, 0.5], [17, -13.9, 27, 0.5]]) deco(sx, 0.01, sz, sw, 0.02, sd, '#4a463e');
+  // THE TRAINING CORNER (courtyard SE): pells, a drill crossbow, and a hop course
+  L.spawns.push({ kind: 'pell', x: 18, y: 0.1, z: -8 }, { kind: 'pellshield', x: 22, y: 0.1, z: -8, facing: Math.PI });
+  block(25.5, 0, -3, 2, 2.2, 2, C.stoneD);
+  L.spawns.push({ kind: 'drillbow', x: 25.5, y: 2.25, z: -3, perch: true, facing: Math.PI / 2 });
+  block(8, 0, -12, 2.2, 1.2, 2.2, C.stoneL); block(12, 0, -12, 2.0, 2.4, 2.0, C.stone); block(16, 0, -12, 1.8, 3.6, 1.8, C.stoneL);
+  deco(16, 3.6, -12, 0.14, 1.1, 0.14, C.wood); deco(16.35, 4.4, -12, 0.7, 0.45, 0.05, '#b03a3a');
+  sign(14, 0, -6, 'THE DRILL YARD\nE at this post\nto train', Math.PI / 2 + 0.4);
+  L.trainingPost = { x: 14, y: 0.1, z: -6 };
   L.checkpoints.push({ x: 0, y: 0.1, z: -10, name: 'Courtyard' });
   L.spawns.push({ kind: 'grunt', x: 2, y: 0.1, z: 14 });
   L.spawns.push({ kind: 'hound', x: -20, y: 0.1, z: 24 });
