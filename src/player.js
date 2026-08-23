@@ -241,7 +241,7 @@ export class Player {
     }
     if (b.hitCeil && b.vel.y > 0) b.vel.y = 0;
 
-    if (b.pos.y < -14 && this.state !== S.DEAD) this.game.playerFell();
+    if (b.pos.y < -44 && this.state !== S.DEAD) this.game.playerFell();
   }
 
   faceToward(wish, wlen) {

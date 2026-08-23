@@ -77,7 +77,7 @@ for (const t of L.torches) {
 // seed ember/smoke positions now that torches exist
 for (let i = 0; i < EMBERS; i++) { const t = L.torches[i % L.torches.length]; emberPos[i * 3] = t.x + (Math.random() - 0.5); emberPos[i * 3 + 1] = t.y + Math.random() * 3; emberPos[i * 3 + 2] = t.z + (Math.random() - 0.5); emberVel.push({ t, life: Math.random() * 3 }); }
 emberGeo.setAttribute('position', new THREE.BufferAttribute(emberPos, 3));
-const smokeSrc = [{ x: -25.5, y: 3.6, z: 20 }, { x: -27, y: 2.2, z: 21 }, { x: -12, y: 2, z: 0 }, { x: 12, y: 2, z: 0 }, { x: -14, y: 1.2, z: 14 }];
+const smokeSrc = [{ x: 2, y: -23, z: -80 }, { x: -25.5, y: 3.6, z: 20 }, { x: -27, y: 2.2, z: 21 }, { x: -12, y: 2, z: 0 }, { x: 12, y: 2, z: 0 }];
 for (let i = 0; i < SMOKE; i++) { const sdx = smokeSrc[i % smokeSrc.length]; smokePos[i * 3] = sdx.x; smokePos[i * 3 + 1] = sdx.y + Math.random() * 12; smokePos[i * 3 + 2] = sdx.z; smokeAge[i] = Math.random() * 8; }
 smokeGeo.setAttribute('position', new THREE.BufferAttribute(smokePos, 3));
 function updateAtmos(dt) {
@@ -98,29 +98,81 @@ const beaconLight = new THREE.PointLight('#ffd080', 40, 30, 2); beaconLight.posi
 // THE CASTLE IS IN THE SKY: cloud decks far below, nothing else. Falling reads as falling.
 const cloudTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 256; const g = cv.getContext('2d'); for (let i = 0; i < 46; i++) { const x = Math.random() * 256, y = 100 + Math.random() * 80, r = 22 + Math.random() * 42; const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,236,225,0.65)'); gr.addColorStop(1, 'rgba(255,236,225,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); } const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })();
 const cloudDecks = [];
-for (const [cy, sc, op] of [[-20, 3, 0.95], [-30, 5, 0.8], [-44, 8, 0.7]]) {
+for (const [cy, sc, op] of [[-58, 3, 0.95], [-74, 5, 0.8], [-94, 8, 0.7]]) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(700, 700), new THREE.MeshBasicMaterial({ map: cloudTex, transparent: true, opacity: op, depthWrite: false, color: '#ffd9c4' }));
   m.material.map = cloudTex.clone(); m.material.map.repeat.set(sc, sc); m.rotation.x = -Math.PI / 2; m.position.set(0, cy, 30); scene.add(m); cloudDecks.push(m);
 }
 const cloudFloor = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new THREE.MeshBasicMaterial({ color: '#e8a488', transparent: true, opacity: 0.9, depthWrite: false }));
-cloudFloor.rotation.x = -Math.PI / 2; cloudFloor.position.set(0, -52, 30); scene.add(cloudFloor);
+cloudFloor.rotation.x = -Math.PI / 2; cloudFloor.position.set(0, -104, 30); scene.add(cloudFloor);
 // distant floating islands for scale
-for (const [ix, iy, iz, iw] of [[-140, -6, 120, 26], [150, -14, 60, 34], [90, -2, 190, 20], [-110, -20, -60, 30]]) {
+for (const [ix, iy, iz, iw] of [[-160, -20, 120, 26], [170, -30, 40, 34], [100, -14, 190, 20], [-150, -40, -80, 30]]) {
   const isl = boxesMesh([{ x: 0, y: 0, z: 0, w: iw, h: 6, d: iw * 0.8, c: '#5a5048' }, { x: 0, y: 3.6, z: 0, w: iw * 0.9, h: 1.2, d: iw * 0.72, c: '#6a7a4a' }, { x: iw * 0.15, y: 5.4, z: 0, w: iw * 0.2, h: 2.4, d: iw * 0.2, c: '#7d7a72' }], { shadow: false });
   isl.position.set(ix, iy, iz); scene.add(isl);
 }
-// portcullis bars
-const gateMesh = boxesMesh(Array.from({ length: 5 }, (_, i) => ({ x: -1.6 + i * 0.8, y: 3, z: 0, w: 0.18, h: 6, d: 0.18, c: '#3a3d44' })).concat([{ x: 0, y: 1.5, z: 0, w: 3.6, h: 0.14, d: 0.2, c: '#3a3d44' }, { x: 0, y: 3.5, z: 0, w: 3.6, h: 0.14, d: 0.2, c: '#3a3d44' }]));
-gateMesh.position.set(0, 0, -15); scene.add(gateMesh);
-// collectibles: 8 gold crests (exploration) + hearts (heal)
-const crestMeshes = [];
-for (const c of L.crests) { const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 0.5, h: 0.62, d: 0.1, c: '#e3c070' }, { x: 0, y: 0.05, z: 0.06, w: 0.2, h: 0.3, d: 0.02, c: '#8a2d2d' }, { x: 0, y: -0.36, z: 0, w: 0.3, h: 0.14, d: 0.1, c: '#e3c070' }], { shadow: false }); m.position.set(c.x, c.y + 0.8, c.z); scene.add(m); crestMeshes.push({ m, c, got: false }); }
+// (the vale's gate stands open)
+// THE FOUR CRESTS (mission rewards) + 8 red pennants + hearts
+const CRESTS = [
+  { key: 'captain', name: 'FELL THE SIEGE CAPTAIN', hint: 'the keep top' },
+  { key: 'race', name: 'RACE THE SQUIRE', hint: 'the meadow' },
+  { key: 'pennants', name: 'EIGHT RED PENNANTS', hint: 'all over the vale' },
+  { key: 'peaks', name: 'CREST OF THE PEAKS', hint: 'the spires past the watchtower' },
+];
+const crestMesh = () => { const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 0.8, h: 1.0, d: 0.14, c: '#e3c070' }, { x: 0, y: 0.08, z: 0.09, w: 0.32, h: 0.5, d: 0.03, c: '#8a2d2d' }, { x: 0, y: -0.58, z: 0, w: 0.5, h: 0.22, d: 0.14, c: '#e3c070' }, { x: 0, y: 0.62, z: 0, w: 0.5, h: 0.16, d: 0.14, c: '#e3c070' }], { shadow: false }); return m; };
+const crestSpawns = {};   // key -> {m, c} once the crest is physically in the world
+function spawnCrest(key, x, y, z) { if (crestSpawns[key] || (game.crestsGot || {})[key]) return; const m = crestMesh(); m.position.set(x, y + 1.0, z); scene.add(m); crestSpawns[key] = { m, c: { x, y, z } }; spawnFx('parry', { x, y: y + 1, z }, 16); audio.play('checkpoint'); }
+const pennantMeshes = [];
+for (const c of L.pennants) { const m = boxesMesh([{ x: 0, y: 0.55, z: 0, w: 0.08, h: 1.6, d: 0.08, c: '#4a3119' }, { x: 0.34, y: 1.05, z: 0, w: 0.6, h: 0.44, d: 0.05, c: '#c03434' }], { shadow: false }); m.position.set(c.x, c.y, c.z); scene.add(m); pennantMeshes.push({ m, c, got: false }); }
 const heartMeshes = [];
 for (const c of L.hearts) { const m = boxesMesh([{ x: -0.11, y: 0.08, z: 0, w: 0.22, h: 0.22, d: 0.12, c: '#d23a3a' }, { x: 0.11, y: 0.08, z: 0, w: 0.22, h: 0.22, d: 0.12, c: '#d23a3a' }, { x: 0, y: -0.1, z: 0, w: 0.3, h: 0.2, d: 0.12, c: '#d23a3a' }], { shadow: false }); m.position.set(c.x, c.y + 0.7, c.z); scene.add(m); heartMeshes.push({ m, c, cd: 0 }); }
 function updatePickups(dt) {
-  for (const cr of crestMeshes) { if (cr.got) continue; cr.m.rotation.y += dt * 2; cr.m.position.y = cr.c.y + 0.8 + Math.sin(game.time * 2 + cr.c.x) * 0.12; if (Math.hypot(cr.c.x - player.pos.x, cr.c.z - player.pos.z) < 1.2 && Math.abs(cr.c.y + 0.6 - player.pos.y) < 1.6) { cr.got = true; cr.m.visible = false; game.crests = (game.crests || 0) + 1; audio.play('checkpoint'); spawnFx('parry', { x: cr.c.x, y: cr.c.y + 0.8, z: cr.c.z }, 14); toast('Crest ' + game.crests + ' of ' + crestMeshes.length, 1.8); } }
+  for (const key in crestSpawns) {
+    const cr = crestSpawns[key]; if (!cr) continue;
+    cr.m.rotation.y += dt * 1.6; cr.m.position.y = cr.c.y + 1.0 + Math.sin(game.time * 2) * 0.14;
+    if (Math.hypot(cr.c.x - player.pos.x, cr.c.z - player.pos.z) < 1.6 && Math.abs(cr.c.y + 0.8 - player.pos.y) < 2.2) {
+      scene.remove(cr.m); crestSpawns[key] = null;
+      game.crestsGot = game.crestsGot || {}; game.crestsGot[key] = true; game.crests = Object.keys(game.crestsGot).length;
+      crestGet(key);
+    }
+  }
+  for (const pn of pennantMeshes) { if (pn.got) continue; pn.m.rotation.y += dt * 2.4; if (Math.hypot(pn.c.x - player.pos.x, pn.c.z - player.pos.z) < 1.3 && Math.abs(pn.c.y + 0.8 - player.pos.y) < 2) { pn.got = true; pn.m.visible = false; game.pennants = (game.pennants || 0) + 1; audio.play('ui'); spawnFx('hit', { x: pn.c.x, y: pn.c.y + 1, z: pn.c.z }, 10); toast('Pennant ' + game.pennants + ' of 8', 1.6); if (game.pennants >= 8) { spawnCrest('pennants', L.shrine.x, L.shrine.y, L.shrine.z); toast('The shrine kindles ' + '\u2014' + ' a crest rises in the meadow', 4); } } }
   for (const h of heartMeshes) { h.cd = Math.max(0, h.cd - dt); h.m.visible = h.cd <= 0; if (h.cd <= 0) { h.m.rotation.y += dt * 2.4; if (player.hp < P.hp && Math.hypot(h.c.x - player.pos.x, h.c.z - player.pos.z) < 1.2 && Math.abs(h.c.y + 0.6 - player.pos.y) < 1.6) { h.cd = 30; player.hp = Math.min(P.hp, player.hp + 1); audio.play('checkpoint'); spawnFx('hurt', { x: h.c.x, y: h.c.y + 0.8, z: h.c.z }, 8); } } }
-  document.getElementById('crests').textContent = '\u2726 ' + (game.crests || 0) + '/' + crestMeshes.length;
+  document.getElementById('crests').textContent = '\u2726 ' + (game.crests || 0) + '/4';
+  document.getElementById('pennantsHud').textContent = '\u25b8 ' + (game.pennants || 0) + '/8';
+}
+// THE SQUIRE: the race rival waiting in the meadow
+const squireRig = gruntRig('defender'); scene.add(squireRig);
+squireRig.position.set(L.race.start.x, L.race.start.y, L.race.start.z);
+const raceState = { state: 'idle', wp: 0, t: 0, pos: { ...L.race.start }, speed: 6.9, countdown: 0 };
+function startRace() {
+  raceState.state = 'countdown'; raceState.countdown = 3.2; raceState.wp = 0; raceState.pos = { ...L.race.start };
+  toast('Race to the watchtower flag!', 2);
+}
+function updateRace(dt) {
+  const rs = raceState;
+  if (rs.state === 'countdown') {
+    const prev = Math.ceil(rs.countdown); rs.countdown -= dt; const now = Math.ceil(rs.countdown);
+    if (now !== prev && now > 0) { toast(String(now), 0.8); audio.play('ui'); }
+    if (rs.countdown <= 0) { rs.state = 'running'; toast('GO!', 1); audio.play('checkpoint'); }
+  } else if (rs.state === 'running') {
+    const wps = L.raceWaypoints; const target = wps[Math.min(rs.wp + 1, wps.length - 1)];
+    const dx = target.x - rs.pos.x, dy = target.y - rs.pos.y, dz = target.z - rs.pos.z;
+    const d = Math.hypot(dx, dz);
+    if (d < 0.8) { rs.wp++; if (rs.wp >= wps.length - 1) { rs.state = 'idle'; if (!(game.crestsGot || {}).race) { toast('The Squire wins. Speak to him to race again.', 3.5); } squireRig.position.set(L.race.start.x, L.race.start.y, L.race.start.z); return; } }
+    else { rs.pos.x += dx / d * rs.speed * dt; rs.pos.z += dz / d * rs.speed * dt; rs.pos.y += (target.y - rs.pos.y) * Math.min(1, 6 * dt) + Math.abs(Math.sin(game.time * 9)) * 0; }
+    squireRig.position.set(rs.pos.x, rs.pos.y + Math.abs(Math.sin(game.time * 10)) * 0.12, rs.pos.z);
+    squireRig.rotation.y = Math.atan2(dx, dz);
+    const u = squireRig.userData; const swing = Math.sin(game.time * 11) * 0.85; u.legL.rotation.x = swing; u.legR.rotation.x = -swing; u.armR.rotation.x = -swing * 0.6; u.armL.rotation.x = swing * 0.6;
+    // player reaches the flag first?
+    if (Math.hypot(L.raceFinish.x - player.pos.x, L.raceFinish.z - player.pos.z) < L.raceFinish.r && Math.abs(player.pos.y - L.raceFinish.y) < 2.5) {
+      rs.state = 'idle'; squireRig.position.set(L.race.start.x, L.race.start.y, L.race.start.z);
+      toast('You beat the Squire to the flag!', 3); spawnCrest('race', L.raceFinish.x + 1.5, L.raceFinish.y, L.raceFinish.z);
+    }
+  } else {
+    // idle at the start, bouncing on his heels
+    squireRig.position.set(L.race.start.x, L.race.start.y + Math.abs(Math.sin(game.time * 3)) * 0.06, L.race.start.z);
+    squireRig.rotation.y = Math.atan2(player.pos.x - L.race.start.x, player.pos.z - L.race.start.z);
+    const u = squireRig.userData; u.legL.rotation.x = 0; u.legR.rotation.x = 0;
+  }
 }
 // landing ring under player (iso-readability lesson: elevation needs a shadow anchor)
 const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.5, 24), new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0.6, depthWrite: false }));
@@ -171,7 +223,7 @@ const game = {
       }
     }
     // barricades: only bash / heavy / pound break them
-    for (const bx of this.L.barricades) {
+    for (const bx of (this.L.barricades || [])) {
       if (!bx.enabled || !overlap(box, bx)) continue;
       const hp = { x: bx.cx, y: bx.min.y + 1.2, z: bx.cz };
       if (box.kind === 'light') { this.fx('clank', hp); audio.play('clank'); toast('Too sturdy — shield bash (F) or a heavy', 2); this.player.body.vel.x *= -0.3; this.player.body.vel.z *= -0.3; }
@@ -215,7 +267,7 @@ const game = {
       if (d < radius && Math.abs(e.pos.y - pos.y) < 1.5) { e.takeHit(dmg, pos, { kb: 9, up: 7, breaksGuard: true, fromAbove: true, kind: 'pound' }); this.fx('hit', { x: e.pos.x, y: e.pos.y + 1, z: e.pos.z }); }
     }
     for (const ld of this.L.ladders) if (ld.up && Math.hypot(ld.x - pos.x, ld.z - 0.8 - pos.z) < radius + 0.5 && Math.abs(pos.y - ld.top) < 2) this.kickLadder(ld);
-    for (const bx of this.L.barricades) if (bx.enabled && Math.hypot(bx.cx - pos.x, bx.cz - pos.z) < radius + 1 && Math.abs(pos.y - bx.min.y) < 2) this.breakBarricade(bx);
+    for (const bx of (this.L.barricades || [])) if (bx.enabled && Math.hypot(bx.cx - pos.x, bx.cz - pos.z) < radius + 1 && Math.abs(pos.y - bx.min.y) < 2) this.breakBarricade(bx);
     this.hitstop = 0.06;
   },
   enemyHit(e, box, dmg, opts) {
@@ -255,7 +307,7 @@ const game = {
   releaseAttackToken(e) { if (this.attackToken === e) this.attackToken = null; },
   onEnemyDied(e) {
     this.player.kills++;
-    if (e.kind === 'captain') { this.bossDead = true; this.slowmo = 1.4; cam.shake = 1.2; this.flash = 0.8; audio.play('bossdie'); for (let k = 0; k < 4; k++) spawnFx('die', { x: e.pos.x, y: e.pos.y + 1 + k * 0.4, z: e.pos.z }, 14); for (let k = 0; k < 2; k++) spawnFx('parry', { x: e.pos.x, y: e.pos.y + 1.4, z: e.pos.z }, 20); setTimeout(() => toast('The Siege Captain falls. Raise the banner.', 4), 1200); }
+    if (e.kind === 'captain') { this.bossDead = true; this.slowmo = 1.4; cam.shake = 1.2; this.flash = 0.8; audio.play('bossdie'); for (let k = 0; k < 4; k++) spawnFx('die', { x: e.pos.x, y: e.pos.y + 1 + k * 0.4, z: e.pos.z }, 14); for (let k = 0; k < 2; k++) spawnFx('parry', { x: e.pos.x, y: e.pos.y + 1.4, z: e.pos.z }, 20); setTimeout(() => { toast('The Siege Captain falls.', 3); spawnCrest('captain', L.goal.x + 1.5, L.goal.y, L.goal.z); }, 1200); }
     if (this.player.lockTarget === e) { this.player.lockTarget = null; cam.lock = null; }
   },
   playerFell() { if (this.falling) return; this.falling = 0.9; audio.play('fall'); document.getElementById('fell').classList.add('show'); },
@@ -343,7 +395,7 @@ function updateFx(dt) {
 // ------------------------------------------------------------------ input
 const keys = {}; let mouseDX = 0, mouseDY = 0; const pressed = {};
 const KEYMAP = { KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right', ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-  Space: 'jump', ShiftLeft: 'dash', ShiftRight: 'dash', KeyQ: 'heavy', KeyF: 'bash', ControlLeft: 'pound', KeyC: 'pound', KeyE: 'interact', Tab: 'lock', KeyZ: 'lock', KeyR: 'respawn', KeyT: 'tune', Escape: 'menu', KeyJ: 'light', KeyK: 'block' };
+  Space: 'jump', ShiftLeft: 'dash', ShiftRight: 'dash', KeyQ: 'heavy', KeyF: 'bash', ControlLeft: 'pound', KeyC: 'board', KeyE: 'interact', Tab: 'lock', KeyZ: 'lock', KeyR: 'respawn', KeyT: 'tune', Escape: 'menu', KeyJ: 'light', KeyK: 'block' };
 addEventListener('keydown', e => {
   const k = KEYMAP[e.code]; if (!k) return; e.preventDefault();
   if (!keys[k]) pressed[k] = true; keys[k] = true;
@@ -410,6 +462,8 @@ function step(dt, inp) {
   if (game.hitstop > 0) { game.hitstop -= dt; return; }
   game.time += dt;
   updatePlatforms(L, game.time, dt);
+  if (pressed.board) { pressed.board = false; showBoard(!game.boardOpen); }
+  if (game.boardOpen) inp = { ...inp, mx: 0, mz: 0, jump: false, dash: false, light: false, heavy: false, bash: false, pound: false, block: false, lock: false };
   if (game.bossIntro > 0) inp = { ...inp, mx: 0, mz: 0, jump: false, dash: false, light: false, heavy: false, bash: false, pound: false, block: false, lock: false };
   if (inp.lock) toggleLock();
   if (player.dead) { game.deathT = (game.deathT || 0) + dt; if (game.deathT > 1.2 && !game.deadShown) { game.deadShown = true; game.respawn(true); } }
@@ -443,7 +497,7 @@ function step(dt, inp) {
   for (const b of game.bolts) b.update(dt, world, game);
   game.bolts = game.bolts.filter(b => { if (b.dead && b.mesh) scene.remove(b.mesh); return !b.dead; });
   // ladders + swarm
-  updateLadders(dt);
+  updateLadders(dt); updateRace(dt);
   // tutorial prompts: fire once when the player passes each trigger line (south → north)
   for (const tt of L.tutorial) {
     if (tt.done) continue;
@@ -452,12 +506,8 @@ function step(dt, inp) {
     if (tt.z !== undefined) fire = player.pos.z > tt.z && (tt.key !== 'hoist' || (player.pos.x < -13 && player.pos.y > 5));
     else if (tt.cond === 'hit') fire = player.stats.hitsLanded > 0;
     else if (tt.cond === 'guardbreak') fire = game.enemies.some(e => e.kind === 'pellshield' && (e.stun > 0 || e.dead));
-    else if (tt.cond === 'barricade') fire = !L.barricades[0].enabled;
-    else if (tt.cond === 'boltparry') fire = !!game.boltParried || game.enemies.some(e => e.kind === 'drillbow' && e.dead);
     if (fire) { tt.done = true; toast(tt.text, 4.5); }
   }
-  // portcullis: opens when the drill sergeant falls
-  if (L.portcullis.enabled && !game.enemies.some(e => e.kind === 'drill' && !e.dead)) { L.portcullis.enabled = false; game.gateT = 0; toast('The gate opens. Into the courtyard.', 3); audio.play('checkpoint'); }
   // checkpoints
   for (let i = game.checkpoint + 1; i < L.checkpoints.length; i++) {
     const c = L.checkpoints[i];
@@ -466,8 +516,8 @@ function step(dt, inp) {
   // boss intro: first time the player stands on the arena near the captain
   if (!game.bossIntroDone) { const cap = game.enemies.find(e => e.boss && !e.dead); if (cap && player.pos.y > L.topY - 0.5 && Math.hypot(cap.pos.x - player.pos.x, cap.pos.z - player.pos.z) < 11) { game.bossIntroDone = true; game.bossIntro = 2.6; game.slowmo = 2.6; cap.aggroed = true; cap.state = 'chase'; player.lockTarget = cap; cam.lock = cap; cam.idle = 0; audio.play('roar'); document.getElementById('bosscard').classList.add('show'); setTimeout(() => document.getElementById('bosscard').classList.remove('show'), 3200); cam.shake = 0.6; for (let k = 0; k < 3; k++) spawnFx('shock', { x: cap.pos.x, y: cap.pos.y + 0.1, z: cap.pos.z }, 10); } }
   if (game.bossIntro > 0) { game.bossIntro -= dt; }
-  // goal
-  if (game.bossDead && !game.won && Math.hypot(L.goal.x - player.pos.x, L.goal.z - player.pos.z) < L.goal.r && Math.abs(player.pos.y - L.goal.y) < 2) win();
+  // all four crests = the vale is yours
+  if (!game.won && (game.crests || 0) >= 4) win();
   // lock maintenance
   if (player.lockTarget && (player.lockTarget.dead || Math.hypot(player.lockTarget.pos.x - player.pos.x, player.lockTarget.pos.z - player.pos.z) > 22)) { player.lockTarget = null; cam.lock = null; }
 }
@@ -482,7 +532,7 @@ function updateLadders(dt) {
       continue;
     }
     // spawn climbers only when the player is on/near the wall
-    const near = Math.abs(player.pos.x - ld.x) < 26 && player.pos.y > 5 && player.pos.y < 20 && player.pos.z > 20;
+    const near = Math.abs(player.pos.x - ld.x) < 26 && Math.abs(player.pos.z - ld.z) < 26 && player.pos.y > ld.bottom - 4 && player.pos.y < ld.top + 8;
     if (!near) continue;
     ld.t -= dt;
     if (ld.t <= 0 && swarmAlive < 6) {
@@ -497,8 +547,9 @@ function updateLadders(dt) {
 }
 
 function tryInteract() {
+  if (raceState.state === 'idle' && !(game.crestsGot || {}).race && Math.hypot(L.race.start.x - player.pos.x, L.race.start.z - player.pos.z) < 2.6) { startRace(); return; }
   for (const ld of L.ladders) {
-    if (ld.up && Math.abs(player.pos.x - ld.x) < 1.6 && Math.abs(player.pos.z - (ld.z - 1.2)) < 1.6 && Math.abs(player.pos.y - ld.top) < 2) { game.kickLadder(ld); return; }
+    if (ld.up && Math.abs(player.pos.x - ld.x) < 2 && Math.abs(player.pos.z - ld.z) < 2.4 && Math.abs(player.pos.y - ld.top) < 2) { game.kickLadder(ld); return; }
   }
 }
 function toggleLock() {
@@ -612,13 +663,24 @@ function renderHud(dt) {
   hud.charge.classList.toggle('full', player.charge >= P.heavyCharge);
   // ladder prompt
   let near = null;
-  for (const ld of L.ladders) if (ld.up && Math.abs(player.pos.x - ld.x) < 2 && Math.abs(player.pos.z - (ld.z - 1.2)) < 2 && Math.abs(player.pos.y - ld.top) < 2) near = ld;
-  hud.prompt.style.display = near ? 'block' : 'none';
+  for (const ld of L.ladders) if (ld.up && Math.abs(player.pos.x - ld.x) < 2 && Math.abs(player.pos.z - ld.z) < 2.4 && Math.abs(player.pos.y - ld.top) < 2) near = ld;
+  const nearSquire = raceState.state === 'idle' && !(game.crestsGot || {}).race && Math.hypot(L.race.start.x - player.pos.x, L.race.start.z - player.pos.z) < 2.6;
+  hud.prompt.textContent = near ? 'E \u2014 KICK THE LADDER' : 'E \u2014 RACE THE SQUIRE';
+  hud.prompt.style.display = (near || nearSquire) ? 'block' : 'none';
   hud.alt.textContent = 'ALT ' + player.pos.y.toFixed(0) + 'm';
   // objective + off-screen marker
-  const gl = L.beacon; const dist = Math.hypot(gl.x - player.pos.x, gl.y - 7 - player.pos.y, gl.z - player.pos.z);
+  // nearest unclaimed crest target drives the objective line and the marker
+  const got = game.crestsGot || {};
+  const targets = [];
+  if (!got.captain) targets.push({ name: 'FELL THE SIEGE CAPTAIN', x: L.goal.x, y: L.goal.y + 2, z: L.goal.z });
+  if (!got.race) targets.push(raceState.state === 'running' ? { name: 'RACE! TO THE WATCHTOWER', x: L.raceFinish.x, y: L.raceFinish.y + 2, z: L.raceFinish.z } : { name: 'THE SQUIRE WAITS', x: L.race.start.x, y: L.race.start.y + 1, z: L.race.start.z });
+  if (!got.pennants) { if ((game.pennants || 0) >= 8) targets.push({ name: 'THE SHRINE CREST', x: L.shrine.x, y: L.shrine.y + 1, z: L.shrine.z }); else { let bestp = null, bpd = 1e9; for (const pn of pennantMeshes) { if (pn.got) continue; const d = Math.hypot(pn.c.x - player.pos.x, pn.c.z - player.pos.z); if (d < bpd) { bpd = d; bestp = pn; } } if (bestp) targets.push({ name: 'RED PENNANTS ' + (game.pennants || 0) + '/8', x: bestp.c.x, y: bestp.c.y + 1, z: bestp.c.z }); } }
+  if (!got.peaks) targets.push({ name: 'CREST OF THE PEAKS', x: L.peakCrest.x, y: L.peakCrest.y + 1, z: L.peakCrest.z });
+  let gl = L.beacon, tname = 'THE VALE IS YOURS';
+  if (targets.length) { let bd2 = 1e9; for (const t of targets) { const d = Math.hypot(t.x - player.pos.x, t.z - player.pos.z); if (d < bd2) { bd2 = d; gl = { x: t.x, y: t.y + 7, z: t.z }; tname = t.name; } } }
+  const dist = Math.hypot(gl.x - player.pos.x, gl.y - 7 - player.pos.y, gl.z - player.pos.z);
   const obj = document.getElementById('objective');
-  obj.textContent = (game.bossDead ? 'RAISE THE BANNER' : L.portcullis.enabled ? 'TRAINING YARD — DEFEAT THE DRILL SERGEANT' : ['REACH THE WALL', 'REACH THE WALL', 'CROSS THE BATTLEMENTS', 'CLIMB TO THE HOIST', 'CLIMB THE KEEP', 'CLIMB THE KEEP', 'DEFEAT THE SIEGE CAPTAIN'][Math.min(6, game.checkpoint)]) + '  ·  ' + dist.toFixed(0) + 'm';
+  obj.textContent = tname + '  ' + String.fromCharCode(183) + '  ' + dist.toFixed(0) + 'm';
   const v = new THREE.Vector3(gl.x, gl.y - 3, gl.z).project(camera); const mk = document.getElementById('marker');
   const onScreen = v.z < 1 && Math.abs(v.x) < 0.95 && Math.abs(v.y) < 0.95;
   if (onScreen) { mk.style.display = 'block'; mk.style.left = ((v.x + 1) / 2 * innerWidth) + 'px'; mk.style.top = ((1 - v.y) / 2 * innerHeight) + 'px'; mk.textContent = '▼'; }
@@ -643,14 +705,30 @@ function renderHud(dt) {
   }
 }
 
+function crestGet(key) {
+  const def = CRESTS.find(c => c.key === key);
+  game.slowmo = 1.2; game.flash = 0.5; audio.play('win'); cam.shake = 0.4;
+  const el = document.getElementById('crestcard');
+  document.getElementById('crestcardname').textContent = def ? def.name : key;
+  document.getElementById('crestcardcount').textContent = '\u2726 ' + (game.crests || 0) + ' of 4';
+  el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 3400);
+  renderBoard();
+}
+function renderBoard() {
+  const rows = document.getElementById('boardrows'); if (!rows) return;
+  rows.innerHTML = CRESTS.map(c => { const got = (game.crestsGot || {})[c.key]; return '<div class="brow' + (got ? ' got' : '') + '"><span class="bic">' + (got ? '\u2726' : '\u2727') + '</span><span class="bname">' + c.name + '</span><span class="bhint">' + (got ? 'CLAIMED' : c.hint) + '</span></div>'; }).join('');
+  document.getElementById('boardpennants').textContent = 'red pennants: ' + (game.pennants || 0) + ' / 8';
+}
+function showBoard(on) { game.boardOpen = on; document.getElementById('crestboard').classList.toggle('show', on); if (on) renderBoard(); }
+document.getElementById('crestboard').addEventListener('mousedown', () => showBoard(false));
 function win() {
   game.won = true; audio.play('win');
   const el = document.getElementById('win'); el.classList.add('show');
-  document.getElementById('winstats').textContent = `${(game.time / 60) | 0}:${String((game.time % 60) | 0).padStart(2, '0')} · ${player.kills} foes · ${game.deaths} deaths · ${player.stats.parries} parries`;
+  document.getElementById('winstats').textContent = 'All four crests claimed. ' + `${(game.time / 60) | 0}:${String((game.time % 60) | 0).padStart(2, '0')} · ${player.kills} foes · ${game.deaths} deaths · ${player.stats.parries} parries`;
   document.exitPointerLock();
 }
 function showMenu(on) { document.getElementById('menu').classList.toggle('show', on && game.started && !game.won); game.paused = on; }
-function start() { if (game.started) return; game.started = true; document.getElementById('title').classList.add('hide'); audio.resume(); music.start(); cam.yaw = Math.PI; cam.pitch = 0.38; cam.idle = 0; toast('Reach the keep. Raise the banner.'); }
+function start() { if (game.started) return; game.started = true; spawnCrest('peaks', L.peakCrest.x, L.peakCrest.y, L.peakCrest.z); setTimeout(() => { if (!game.boardOpen) showBoard(true); }, 600); document.getElementById('title').classList.add('hide'); audio.resume(); music.start(); cam.yaw = Math.PI; cam.pitch = 0.38; cam.idle = 0; toast('Reach the keep. Raise the banner.'); }
 for (const ev of ['mousedown', 'click']) document.getElementById('title').addEventListener(ev, () => { if (!game.started) { start(); requestLock(); } });
 document.getElementById('menu').addEventListener('mousedown', () => { if (lockFallback) showMenu(false); else requestLock(); });
 document.getElementById('retry').onclick = () => { document.getElementById('dead').classList.remove('show'); requestLock(); };
@@ -692,7 +770,7 @@ function render(dt) {
   updateAtmos(dt); game.slowmo = Math.max(0, game.slowmo - dt); game.vignette = Math.max(0, game.vignette - dt * 1.6); game.flash = Math.max(0, game.flash - dt * 3);
   const moving = Math.hypot(player.body.vel.x, player.body.vel.z) > 1;
   if (game.started && !game.paused) cam.update(dt, player, moving);
-  else if (!game.started) { const t = performance.now() / 1000; camera.position.set(Math.sin(t * 0.08) * 22, 9 + Math.sin(t * 0.13) * 1.5, 6 + Math.cos(t * 0.08) * 22); camera.lookAt(0, 3, 14); }
+  else if (!game.started) { const t = performance.now() / 1000; camera.position.set(Math.sin(t * 0.06) * 30, -14 + Math.sin(t * 0.11) * 3, -110 + Math.cos(t * 0.06) * 34); camera.lookAt(-10, -6, -30); }
   animateRig(playerRig, player, dt, true);
   for (const e of game.enemies) if (e.mesh) animateRig(e.mesh, e, dt, false);
   for (const b of game.bolts) {
@@ -703,7 +781,7 @@ function render(dt) {
   // danger ring under the foe that's winding up
   { const a = game.attackToken; const show = a && !a.dead && (a.state === 'windup' || a.state === 'slamwind' || a.state === 'swing' || a.state === 'slam'); dangerRing.material.opacity = show ? 0.55 + 0.3 * Math.sin(game.time * 18) : 0; if (show) { dangerRing.position.set(a.pos.x, a.pos.y + 0.04, a.pos.z); const r = a.state === 'slamwind' || a.state === 'slam' ? (a.cfg.slam ? a.cfg.slam.radius : 2) : (a.cfg.reach + 0.3) * 0.9; dangerRing.scale.setScalar(r); dangerRing.material.color.set(a.state === 'swing' || a.state === 'slam' ? '#fff6d0' : (a.telegraph > 0.75 ? '#ff4a2a' : '#ff9a2a')); } }
   // fog grading: higher = clearer and cooler
-  { const h = Math.max(0, Math.min(1, (player.pos.y - 5) / 45)); scene.fog.near = 40 + h * 40; scene.fog.far = 140 + h * 80; scene.fog.color.setRGB(0.23 + 0.04 * h, 0.16 + 0.06 * h, 0.21 + 0.12 * h); }
+  { const h = Math.max(0, Math.min(1, (player.pos.y + 30) / 76)); scene.fog.near = 42 + h * 40; scene.fog.far = 150 + h * 80; scene.fog.color.setRGB(0.23 + 0.04 * h, 0.16 + 0.06 * h, 0.21 + 0.12 * h); }
   // low-hp heartbeat
   if (player.hp <= 2 && !player.dead && game.started && !game.won) { game.heart = (game.heart || 0) + dt; if (game.heart > 1.1) { game.heart = 0; audio.play('heart'); } }
   // landing ring: project down to the first surface
@@ -715,7 +793,6 @@ function render(dt) {
   torchLights.sort((a, b) => a.light.position.distanceToSquared(camera.position) - b.light.position.distanceToSquared(camera.position));
   torchLights.forEach((t, i) => { t.light.intensity = i < 8 ? t.base * (0.85 + 0.15 * Math.sin(game.time * 13 + t.seed) * Math.sin(game.time * 7.3 + t.seed)) : 0; });
   beacon.material.opacity = 0.3 + 0.1 * Math.sin(game.time * 2); beacon.rotation.y += dt * 0.3; beaconCore.material.opacity = 0.5 + 0.2 * Math.sin(game.time * 3);
-  if (!L.portcullis.enabled && game.gateT !== undefined) { game.gateT += dt; gateMesh.position.y = Math.min(5.6, game.gateT * 2.5); }
   for (let ci = 0; ci < cloudDecks.length; ci++) { const m = cloudDecks[ci]; m.material.map.offset.x += dt * 0.002 * (ci + 1); }
   if (L.flag) L.flag.rotation.y = Math.sin(game.time * 2) * 0.15 + (game.bossDead ? 0 : 0);
   renderHud(dt);
@@ -733,7 +810,7 @@ setInterval(() => { if (performance.now() - lastRender > 500) render(0.016); }, 
 // ------------------------------------------------------------------ headless API
 const ZERO = { mx: 0, mz: 0, jump: false, jumpHeld: false, dash: false, light: false, heavy: false, heavyHeld: false, block: false, bash: false, pound: false, interact: false, lock: false, respawn: false };
 window.RAMPART = {
-  game, player, world, L, P, E, cam, scene, renderer, camera,
+  game, player, world, L, P, E, cam, scene, renderer, camera, updatePickups, updateRace, raceState, startRace, renderBoard,
   collectInput, animateRig,
   shot() { render(0); return fetch('/shot', { method: 'POST', body: canvas.toDataURL('image/png') }).then(r => r.text()); },
   start() { start(); game.paused = false; },

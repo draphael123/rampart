@@ -16,6 +16,7 @@
   #hp { left: 28px; top: 24px; display: flex; gap: 7px; }
   #hp i { width: 22px; height: 22px; background: #2a1c22; border: 2px solid var(--gold2); transform: rotate(45deg) scale(0.85); box-shadow: inset 0 0 0 2px var(--ink), 0 0 10px rgba(0,0,0,.6); transition: background .15s; }
   #hp i.on { background: var(--red); box-shadow: inset 0 0 0 2px var(--ink), 0 0 12px rgba(201,58,58,.6); }
+  #pennantsHud { left: 28px; top: 84px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px; color: #d05050; opacity: .85; }
   #crests { left: 28px; top: 58px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px; color: var(--gold); opacity: .85; }
   #alt { right: 28px; top: 24px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px; color: var(--gold); opacity: 0.8; }
   #boss { display: none; left: 50%; transform: translateX(-50%); bottom: 44px; width: 460px; }
@@ -49,6 +50,23 @@
   #tune.show { display: block; }
   #tune label { display: flex; justify-content: space-between; margin: 2px 0; } #tune input { width: 80px; background: #221; color: #fe8; border: 1px solid #664; }
 
+  #crestboard { display: none; background: radial-gradient(ellipse at 50% 35%, rgba(24,26,60,.92), rgba(8,8,22,.97)); z-index: 40; }
+  #crestboard.show { display: flex; }
+  .bframe { text-align: center; padding: 40px 70px; border: 2px solid rgba(227,192,112,.5); background: rgba(10,10,30,.6); box-shadow: 0 0 0 8px rgba(10,10,30,.4), 0 30px 90px #000; }
+  .btitle { font-family: 'Cinzel', serif; font-weight: 900; font-size: 44px; letter-spacing: 12px; color: var(--cream); text-shadow: 0 3px 0 #2a2a5a, 0 0 40px rgba(120,140,255,.4); }
+  .bsub { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 6px; color: var(--gold); margin: 6px 0 26px; }
+  .brow { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 16px; padding: 12px 18px; margin: 8px 0; border: 1px solid rgba(227,192,112,.25); background: rgba(255,255,255,.03); text-align: left; min-width: 480px; }
+  .brow .bic { font-size: 26px; color: #55597a; } .brow.got .bic { color: var(--gold); text-shadow: 0 0 14px rgba(227,192,112,.8); animation: spin 3s linear infinite; display: inline-block; }
+  @keyframes spin { 50% { transform: scaleX(0.2); } }
+  .brow .bname { font-family: 'Cinzel', serif; font-size: 16px; letter-spacing: 3px; color: var(--cream); } .brow.got .bname { color: var(--gold); }
+  .brow .bhint { font-style: italic; font-size: 13px; opacity: .6; letter-spacing: 1px; }
+  .bpen { margin-top: 18px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px; color: #d05050; }
+  .bgo { margin-top: 22px; font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 5px; color: var(--gold); animation: pulse 1.8s infinite; }
+  #crestcard { left: 50%; top: 26%; transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .4s, top .4s; z-index: 30; }
+  #crestcard.show { opacity: 1; top: 24%; }
+  #crestcard .ccrest { font-size: 90px; color: var(--gold); text-shadow: 0 0 50px rgba(227,192,112,.9), 0 6px 0 #6a4a10; animation: spin 2.2s linear infinite; }
+  #crestcard #crestcardname { font-family: 'Cinzel', serif; font-weight: 900; font-size: 34px; letter-spacing: 8px; color: var(--cream); text-shadow: 0 2px 12px #000; margin-top: 6px; }
+  #crestcard #crestcardcount { font-family: 'Cinzel', serif; font-size: 15px; letter-spacing: 5px; color: var(--gold); margin-top: 8px; }
   .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transition: opacity .7s; }
   #title { background: linear-gradient(180deg, rgba(14,8,18,.55) 0%, rgba(14,8,18,.25) 40%, rgba(14,8,18,.7) 100%); }
   #title .frame { padding: 34px 56px 30px; border: 1px solid rgba(227,192,112,.35); background: rgba(12,7,16,.55); backdrop-filter: blur(3px); box-shadow: 0 0 0 6px rgba(12,7,16,.35), 0 30px 80px rgba(0,0,0,.6); max-width: 760px; }
@@ -76,7 +94,8 @@
 <div class="hud" id="flash"></div>
 <div class="hud" id="hp"></div>
 <div class="hud" id="alt">ALT 0m</div>
-<div class="hud" id="crests">✦ 0/8</div>
+<div class="hud" id="crests">✦ 0/4</div>
+<div class="hud" id="pennantsHud">▸ 0/8</div>
 <div class="hud" id="boss"><div class="name">THE SIEGE CAPTAIN</div><div class="bar"><div id="bossfill"></div></div></div>
 <div class="hud" id="toast"></div>
 <div class="hud" id="objective"></div>
@@ -89,11 +108,26 @@
 <div class="hud" id="prompt">E — KICK THE LADDER</div>
 <div id="tune"></div>
 
+<div class="overlay" id="crestboard">
+  <div class="bframe">
+    <div class="btitle">PENNANT VALE</div>
+    <div class="bsub">FOUR CRESTS OF THE VALE</div>
+    <div id="boardrows"></div>
+    <div id="boardpennants" class="bpen">red pennants: 0 / 8</div>
+    <div class="bgo">C or CLICK to close</div>
+  </div>
+</div>
+<div class="hud" id="crestcard">
+  <div class="ccrest">✦</div>
+  <div id="crestcardname">CREST</div>
+  <div id="crestcardcount">✦ 1 of 4</div>
+</div>
+
 <div class="overlay" id="title">
   <div class="frame">
     <h1>RAMPART</h1>
     <div class="sub">A KNIGHT'S CLIMB AT DUSK</div>
-    <p>A castle adrift in the evening sky, under siege. Learn the blade in the training yard, cross the battlements, and scale the keep. <b style="color:var(--gold);font-style:normal">Raise the banner under the beacon.</b> Eight golden crests are hidden along the way.</p>
+    <p>A valley adrift in the evening sky. Climb from the meadow past the siege camp and the watchtower to the castle on the summit. <b style="color:var(--gold);font-style:normal">Four crests await:</b> fell the Captain, outrun the Squire, gather the eight red pennants, and brave the peaks.</p>
     <div class="rule"></div>
     <div class="keys">
       <b>WASD · MOUSE</b><span>move · orbit the camera</span>
@@ -107,6 +141,7 @@
       <b>CTRL / C</b><span>ground pound — shockwave, kicks ladders</span>
       <b>BOP</b><span>land on a foe's head to strike and bounce</span>
       <b>Z / TAB</b><span>lock on to the nearest foe (again to release)</span>
+      <b>C</b><span>the crest board — your progress</span>
       <b>E · R</b><span>kick ladder · return to checkpoint</span>
     </div>
     <div class="go">CLICK TO BEGIN</div>
