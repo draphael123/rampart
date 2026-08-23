@@ -11,6 +11,7 @@ export const E = {
   pell:     { hp: 3, speed: 0, windup: 9, swing: 0.1, recover: 9, dmg: 0, reach: 0, aggro: 0, stop: 0, passive: true },
   pellshield: { hp: 3, speed: 0, windup: 9, swing: 0.1, recover: 9, dmg: 0, reach: 0, aggro: 0, stop: 0, passive: true, guardBreak: 2.0 },
   drill:    { hp: 4, speed: 2.4, windup: 1.1, swing: 0.2, recover: 1.4, dmg: 1, reach: 1.6, aggro: 9, stop: 1.3 },
+  drillbow: { hp: 1, speed: 0, windup: 1.4, swing: 0.1, recover: 2.4, dmg: 1, reach: 14, aggro: 12, stop: 0, boltSpeed: 9, bow: true },
 };
 
 let _id = 1;
@@ -87,12 +88,12 @@ export class Enemy {
       switch (this.state) {
         case 'idle':
           this.telegraph = 0;
-          if (d < c.aggro && Math.abs(dy) < (this.kind === 'crossbow' ? 40 : 6)) { this.aggroed = true; this.state = 'chase'; this.t = 0; }
+          if (d < c.aggro && Math.abs(dy) < ((this.kind === 'crossbow' || c.bow) ? 40 : 6)) { this.aggroed = true; this.state = 'chase'; this.t = 0; }
           break;
         case 'chase': {
           this.telegraph = 0;
           this.face(pp);
-          const canAttack = this.kind === 'crossbow' ? (d < c.reach && this.game.hasLineOfSight(this, player)) : (d < c.reach + 0.2 && Math.abs(dy) < 1.6);
+          const canAttack = (c.bow || this.kind === 'crossbow') ? (d < c.reach && this.game.hasLineOfSight(this, player)) : (d < c.reach + 0.2 && Math.abs(dy) < 1.6);
           if (this.brace > 0) { this.brace -= dt; this.telegraph = 0.35; if (this.brace <= 0) this.emit('unbrace'); break; }
           if (c.slam && d < c.slam.radius - 0.4 && Math.abs(dy) < 2 && (this.phase === 2 ? this.attackCount % 2 === 1 : this.attackCount % 3 === 2) && this.game.requestAttackToken(this)) { this.state = 'slamwind'; this.t = 0; this.slamming = true; this.emit('slamwind'); }
           else if (canAttack && this.game.requestAttackToken(this)) { this.state = 'windup'; this.t = 0; this.slamming = false; this.emit('windup'); }
@@ -131,7 +132,7 @@ export class Enemy {
           this.telegraph = 1;
           if (!this.hitDone) {
             this.hitDone = true;
-            if (this.kind === 'crossbow') this.game.fireBolt(this, player);
+            if (this.kind === 'crossbow' || c.bow) this.game.fireBolt(this, player);
             else {
               const f = this.fwd();
               const step = this.kind === 'captain' ? 6 : 4;
@@ -229,7 +230,7 @@ export class Bolt {
     const p = game.player;
     if (!p.dead && Math.abs(this.pos.x - p.pos.x) < 0.5 && Math.abs(this.pos.z - p.pos.z) < 0.5 && this.pos.y > p.pos.y && this.pos.y < p.pos.y + 1.7) {
       const r = p.takeHit(1, this.owner.pos, { kb: 5, up: 3 });
-      if (r === 'parried') { this.vel.x *= -1.3; this.vel.z *= -1.3; this.vel.y = 2; this.owner = p; this.life = 2; game.fx('parry', this.pos); return; }
+      if (r === 'parried') { this.vel.x *= -1.3; this.vel.z *= -1.3; this.vel.y = 2; this.owner = p; this.life = 2; game.fx('parry', this.pos); game.boltParried = true; return; }
       if (r !== 'iframe') this.dead = true;
     }
     // parried bolt hits enemies

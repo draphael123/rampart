@@ -120,7 +120,7 @@ const game = {
       if (r === 'guard') { this.fx('clank', hp); audio.play('clank'); this.player.body.vel.x *= -0.3; this.player.body.vel.z *= -0.3; }
       else if (r === 'guardbreak') { this.fx('break', hp); audio.play('break'); cam.shake = 0.6; this.hitstop = 0.07; }
       else {
-        this.fx('hit', hp); audio.play(box.kind === 'heavy' ? 'heavyhit' : 'hit');
+        spawnFx('hit', hp, box.kind === 'heavy' ? 18 : 10, this.player.fwd()); audio.play(box.kind === 'heavy' ? 'heavyhit' : 'hit');
         this.hitstop = box.kind === 'heavy' ? 0.09 : (box.kind === 'light' && this.player.combo === 2 ? 0.07 : 0.045);
         cam.shake = Math.max(cam.shake, box.kind === 'heavy' ? 0.55 : 0.22); cam.punch = box.kind === 'heavy' ? 0.5 : 0.25;
         e.hitFlash = 0.1; this.player.stats.hitsLanded++;
@@ -191,7 +191,7 @@ const game = {
     const src = { x: e.pos.x, y: e.pos.y + 1.3, z: e.pos.z };
     const tgt = { x: player.pos.x, y: player.pos.y + 0.9, z: player.pos.z };
     const d = { x: tgt.x - src.x, y: tgt.y - src.y, z: tgt.z - src.z };
-    const len = Math.hypot(d.x, d.y, d.z) || 1; const sp = E.crossbow.boltSpeed;
+    const len = Math.hypot(d.x, d.y, d.z) || 1; const sp = e.cfg.boltSpeed || E.crossbow.boltSpeed;
     const t = len / sp;
     this.bolts.push(new Bolt(src.x, src.y, src.z, d.x / len * sp, d.y / len * sp + 3 * t, d.z / len * sp, e));
     audio.play('bolt');
@@ -204,7 +204,7 @@ const game = {
     return !h;
   },
   requestAttackToken(e) {
-    if (e.kind === 'crossbow') return true;
+    if (e.kind === 'crossbow' || e.cfg.bow) return true;
     if (this.attackToken && !this.attackToken.dead && this.attackToken !== e && (this.attackToken.state === 'windup' || this.attackToken.state === 'swing')) return false;
     this.attackToken = e; return true;
   },
@@ -235,6 +235,9 @@ const player = new Player(world, game); game.player = player;
 player.body.pos.x = L.start.x; player.body.pos.y = L.start.y; player.body.pos.z = L.start.z; player.body.syncAabb();
 cam.target.set(L.start.x, L.start.y + 1.2, L.start.z);
 const playerRig = knightRig(); scene.add(playerRig);
+const playerMat = MAT.clone(); playerRig.traverse(o => { if (o.isMesh) o.material = playerMat; });
+const swordTrail = new THREE.Mesh(new THREE.RingGeometry(0.9, 2.1, 24, 1, -0.2, 2.2), new THREE.MeshBasicMaterial({ color: '#fff0c0', transparent: true, opacity: 0.5, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+swordTrail.geometry.rotateX(-Math.PI / 2); swordTrail.visible = false; scene.add(swordTrail);
 
 for (const sp of L.spawns) {
   const e = new Enemy(sp.kind, world, game, sp.x, sp.y, sp.z, { perch: sp.perch, facing: Math.PI });
@@ -252,7 +255,7 @@ function attachRig(e) {
 
 // ------------------------------------------------------------------ fx (tiny box particles)
 const fxPool = [];
-function spawnFx(kind, pos) {
+function spawnFx(kind, pos, count, dir) {
   const spec = {
     hit: { n: 10, c: '#ffd27a', sp: 6, life: 0.35, s: 0.12 }, hurt: { n: 12, c: '#ff4a3a', sp: 6, life: 0.4, s: 0.14 },
     clank: { n: 6, c: '#cfe6ff', sp: 4, life: 0.25, s: 0.08 }, parry: { n: 18, c: '#ffffff', sp: 9, life: 0.45, s: 0.12 },
@@ -260,7 +263,8 @@ function spawnFx(kind, pos) {
     dust: { n: 5, c: '#9a8a6a', sp: 2, life: 0.3, s: 0.1 }, boltstick: { n: 4, c: '#d8c8a0', sp: 3, life: 0.3, s: 0.08 },
     die: { n: 20, c: '#4a4a4a', sp: 5, life: 0.7, s: 0.18 },
   }[kind] || { n: 6, c: '#fff', sp: 4, life: 0.3, s: 0.1 };
-  for (let i = 0; i < spec.n; i++) {
+  const N = count || spec.n;
+  for (let i = 0; i < N; i++) {
     let f = fxPool.find(x => !x.alive);
     if (!f) { f = { mesh: new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: '#fff' })), alive: false }; scene.add(f.mesh); fxPool.push(f); }
     f.alive = true; f.life = spec.life * (0.6 + Math.random() * 0.6); f.max = f.life;
@@ -268,6 +272,7 @@ function spawnFx(kind, pos) {
     f.mesh.position.set(pos.x, pos.y, pos.z);
     const a = Math.random() * Math.PI * 2, u = Math.random();
     f.vel = new THREE.Vector3(Math.cos(a) * spec.sp * u, (kind === 'shock' ? 1 : 3) + Math.random() * spec.sp * 0.6, Math.sin(a) * spec.sp * u);
+    if (dir) { f.vel.x += dir.x * spec.sp * 0.9; f.vel.z += dir.z * spec.sp * 0.9; }
   }
 }
 function updateFx(dt) {
@@ -283,7 +288,7 @@ function updateFx(dt) {
 // ------------------------------------------------------------------ input
 const keys = {}; let mouseDX = 0, mouseDY = 0; const pressed = {};
 const KEYMAP = { KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right', ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-  Space: 'jump', ShiftLeft: 'dash', ShiftRight: 'dash', KeyQ: 'heavy', KeyF: 'bash', ControlLeft: 'pound', KeyC: 'pound', KeyE: 'interact', Tab: 'lock', KeyR: 'respawn', KeyT: 'tune', Escape: 'menu', KeyJ: 'light', KeyK: 'block' };
+  Space: 'jump', ShiftLeft: 'dash', ShiftRight: 'dash', KeyQ: 'heavy', KeyF: 'bash', ControlLeft: 'pound', KeyC: 'pound', KeyE: 'interact', Tab: 'lock', KeyZ: 'lock', KeyR: 'respawn', KeyT: 'tune', Escape: 'menu', KeyJ: 'light', KeyK: 'block' };
 addEventListener('keydown', e => {
   const k = KEYMAP[e.code]; if (!k) return; e.preventDefault();
   if (!keys[k]) pressed[k] = true; keys[k] = true;
@@ -301,6 +306,7 @@ canvas.addEventListener('mousedown', e => {
   if (e.button === 0) { keys.light = true; pressed.light = true; }
   if (e.button === 2) { keys.block = true; }
   if (e.button === 1) { keys.heavy = true; pressed.heavy = true; }
+  if (e.button === 3 || e.button === 4) { pressed.lock = true; }
 });
 addEventListener('mouseup', e => { if (e.button === 0) keys.light = false; if (e.button === 2) keys.block = false; if (e.button === 1) keys.heavy = false; });
 addEventListener('contextmenu', e => e.preventDefault());
@@ -355,8 +361,8 @@ function step(dt, inp) {
   player.update(dt, inp);
   // events → audio
   for (const ev of player.events) {
-    if (ev === 'jump' || ev === 'djump') { audio.play(ev); spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z }); }
-    else if (ev === 'land') spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z });
+    if (ev === 'jump' || ev === 'djump') { audio.play(ev); spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z }); player.squash = { s: 1.18, t: 0.12 }; }
+    else if (ev === 'land') { spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z }, 8); audio.play('land'); player.squash = { s: 0.78, t: 0.14 }; cam.shake = Math.max(cam.shake, Math.min(0.35, -player.landVy * 0.012)); }
     else if (['swing', 'dash', 'bash', 'charge', 'heavyrelease', 'block', 'die'].includes(ev)) audio.play(ev);
   }
   player.events.length = 0;
@@ -385,6 +391,8 @@ function step(dt, inp) {
     if (tt.z !== undefined) fire = player.pos.z > tt.z && (tt.key !== 'hoist' || (player.pos.x < -13 && player.pos.y > 5));
     else if (tt.cond === 'hit') fire = player.stats.hitsLanded > 0;
     else if (tt.cond === 'guardbreak') fire = game.enemies.some(e => e.kind === 'pellshield' && (e.stun > 0 || e.dead));
+    else if (tt.cond === 'barricade') fire = !L.barricades[0].enabled;
+    else if (tt.cond === 'boltparry') fire = !!game.boltParried || game.enemies.some(e => e.kind === 'drillbow' && e.dead);
     if (fire) { tt.done = true; toast(tt.text, 4.5); }
   }
   // portcullis: opens when the drill sergeant falls
@@ -474,6 +482,19 @@ function animateRig(rig, ent, dt, isPlayer) {
     }
     if (st !== S.DEAD) rig.rotation.x = 0;
     if (ent.iframes > 0 && st === S.HURT) rig.visible = Math.floor(game.time * 30) % 2 === 0; else rig.visible = true;
+    // squash & stretch
+    if (ent.squash) { ent.squash.t -= dt; const k = Math.max(0, ent.squash.t / 0.14); const s = 1 + (ent.squash.s - 1) * k; rig.scale.set(1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); if (ent.squash.t <= 0) { ent.squash = null; rig.scale.set(1, 1, 1); } }
+    else if (!b.grounded) { const s = 1 + Math.max(-0.08, Math.min(0.1, b.vel.y * 0.008)); rig.scale.set(1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); }
+    else rig.scale.set(1, 1, 1);
+    // footsteps
+    if (moving) { const ph2 = Math.floor(ph / Math.PI); if (ph2 !== ent.lastStep) { ent.lastStep = ph2; audio.play('step'); if (sp > 5) spawnFx('dust', { x: b.pos.x, y: b.pos.y, z: b.pos.z }, 2); } }
+    ent.landVy = b.grounded ? 0 : b.vel.y;
+    // sword trail during hit windows
+    const trailOn = (st === S.LIGHT && t >= P.light[ent.combo].hit[0] - 0.02 && t <= P.light[ent.combo].hit[1] + 0.06) || (st === S.HEAVY && t >= P.heavyHit[0] - 0.02 && t <= P.heavyHit[1] + 0.08);
+    swordTrail.visible = trailOn;
+    if (trailOn) { swordTrail.position.set(b.pos.x, b.pos.y + 1.0, b.pos.z); swordTrail.rotation.set(0, ent.facing + (ent.combo === 1 ? 0.4 : -0.4) * (st === S.LIGHT ? 1 : 0), ent.combo === 2 || st === S.HEAVY ? 0.5 : -0.2); swordTrail.scale.setScalar(st === S.HEAVY ? 1.35 : 1); swordTrail.material.opacity = 0.55; }
+    // hurt flash
+    playerMat.emissive.set(ent.state === S.HURT ? '#ff3030' : (ent.iframes > 0 && ent.state === S.DASH ? '#80c0ff' : '#000000'));
   } else {
     if (ent.dead) { const k = Math.min(1, ent.deathT * 2.2); rig.rotation.x = -Math.PI / 2 * k; rig.rotation.z = 0.3 * k; rig.position.y -= Math.max(0, ent.deathT - 0.6) * 1.2; u.mat.emissive.set('#000'); u.mat.transparent = true; u.mat.opacity = Math.max(0, 1 - Math.max(0, ent.deathT - 0.7) * 1.6); }
     else {
@@ -532,6 +553,13 @@ function renderHud(dt) {
   if (onScreen) { mk.style.display = 'block'; mk.style.left = ((v.x + 1) / 2 * innerWidth) + 'px'; mk.style.top = ((1 - v.y) / 2 * innerHeight) + 'px'; mk.textContent = '▼'; }
   else { const a = Math.atan2(v.x, v.y) * (v.z > 1 ? -1 : 1); const r = 0.42; mk.style.display = 'block'; mk.style.left = (innerWidth / 2 + Math.sin(a) * innerWidth * r) + 'px'; mk.style.top = (innerHeight / 2 - Math.cos(a) * innerHeight * r) + 'px'; mk.textContent = '➤'; mk.style.transform = 'translate(-50%,-50%) rotate(' + (a * 180 / Math.PI - 90) + 'deg)'; }
   if (onScreen) mk.style.transform = 'translate(-50%,-100%)';
+  // lock-on reticle
+  const ret = document.getElementById('reticle');
+  if (player.lockTarget && !player.lockTarget.dead) { const lp = new THREE.Vector3(player.lockTarget.pos.x, player.lockTarget.pos.y + 1.0 * player.lockTarget.scale, player.lockTarget.pos.z).project(camera); if (lp.z < 1) { ret.style.display = 'block'; ret.style.left = ((lp.x + 1) / 2 * innerWidth) + 'px'; ret.style.top = ((1 - lp.y) / 2 * innerHeight) + 'px'; } else ret.style.display = 'none'; }
+  else ret.style.display = 'none';
+  // dash FOV kick
+  const wantFov = 62 + (player.state === S.DASH || player.state === S.BASH ? 9 : 0) + (game.slowmo > 0 ? -4 : 0);
+  if (Math.abs(camera.fov - wantFov) > 0.05) { camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 14); camera.updateProjectionMatrix(); }
   // enemy health bars
   for (const e of game.enemies) {
     const show = !e.dead && (e.aggroed || e.hp < e.maxHp);

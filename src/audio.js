@@ -22,6 +22,8 @@ export class Audio {
     const now = performance.now(); if (this.last[name] && now - this.last[name] < 40) return; this.last[name] = now;
     switch (name) {
       case 'jump': this.tone(300, 620, 0.12, 'square', 0.12); break;
+      case 'step': this.noise(0.05, 0.05, 600); break;
+      case 'land': this.noise(0.09, 0.12, 300); this.tone(120, 60, 0.08, 'sine', 0.1); break;
       case 'djump': this.tone(420, 900, 0.14, 'square', 0.12); this.noise(0.08, 0.05, 2000); break;
       case 'dash': this.noise(0.16, 0.18, 1200); this.tone(200, 80, 0.15, 'sawtooth', 0.08); break;
       case 'bash': this.noise(0.18, 0.2, 600); this.tone(160, 60, 0.2, 'square', 0.12); break;

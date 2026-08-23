@@ -28,38 +28,63 @@ export function buildLevel(world) {
   };
 
   // ---------------- ZONE 0: TRAINING YARD (tutorial) ----------------
-  // a walled yard south of the courtyard; contiguous steps so a failed jump just lands you back
-  // where you were. The portcullis opens when the drill sergeant falls.
-  L.signs = []; L.tutorial = [];
+  // A long walled yard south of the courtyard. Contiguous steps: a failed jump lands you where you
+  // were (or in a shallow pit you can hop out of). Order: move → jump → double jump → dash gap →
+  // ride a slider → narrow beam (watch the ring) → drop → bash a barricade → pells (light/heavy)
+  // → parry a slow crossbow's bolt → block/parry the drill sergeant → the portcullis opens.
+  L.signs = []; L.tutorial = []; L.barricades = [];
   const sign = (x, y, z, text, facing = 0) => L.signs.push({ x, y, z, text, facing });
-  block(0, -2, -32, 26, 2, 32, C.ground); deco(0, -0.01, -32, 26, 0.02, 32, C.dirt);
-  block(-13.5, 0, -32, 1.5, 8, 34, C.stoneD); block(13.5, 0, -32, 1.5, 8, 34, C.stoneD); block(0, 0, -49, 28, 8, 2, C.stoneD);
-  for (const bx of [-8, 0, 8]) { deco(bx, 2.5, -47.9, 1.4, 3.5, 0.1, C.banner); deco(bx, 6, -47.9, 1.8, 0.25, 0.2, C.gold); }
-  L.start = { x: 0, y: 0.1, z: -46 };
-  L.checkpoints.push({ x: 0, y: 0.1, z: -46, name: 'Training yard' });
-  sign(4, 0, -44, 'WASD to move\nmouse to look', Math.PI);
-  // 1: a 1.2 ledge — jump
-  block(0, 0, -39, 26, 1.2, 4, C.stone); sign(-4, 1.2, -38.6, 'SPACE to jump', Math.PI);
-  L.tutorial.push({ z: -43, key: 'jump', text: 'SPACE — jump' });
-  // 2: a 2.6 rise — double jump
-  block(0, 0, -35, 26, 3.8, 4, C.stoneL); sign(4, 3.8, -34.6, 'SPACE again\nin the air', Math.PI);
-  L.tutorial.push({ z: -38.2, key: 'djump', text: 'SPACE again in the air — double jump' });
-  // 3: a 4.5m gap over a shallow pit (top 2.4, hop back out) — dash
-  block(0, 0, -30.75, 26, 2.4, 4.5, C.stoneD);
-  block(0, 0, -26.5, 26, 3.8, 4, C.stone); sign(-4, 3.8, -26.1, 'SHIFT in the air\nto dash', Math.PI);
-  L.tutorial.push({ z: -34.2, key: 'dash', text: 'SHIFT — dash. Works in the air, once per jump' });
-  // drop into the pell yard (z -24.5 .. -16)
-  L.spawns.push({ kind: 'pell', x: -4, y: 0.1, z: -21 }, { kind: 'pellshield', x: 4, y: 0.1, z: -21, facing: Math.PI });
-  sign(-4, 0, -19.4, 'LEFT CLICK\nthree-hit chain', Math.PI); sign(4, 0, -19.4, 'hold Q — charged heavy\nbreaks a shield', Math.PI);
-  L.tutorial.push({ z: -24.6, key: 'light', text: 'LEFT CLICK — sword. Chain three on the pell' });
+  const barricade = (x, y, z, w, d, h = 2.3) => { const bx = world.add(new Box(x, y, z, w, h, d, { tag: 'barricade' })); bx.hp = 1; L.barricades.push(bx); return bx; };
+  block(0, -2, -43, 26, 2, 54, C.ground); deco(0, -0.01, -43, 26, 0.02, 54, C.dirt);
+  block(-13.5, 0, -43, 1.5, 8, 56, C.stoneD); block(13.5, 0, -43, 1.5, 8, 56, C.stoneD); block(0, 0, -71, 28, 8, 2, C.stoneD);
+  for (const bx of [-8, 0, 8]) { deco(bx, 2.5, -69.9, 1.4, 3.5, 0.1, C.banner); deco(bx, 6, -69.9, 1.8, 0.25, 0.2, C.gold); }
+  // tents, hay, a rack: the yard is where the garrison trains
+  for (const [tx, tz] of [[-10, -66], [10, -66], [-10, -58]]) { deco(tx, 0, tz, 3.2, 2.2, 3.2, C.woodD); deco(tx, 2.2, tz, 4, 0.5, 4, C.roof); deco(tx, 2.7, tz, 3, 0.5, 3, C.roof); }
+  for (const [hx, hz] of [[9, -60], [10.3, -60.6], [9.6, -59.2]]) deco(hx, 0, hz, 1.2, 0.9, 1.2, '#b89a4a');
+  deco(-11, 0, -52, 0.2, 1.8, 3, C.wood); for (let i = 0; i < 4; i++) deco(-11, 0.3, -53.2 + i * 0.8, 0.1, 1.4, 0.12, C.steel || '#d8dde5');
+  L.start = { x: 0, y: 0.1, z: -68 };
+  L.checkpoints.push({ x: 0, y: 0.1, z: -68, name: 'Training yard' });
+  sign(4, 0, -66, 'WASD to move\nmouse to look', Math.PI);
+  L.tutorial.push({ z: -65, key: 'jump', text: 'SPACE — jump' });
+  block(0, 0, -61, 26, 1.2, 4, C.stone); sign(-4, 1.2, -60.6, 'SPACE to jump', Math.PI);
+  L.tutorial.push({ z: -60.2, key: 'djump', text: 'SPACE again in the air — double jump' });
+  block(0, 0, -57, 26, 3.8, 4, C.stoneL); sign(4, 3.8, -56.6, 'SPACE again\nin the air', Math.PI);
+  L.tutorial.push({ z: -56.2, key: 'dash', text: 'SHIFT — dash. Works in the air, once per jump' });
+  block(0, 0, -52.75, 26, 2.4, 4.5, C.stoneD);                       // pit (hop back out)
+  block(0, 0, -48.5, 26, 3.8, 4, C.stone); sign(-4, 3.8, -48.1, 'SHIFT in the air\nto dash', Math.PI);
+  // slider over a pit
+  L.tutorial.push({ z: -47.8, key: 'slider', text: 'Ride the moving platform — you move with it' });
+  block(0, 0, -42, 26, 2.4, 9, C.stoneD);                            // pit floor under the slider
+  const tsl = world.add(new Box(-6, 3.5, -42, 2.8, 0.3, 2.8, { moving: true, tag: 'slider' }));
+  tsl.path = { a: { x: -7, y: 3.5, z: -42 }, b: { x: 7, y: 3.5, z: -42 }, period: 7, phase: 0 }; L.platforms.push(tsl);
+  block(0, 0, -36, 26, 3.8, 3, C.stone); sign(4, 3.8, -35.6, 'Ride the platform', Math.PI);
+  // narrow beam: teaches the landing ring
+  L.tutorial.push({ z: -35.4, key: 'beam', text: 'Narrow beam — the ring beneath you shows where you will land' });
+  block(0, 0, -30.5, 26, 2.4, 8, C.stoneD);                          // pit under the beam
+  block(0, 3.5, -30.5, 0.9, 0.3, 8, C.wood); deco(0, 2.4, -30.5, 0.3, 1.1, 0.3, C.woodD);
+  block(0, 0, -25.5, 26, 3.8, 2, C.stone);
+  // drop into the yard proper (z -24.5 .. -16); a barricade bars the way
+  L.tutorial.push({ z: -25.2, key: 'bash', text: 'F — shield bash smashes barricades (or hold Q for a heavy)' });
+  block(-8.5, 0, -21, 9, 8, 1.2, C.stoneD); block(8.5, 0, -21, 9, 8, 1.2, C.stoneD); 
+  barricade(0, 0, -21, 8, 1.2, 8);
+  sign(-6.5, 0, -22.6, 'F — shield bash\nbreaks it', Math.PI);
+  // pells
+  L.spawns.push({ kind: 'pell', x: -5, y: 0.1, z: -18.6 }, { kind: 'pellshield', x: 5, y: 0.1, z: -18.6, facing: Math.PI });
+  sign(-5, 0, -17, 'LEFT CLICK\nthree-hit chain', Math.PI); sign(5, 0, -17, 'hold Q — charged heavy\nbreaks a shield', Math.PI);
+  L.tutorial.push({ key: 'light', after: 'bash', cond: 'barricade', text: 'LEFT CLICK — sword. Chain three on the pell' });
   L.tutorial.push({ key: 'heavy', after: 'light', cond: 'hit', text: 'Hold Q — a charged heavy breaks the shield pell' });
+  // a slow crossbow on a crate: parry its bolt back at it
+  block(-11, 0, -17, 2, 2.2, 2, C.stoneD);
+  L.spawns.push({ kind: 'drillbow', x: -11, y: 2.25, z: -17, perch: true, facing: Math.PI / 2 });
+  sign(-9.4, 2.2, -15.8, 'RIGHT CLICK as the\nbolt arrives: parry', Math.PI / 2);
+  L.tutorial.push({ key: 'parry', after: 'heavy', cond: 'guardbreak', text: 'The crossbow: block as its bolt arrives to parry it back' });
   // drill sergeant guards the portcullis
-  L.spawns.push({ kind: 'drill', x: 0, y: 0.1, z: -17.5, facing: Math.PI });
-  L.tutorial.push({ key: 'block', after: 'heavy', cond: 'guardbreak', text: 'The sergeant attacks: hold RIGHT CLICK to block — at the last instant to parry' });
+  L.spawns.push({ kind: 'drill', x: 0, y: 0.1, z: -17.2, facing: Math.PI });
+  L.tutorial.push({ key: 'block', after: 'parry', cond: 'boltparry', text: 'The sergeant: hold RIGHT CLICK to block — at the last instant to parry, then strike' });
   block(0, -2, -15, 4, 2, 2.2, C.ground);   // floor of the gate passage
   L.portcullis = world.add(new Box(0, 0, -15, 4, 6, 1.2, { tag: 'gate' }));
   deco(0, 6, -15, 6, 4, 2.2, C.stoneL); deco(-3.2, 0, -15, 0.6, 6, 2.4, C.stoneL); deco(3.2, 0, -15, 0.6, 6, 2.4, C.stoneL);
-  L.torches.push({ x: -3.6, y: 4.5, z: -16.8 }, { x: 3.6, y: 4.5, z: -16.8 }, { x: -12.6, y: 4, z: -40 }, { x: 12.6, y: 4, z: -28 });
+  L.torches.push({ x: -3.6, y: 4.5, z: -16.8 }, { x: 3.6, y: 4.5, z: -16.8 }, { x: -12.6, y: 4, z: -62 }, { x: 12.6, y: 4, z: -50 }, { x: -12.6, y: 4, z: -38 }, { x: 12.6, y: 4, z: -26 });
 
   // ---------------- ZONE A: COURTYARD ----------------
   block(0, -2, 10, 60, 2, 48, C.ground); deco(0, -0.01, 10, 60, 0.02, 48, C.ground);
@@ -89,8 +114,6 @@ export function buildLevel(world) {
   const segs = [[-30, -9], [-5, 7], [13, 30]];
   for (const [a, b] of segs) { const w = b - a; block((a + b) / 2, 6.5, 32, w, 1.5, 4, C.stone); }
   // BARRICADE: a wooden barricade across the walk — only a shield bash, heavy or pound breaks it
-  L.barricades = [];
-  const barricade = (x, y, z, w, d) => { const bx = world.add(new Box(x, y, z, w, 2.3, d, { tag: 'barricade' })); bx.hp = 1; L.barricades.push(bx); };
   barricade(-14, 8, 32, 1.2, 4);
   sign(-10.5, 8, 30.6, 'F — shield bash\nbreaks barricades', Math.PI / 2);
   sign(6, 8, 30.6, 'CTRL in the air\nground pound kicks ladders', Math.PI);
@@ -226,9 +249,9 @@ export function buildLevel(world) {
   // barricade meshes
   for (const bx of L.barricades) {
     const m = boxesMesh([
-      { x: 0, y: 1.1, z: 0, w: bx.w, h: 0.25, d: bx.d, c: C.woodD }, { x: 0, y: 0.5, z: 0, w: bx.w, h: 0.25, d: bx.d, c: C.wood }, { x: 0, y: 1.7, z: 0, w: bx.w, h: 0.25, d: bx.d, c: C.wood },
-      { x: -bx.w * 0.3, y: 1.15, z: -bx.d * 0.35, w: 0.2, h: 2.3, d: 0.2, c: C.woodD }, { x: bx.w * 0.3, y: 1.15, z: bx.d * 0.35, w: 0.2, h: 2.3, d: 0.2, c: C.woodD },
-      { x: 0, y: 1.15, z: 0, w: 0.3, h: 2.3, d: 0.3, c: '#3a3d44' },
+      ...Array.from({ length: Math.round(bx.h / 0.6) }, (_, i) => ({ x: 0, y: 0.4 + i * 0.6, z: 0, w: bx.w, h: 0.28, d: bx.d, c: i % 2 ? C.wood : C.woodD })),
+      { x: -bx.w * 0.3, y: bx.h / 2, z: -bx.d * 0.35, w: 0.2, h: bx.h, d: 0.2, c: C.woodD }, { x: bx.w * 0.3, y: bx.h / 2, z: bx.d * 0.35, w: 0.2, h: bx.h, d: 0.2, c: C.woodD },
+      { x: 0, y: bx.h / 2, z: 0, w: 0.3, h: bx.h, d: 0.3, c: '#3a3d44' },
     ]);
     m.position.set(bx.cx, bx.min.y, bx.cz); bx.mesh = m; L.props.add(m);
   }
