@@ -159,6 +159,8 @@ export function buildLevel(world) {
   // --- the watchtower (race finish): spur at west, base -16, top -3
   const WT = { x: -18, z: -58 };
   block(WT.x, -16, WT.z, 6, 10, 6, C.stoneD);
+  for (let sy = -14.5; sy < -7; sy += 1.7) { deco(WT.x, sy, WT.z + 3.03, 5.8, 0.08, 0.05, '#4e4a44'); deco(WT.x + 3.03, sy, WT.z, 0.05, 0.08, 5.8, '#4e4a44'); }
+  deco(WT.x, -16, WT.z + 3.06, 6.2, 0.5, 0.08, '#453e38');
   crenels(WT.x - 2, WT.x + 2, -6, WT.z + 3.2); crenels(WT.x - 2, WT.x + 2, -6, WT.z - 3.2);
   block(WT.x, -6, WT.z, 7, 0.6, 7, C.stone);
   deco(WT.x, -5.4, WT.z, 0.25, 4.5, 0.25, C.wood); deco(WT.x + 0.9, -2.2, WT.z, 1.7, 1.0, 0.07, '#b03a3a');   // the race flag
@@ -207,6 +209,12 @@ export function buildLevel(world) {
   for (let i = 0; i < 8; i++) pine(-30 + rnd() * 3, -4 + rnd() * 2, -130 + rnd() * 90, 0.8 + rnd() * 0.5);
   for (let i = 0; i < 22; i++) { const rx = rnd() < 0.5 ? -33 - rnd() * 3 : 34 + rnd() * 3; const rz = -150 + rnd() * 135; deco(rx, -6 + rnd() * 4, rz, 2.5 + rnd() * 3.5, 3 + rnd() * 6, 2.5 + rnd() * 3.5, rnd() < 0.5 ? C.rockD : '#5e564e'); }
   for (let i = 0; i < 12; i++) { const rz = -156 + rnd() * 8; deco(-36 + rnd() * 72, -12 + rnd() * 4, rz, 3 + rnd() * 4, 4 + rnd() * 7, 3 + rnd() * 3, C.rockD); }
+  // strata on the rim's inner faces + AO base bands
+  for (const [rx, face] of [[-28.9, 1], [28.9, -1]]) {
+    for (let sy = -26; sy < -6; sy += 4.5) deco(rx + face * 0.06, sy + rnd() * 1.5, -80, 0.1, 0.5 + rnd() * 0.5, 148, rnd() < 0.5 ? '#57504a' : '#6d655c');
+    deco(rx + face * 0.1, -30, -80, 0.14, 1.2, 148, '#453e38');
+  }
+  for (let sz = -156.9; sz < -152; sz += 100) deco(0, -26, sz + 0.05, 78, 0.6, 0.12, '#57504a');
   // crag undersides
   deco(0, -44, -100, 70, 9, 100, '#3e362e'); deco(0, -50, -95, 44, 7, 70, '#332c26');
 
@@ -307,6 +315,12 @@ export function buildLevel(world) {
     // 8 banner slots (lit when a crest is earned) — main.js toggles these
     L.hallBanners = [];
     for (let i = 0; i < 8; i++) { const bx2 = hx - 5.6 + (i % 4) * 3.6, bz2 = i < 4 ? hz - 8.0 : hz + 8.0; L.hallBanners.push({ x: bx2, y: 3.2, z: bz2, face: i < 4 ? 1 : -1 }); }
+    // rug, candles, wall shields, wainscot
+    deco(hx, 0.005, hz, 7.5, 0.02, 5.5, '#6a2430'); deco(hx, 0.012, hz, 6.7, 0.02, 4.7, '#7d2c38'); deco(hx, 0.02, hz, 5.9, 0.02, 3.9, '#6a2430');
+    deco(hx - 1.6, 1.2, hz - 0.9, 0.12, 0.5, 0.12, '#e8d8a0'); deco(hx + 1.7, 1.2, hz + 0.8, 0.12, 0.38, 0.12, '#e8d8a0');
+    L.torches.push({ x: hx - 1.6, y: 1.85, z: hz - 0.9 });
+    for (const [sx2, sz2] of [[hx - 3, hz - 7.9], [hx + 3, hz - 7.9], [hx, hz + 7.9]]) { deco(sx2, 3.6, sz2 + (sz2 < hz ? 0.35 : -0.35), 0.9, 1.1, 0.06, '#8a2d2d'); deco(sx2, 3.75, sz2 + (sz2 < hz ? 0.38 : -0.38), 0.3, 0.5, 0.05, '#c9a24a'); deco(sx2, 2.9, sz2 + (sz2 < hz ? 0.36 : -0.36), 1.1, 0.14, 0.05, '#5a4630'); }
+    deco(hx, 2.2, hz - 8.0, 15.6, 0.14, 0.1, '#5a4630'); deco(hx, 2.2, hz + 8.0, 15.6, 0.14, 0.1, '#5a4630'); deco(hx + 7.45, 2.2, hz, 0.1, 0.14, 16.6, '#5a4630');
     // benches
     block(hx - 3, 0, hz - 4.6, 3.2, 0.55, 0.9, C.wood); block(hx + 3, 0, hz + 4.6, 3.2, 0.55, 0.9, C.wood);
     L.checkpoints.push({ x: 33.5, y: 0.1, z: hz, name: 'The Great Hall' });

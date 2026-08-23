@@ -178,7 +178,7 @@ function updatePickups(dt) {
 }
 // hall banners: one kindles per crest earned
 const hallBannerMeshes = [];
-for (const hb of L.hallBanners) { const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 1.3, h: 2.6, d: 0.08, c: '#3a3440' }, { x: 0, y: -1.15, z: 0, w: 1.3, h: 0.3, d: 0.09, c: '#2a2630' }], { shadow: false }); m.position.set(hb.x, hb.y, hb.z + hb.face * 0.35); scene.add(m); hallBannerMeshes.push({ m, hb, lit: false }); }
+for (const hb of L.hallBanners) { const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 1.3, h: 2.6, d: 0.08, c: '#4e2a30' }, { x: 0, y: 0.2, z: 0.05, w: 0.5, h: 0.6, d: 0.02, c: '#3a2226' }, { x: 0, y: -1.15, z: 0, w: 1.3, h: 0.3, d: 0.09, c: '#5a4630' }], { shadow: false }); m.position.set(hb.x, hb.y, hb.z + hb.face * 0.35); scene.add(m); hallBannerMeshes.push({ m, hb, lit: false }); }
 function refreshHallBanners() {
   const n = game.crests || 0;
   for (let i = 0; i < hallBannerMeshes.length; i++) { const b = hallBannerMeshes[i]; if (i < n && !b.lit) { b.lit = true; scene.remove(b.m); const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 1.3, h: 2.6, d: 0.08, c: '#8a2d2d' }, { x: 0, y: 0.2, z: 0.06 * b.hb.face, w: 0.55, h: 0.7, d: 0.03, c: '#e3c070' }, { x: 0, y: -1.15, z: 0, w: 1.3, h: 0.3, d: 0.09, c: '#c9a24a' }], { shadow: false }); m.position.set(b.hb.x, b.hb.y, b.hb.z + b.hb.face * 0.35); scene.add(m); b.m = m; } }
@@ -549,6 +549,8 @@ function step(dt, inp) {
     else if (ev === 'longjump') { audio.play('djump'); spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z }, 8); player.squash = { s: 1.25, t: 0.14 }; }
     else if (ev === 'bop') { audio.play('djump'); player.squash = { s: 0.7, t: 0.12 }; }
     else if (ev === 'thud') { audio.play('land'); cam.shake = Math.max(cam.shake, 0.3); }
+    else if (ev === 'blocked') { player.blockJolt = 0.18; player.squash = { s: 0.9, t: 0.1 }; }
+    else if (ev === 'parry') { player.blockJolt = 0.25; }
     else if (['swing', 'dash', 'bash', 'charge', 'heavyrelease', 'block', 'die'].includes(ev)) audio.play(ev);
   }
   player.events.length = 0;
@@ -676,7 +678,7 @@ function animateRig(rig, ent, dt, isPlayer) {
       case S.LIGHT: { const a = P.light[ent.combo]; const k = Math.min(1, t / a.t); const w = k < 0.25 ? -2.2 + (k / 0.25) * 0.4 : (k < 0.6 ? -1.8 + ((k - 0.25) / 0.35) * 3.0 : 1.2 - ((k - 0.6) / 0.4) * 1.2); armR = w; armRy = ent.combo === 1 ? 0.9 : (ent.combo === 2 ? -0.5 : 0.4); armRz = ent.combo === 1 ? -0.8 : 0.5; lean = k < 0.6 ? 0.25 : 0.05; break; }
       case S.HEAVY_CHARGE: armR = -2.7; armRz = 0.8; lean = -0.15 + Math.sin(game.time * 40) * 0.02 * Math.min(1, ent.charge / P.heavyCharge); break;
       case S.HEAVY: { const k = Math.min(1, t / P.heavyT); armR = k < 0.3 ? -2.7 + (k / 0.3) * 1.0 : (k < 0.55 ? -1.7 + ((k - 0.3) / 0.25) * 3.2 : 1.5 - ((k - 0.55) / 0.45) * 1.5); armRz = 0.5; lean = k < 0.55 ? 0.4 : 0.1; break; }
-      case S.BLOCK: shieldUp = 1; lean = 0.1; break;
+      case S.BLOCK: shieldUp = 1; lean = 0.1; if (ent.blockJolt > 0) { ent.blockJolt -= dt; shieldUp = 1.5; lean = 0.22; } break;
       case S.DASH: lean = 0.55; armR = 0.6; armL = 0.6; break;
       case S.RUSH: shieldUp = 1.4; lean = 0.5; if (b.grounded && Math.random() < 0.4) spawnFx('dust', { x: b.pos.x - Math.sin(ent.facing) * 0.5, y: b.pos.y, z: b.pos.z - Math.cos(ent.facing) * 0.5 }, 1); break;
       case S.POUND: armR = -1.0; armRz = 0.3; lean = t < 0.12 ? -0.3 : 0.2; u.legL.rotation.x = 0.8; u.legR.rotation.x = 0.8; break;
