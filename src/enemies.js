@@ -91,7 +91,7 @@ export class Enemy {
       switch (this.state) {
         case 'idle':
           this.telegraph = 0;
-          if (d < c.aggro && Math.abs(dy) < ((this.kind === 'crossbow' || c.bow) ? 40 : 6)) { this.aggroed = true; this.state = 'chase'; this.t = 0; this.game.met = this.game.met || {}; this.game.met[this.kind] = 1; }
+          if (d < c.aggro && Math.abs(dy) < ((this.kind === 'crossbow' || c.bow) ? 40 : 6)) { this.aggroed = true; this.state = 'chase'; this.t = 0; this.game.met = this.game.met || {}; this.game.met[this.kind] = 1; if (this.game.onAggro && !this.cfg.passive) this.game.onAggro(this); }
           break;
         case 'chase': {
           this.telegraph = 0;

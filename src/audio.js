@@ -32,11 +32,11 @@ export class Audio {
       case 'heart': this.tone(70, 50, 0.12, 'sine', 0.25); this.tone(60, 45, 0.1, 'sine', 0.18, 0.18); break;
       case 'step': this.noise(0.04, 0.045, 500 + Math.random() * 300); this.thump(120 + Math.random() * 40, 0.04, 0.05); break;
       case 'stepwood': this.thump(170 + Math.random() * 40, 0.06, 0.1); this.noise(0.03, 0.03, 900); break;
-      case 'land': this.noise(0.09, 0.12, 300); this.thump(110, 0.12, 0.22); break;
+      case 'land': this.noise(0.09, 0.12, 300); this.thump(110 * M, 0.12 + (1 - M) * 0.15, 0.22 + (1 - M) * 0.3); break;
       case 'djump': this.tone(420 * M, 900 * M, 0.14, 'square', 0.12); this.noise(0.08, 0.05, 2000); break;
       case 'dash': this.whoosh(0.22, 0.26, 200, 1800); break;
       case 'bash': this.whoosh(0.2, 0.2, 150, 900); this.thump(140, 0.2, 0.3); break;
-      case 'swing': this.whoosh(0.16 + Math.random() * 0.05, 0.22, 300 + Math.random() * 200, 2600 + Math.random() * 800); break;
+      case 'swing': this.whoosh(0.16 + Math.random() * 0.05, 0.22, (300 + Math.random() * 200) * M, (2600 + Math.random() * 800) * M); break;
       case 'charge': this.tone(120, 240, 0.5, 'sawtooth', 0.06); break;
       case 'heavyrelease': this.noise(0.2, 0.22, 900); this.tone(90, 40, 0.25, 'sawtooth', 0.15); break;
       case 'hit': { const k = (0.85 + Math.random() * 0.35) * M; this.thump(180 * k, 0.12, 0.35); this.noise(0.05, 0.18, (2400 + Math.random() * 1400) * M); this.ring(1900 * k, 0.25, 0.06); break; }
