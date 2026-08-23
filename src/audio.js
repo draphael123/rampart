@@ -20,8 +20,9 @@ export class Audio {
   ring(f, dur, g = 0.2, delay = 0) { const c = this.ctx; if (!c) return; for (const [m, gg] of [[1, 1], [2.76, 0.5], [5.4, 0.3], [8.9, 0.15]]) { const o = c.createOscillator(), gn = c.createGain(); o.type = 'sine'; o.frequency.value = f * m; const t = c.currentTime + delay; gn.gain.setValueAtTime(g * gg, t); gn.gain.exponentialRampToValueAtTime(0.0005, t + dur / (1 + m * 0.3)); o.connect(gn); gn.connect(this.master); o.start(t); o.stop(t + dur + 0.05); } }
   thump(f0, dur, g = 0.3, delay = 0) { const c = this.ctx; if (!c) return; const o = c.createOscillator(), gn = c.createGain(); o.type = 'sine'; const t = c.currentTime + delay; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(25, f0 * 0.3), t + dur); gn.gain.setValueAtTime(g, t); gn.gain.exponentialRampToValueAtTime(0.001, t + dur); o.connect(gn); gn.connect(this.master); o.start(t); o.stop(t + dur + 0.02); }
   whoosh(dur, g = 0.2, f0 = 400, f1 = 2400, delay = 0) { const c = this.ctx; if (!c) return; const n = Math.floor(c.sampleRate * dur); const buf = c.createBuffer(1, n, c.sampleRate); const d = buf.getChannelData(0); for (let i = 0; i < n; i++) { const e = Math.sin(Math.PI * i / n); d[i] = (Math.random() * 2 - 1) * e * e; } const src = c.createBufferSource(); src.buffer = buf; const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.2; const t = c.currentTime + delay; bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1, t + dur); const gn = c.createGain(); gn.gain.value = g; src.connect(bp); bp.connect(gn); gn.connect(this.master); src.start(t); }
-  play(name) {
+  play(name, mul) {
     if (!this.ctx) return;
+    const M = mul || 1;
     const now = performance.now(); if (this.last[name] && now - this.last[name] < 40) return; this.last[name] = now;
     switch (name) {
       case 'jump': this.tone(300, 620, 0.12, 'square', 0.12); break;
@@ -32,15 +33,15 @@ export class Audio {
       case 'step': this.noise(0.04, 0.045, 500 + Math.random() * 300); this.thump(120 + Math.random() * 40, 0.04, 0.05); break;
       case 'stepwood': this.thump(170 + Math.random() * 40, 0.06, 0.1); this.noise(0.03, 0.03, 900); break;
       case 'land': this.noise(0.09, 0.12, 300); this.thump(110, 0.12, 0.22); break;
-      case 'djump': this.tone(420, 900, 0.14, 'square', 0.12); this.noise(0.08, 0.05, 2000); break;
+      case 'djump': this.tone(420 * M, 900 * M, 0.14, 'square', 0.12); this.noise(0.08, 0.05, 2000); break;
       case 'dash': this.whoosh(0.22, 0.26, 200, 1800); break;
       case 'bash': this.whoosh(0.2, 0.2, 150, 900); this.thump(140, 0.2, 0.3); break;
       case 'swing': this.whoosh(0.16 + Math.random() * 0.05, 0.22, 300 + Math.random() * 200, 2600 + Math.random() * 800); break;
       case 'charge': this.tone(120, 240, 0.5, 'sawtooth', 0.06); break;
       case 'heavyrelease': this.noise(0.2, 0.22, 900); this.tone(90, 40, 0.25, 'sawtooth', 0.15); break;
-      case 'hit': { const k = 0.85 + Math.random() * 0.35; this.thump(180 * k, 0.12, 0.35); this.noise(0.05, 0.18, 2400 + Math.random() * 1400); this.ring(1900 * k, 0.25, 0.06); break; }
+      case 'hit': { const k = (0.85 + Math.random() * 0.35) * M; this.thump(180 * k, 0.12, 0.35); this.noise(0.05, 0.18, (2400 + Math.random() * 1400) * M); this.ring(1900 * k, 0.25, 0.06); break; }
       case 'heavyhit': this.thump(110, 0.28, 0.5); this.noise(0.14, 0.3, 1200); this.ring(1400, 0.5, 0.1, 0.02); break;
-      case 'clank': { const k = 0.9 + Math.random() * 0.25; this.ring(2400 * k, 0.45, 0.16); this.noise(0.03, 0.12, 4000); this.thump(300, 0.06, 0.12); break; }
+      case 'clank': { const k = (0.9 + Math.random() * 0.25) * M; this.ring(2400 * k, 0.45, 0.16); this.noise(0.03, 0.12, 4000); this.thump(300, 0.06, 0.12); break; }
       case 'break': this.ring(1100, 0.6, 0.18); this.tone(900, 200, 0.25, 'sawtooth', 0.12); this.noise(0.25, 0.25, 1200); this.thump(90, 0.3, 0.35); break;
       case 'parry': this.ring(3200, 0.9, 0.22); this.tone(1800, 2600, 0.12, 'sine', 0.2); this.whoosh(0.3, 0.12, 2000, 6000); this.thump(260, 0.08, 0.15); break;
       case 'block': this.thump(420, 0.05, 0.1); this.noise(0.04, 0.06, 1500); break;

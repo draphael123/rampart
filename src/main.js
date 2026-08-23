@@ -303,7 +303,9 @@ function updatePickups(dt) {
       crestGet(key); saveGame();
     }
   }
-  for (const sh of shardMeshes) { if (sh.got) continue; sh.m.rotation.y += dt * 3; sh.m.position.y = sh.c.y + 0.6 + Math.sin(game.time * 2.6 + sh.c.x) * 0.1; if (Math.hypot(sh.c.x - player.pos.x, sh.c.z - player.pos.z) < 1.3 && Math.abs(sh.c.y + 0.6 - player.pos.y) < 2) { sh.got = true; sh.m.visible = false; game.shards = (game.shards || 0) + 1; audio.play('ui'); if (game.shards % 5 === 0) saveGame(); spawnFx('parry', { x: sh.c.x, y: sh.c.y + 0.6, z: sh.c.z }, 5); if (game.shards >= 30 && !(game.crestsGot || {}).shards) { game.crestsGot = game.crestsGot || {}; game.crestsGot.shards = true; game.crests = Object.keys(game.crestsGot).length; crestGet('shards'); } } }
+  for (const sh of shardMeshes) { if (sh.got) continue; sh.m.rotation.y += dt * 3;
+    { const dx = player.pos.x - sh.c.x, dy2 = player.pos.y + 0.8 - sh.c.y, dz = player.pos.z - sh.c.z; const d2 = Math.hypot(dx, dy2, dz); if (d2 < 4.2 && d2 > 0.01) { const pull = (1 - d2 / 4.2) * 10 * dt; sh.c.x += dx / d2 * pull; sh.c.y += dy2 / d2 * pull * 0.7; sh.c.z += dz / d2 * pull; sh.m.position.x = sh.c.x; sh.m.position.z = sh.c.z; } }
+    sh.m.position.y = sh.c.y + 0.6 + Math.sin(game.time * 2.6 + sh.c.x) * 0.1; if (Math.hypot(sh.c.x - player.pos.x, sh.c.z - player.pos.z) < 1.3 && Math.abs(sh.c.y + 0.6 - player.pos.y) < 2) { sh.got = true; sh.m.visible = false; game.shards = (game.shards || 0) + 1; audio.tone(880 + (game.shards % 5) * 90, 1200 + (game.shards % 5) * 90, 0.09, 'sine', 0.1); if (game.shards % 5 === 0) saveGame(); spawnFx('parry', { x: sh.c.x, y: sh.c.y + 0.6, z: sh.c.z }, 5); if (game.shards >= 30 && !(game.crestsGot || {}).shards) { game.crestsGot = game.crestsGot || {}; game.crestsGot.shards = true; game.crests = Object.keys(game.crestsGot).length; crestGet('shards'); } } }
   for (const pn of pennantMeshes) { if (pn.got) continue; pn.m.rotation.y += dt * 2.4; if (Math.hypot(pn.c.x - player.pos.x, pn.c.z - player.pos.z) < 1.3 && Math.abs(pn.c.y + 0.8 - player.pos.y) < 2) { pn.got = true; pn.m.visible = false; game.pennants = (game.pennants || 0) + 1; audio.play('ui'); spawnFx('hit', { x: pn.c.x, y: pn.c.y + 1, z: pn.c.z }, 10); toast('Pennant ' + game.pennants + ' of 8', 1.6); saveGame(); if (game.pennants >= 8) { spawnCrest('pennants', L.shrine.x, L.shrine.y, L.shrine.z); toast('The shrine kindles ' + '\u2014' + ' a crest rises in the meadow', 4); } } }
   for (const h of heartMeshes) { h.cd = Math.max(0, h.cd - dt); h.m.visible = h.cd <= 0; if (h.cd <= 0) { h.m.rotation.y += dt * 2.4; if (player.hp < P.hp && Math.hypot(h.c.x - player.pos.x, h.c.z - player.pos.z) < 1.2 && Math.abs(h.c.y + 0.6 - player.pos.y) < 1.6) { h.cd = 30; player.hp = Math.min(P.hp, player.hp + 1); audio.play('checkpoint'); spawnFx('hurt', { x: h.c.x, y: h.c.y + 0.8, z: h.c.z }, 8); } } }
   document.getElementById('crests').textContent = '\u2726 ' + (game.crests || 0) + '/8';
@@ -408,6 +410,11 @@ function updateFloatText(dt) {
   }
 }
 
+// shockwave rings: expanding billboard rings for parry / guard break / pound
+const ringTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d'); g.strokeStyle = 'rgba(255,255,255,1)'; g.lineWidth = 5; g.beginPath(); g.arc(32, 32, 26, 0, Math.PI * 2); g.stroke(); g.strokeStyle = 'rgba(255,255,255,0.4)'; g.lineWidth = 10; g.beginPath(); g.arc(32, 32, 24, 0, Math.PI * 2); g.stroke(); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+const ringPool = Array.from({ length: 4 }, () => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: ringTex, color: '#ffd27a', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })); m.visible = false; scene.add(m); return { m, t: 1 }; });
+function shockRing(pos, color = '#ffd27a', big = 1) { const r = ringPool.find(q => q.t >= 1) || ringPool[0]; r.t = 0; r.big = big; r.m.visible = true; r.m.material.color.set(color); r.m.position.set(pos.x, pos.y, pos.z); }
+function updateRings(dt) { for (const r of ringPool) { if (r.t >= 1) { r.m.visible = false; continue; } r.t += dt * 2.8; const s = (0.6 + r.t * 4.2) * (r.big || 1); r.m.scale.set(s, s, 1); r.m.material.opacity = 0.7 * (1 - r.t); r.m.lookAt(camera.position); } }
 // ------------------------------------------------------------------ game
 const audio = new Audio(); const music = new Music(audio);
 const game = {
@@ -424,12 +431,12 @@ const game = {
       any = true;
       const hp = { x: e.pos.x, y: e.pos.y + 1.1, z: e.pos.z };
       if (r === 'guard') { this.fx('clank', hp); audio.play('clank'); floatText(hp, 'GUARDED', 'dim'); tipOnce('shieldfoe', 'A raised shield turns your sword. A charged HEAVY (hold Q) breaks it — or BOP the head.'); this.player.body.vel.x *= -0.3; this.player.body.vel.z *= -0.3; }
-      else if (r === 'guardbreak') { this.fx('break', hp); audio.play('break'); floatText(hp, 'GUARD BREAK', 'big'); if (game.trainingOn && e.kind === 'pellshield') game.trainBreak = true; cam.shake = 0.6; this.hitstop = 0.07; }
+      else if (r === 'guardbreak') { this.fx('break', hp); audio.play('break'); floatText(hp, 'GUARD BREAK', 'big'); shockRing(hp, '#6aa0ff', 0.9); e.squash = { s: 1.25, t: 0.13 }; if (game.trainingOn && e.kind === 'pellshield') game.trainBreak = true; cam.shake = 0.6; this.hitstop = 0.07; }
       else {
-        spawnFx('hit', hp, box.kind === 'heavy' ? 18 : 10, this.player.fwd()); audio.play(box.kind === 'heavy' ? 'heavyhit' : 'hit');
+        spawnFx('hit', hp, box.kind === 'heavy' ? 18 : 10, this.player.fwd()); audio.play(box.kind === 'heavy' ? 'heavyhit' : 'hit', 1 + (box.kind === 'light' ? this.player.combo * 0.14 : 0));
         this.hitstop = box.kind === 'heavy' ? 0.09 : (box.kind === 'light' && this.player.combo === 2 ? 0.07 : 0.045);
         cam.shake = Math.max(cam.shake, box.kind === 'heavy' ? 0.55 : 0.22); cam.punch = box.kind === 'heavy' ? 0.5 : 0.25;
-        e.hitFlash = 0.1; this.player.stats.hitsLanded++; rumble(0.25, 0.5, 90); if (game.trainingOn && e.kind === 'pell') game.trainHits = (game.trainHits || 0) + 1; floatText(hp, String(box.dmg), box.kind === 'heavy' ? 'big' : '');
+        e.hitFlash = 0.1; this.player.stats.hitsLanded++; rumble(0.25, 0.5, 90); if (game.trainingOn && e.kind === 'pell') game.trainHits = (game.trainHits || 0) + 1; floatText(hp, String(box.dmg), (box.kind === 'heavy' || (box.kind === 'light' && this.player.combo === 2)) ? 'big' : '');
         if (r === 'dead') { e.body.vel.x = -(this.player.pos.x - e.pos.x) * 3; e.body.vel.z = -(this.player.pos.z - e.pos.z) * 3; e.body.vel.y = 6; }
         if (r === 'dead') { this.slowmo = 0.28; cam.shake = Math.max(cam.shake, 0.5); this.fx('die', hp); }
       }
@@ -464,7 +471,7 @@ const game = {
     if (!cands.length) return; const b = cands[Math.floor(Math.random() * cands.length)]; b.enabled = false; if (b.crumbleMesh) b.crumbleMesh.visible = false;
     for (let i = 0; i < 2; i++) this.fx('die', { x: b.cx, y: b.min.y + 0.5, z: b.cz });
   },
-  onBop(e) { if (game.trainingOn && (e.kind === 'pell' || e.kind === 'pellshield')) game.trainBop = true; this.hitstop = 0.05; cam.shake = Math.max(cam.shake, 0.25); this.fx('hit', { x: e.pos.x, y: e.pos.y + e.body.h, z: e.pos.z }); },
+  onBop(e) { if (e.kind !== 'hound') e.squash = { s: 0.62, t: 0.14 }; if (game.trainingOn && (e.kind === 'pell' || e.kind === 'pellshield')) game.trainBop = true; this.hitstop = 0.05; cam.shake = Math.max(cam.shake, 0.25); this.fx('hit', { x: e.pos.x, y: e.pos.y + e.body.h, z: e.pos.z }); },
   onBossPhase3(e) {
     toast('The Captain rages \u2014 the storm breaks!', 3.5); audio.play('roar'); cam.shake = 1.1; this.slowmo = 0.5;
     this.storm = 1;   // full storm
@@ -492,10 +499,10 @@ const game = {
     if (p.dead || !overlap(box, p.body.aabb)) return;
     const r = p.takeHit(dmg, e.pos, opts);
     const hp = { x: p.pos.x, y: p.pos.y + 1.1, z: p.pos.z };
-    if (r === 'hit') { this.fx('hurt', hp); audio.play('hurt'); cam.shake = 0.7; this.hitstop = 0.06; this.vignette = 1; floatText(hp, '-' + dmg, 'hurt'); rumble(0.7, 0.4, 220); const hpEl = document.getElementById('hp'); hpEl.classList.remove('shake'); void hpEl.offsetWidth; hpEl.classList.add('shake'); }
+    if (r === 'hit') { this.fx('hurt', hp); audio.play('hurt'); cam.shake = 0.7; this.hitstop = 0.06; this.vignette = 1; this.camRoll = (Math.random() < 0.5 ? -1 : 1) * 0.05; floatText(hp, '-' + dmg, 'hurt'); rumble(0.7, 0.4, 220); const hpEl = document.getElementById('hp'); hpEl.classList.remove('shake'); void hpEl.offsetWidth; hpEl.classList.add('shake'); }
     else if (r === 'blocked') { this.fx('clank', hp); audio.play('clank'); cam.shake = 0.2; floatText(hp, 'BLOCKED', 'dim'); tipOnce('parrytip', 'A block held is safe — a block at the LAST INSTANT is a parry, and staggers them.'); }
     else if (r === 'parried') {
-      this.fx('parry', hp); audio.play('parry'); cam.shake = 0.4; this.hitstop = 0.14; this.flash = 0.6; this.slowmo = 0.2; floatText(hp, 'PARRY', 'big gold'); if (game.trainingOn) game.trainParry = true;
+      this.fx('parry', hp); audio.play('parry'); cam.shake = 0.4; this.hitstop = 0.14; this.flash = 0.6; this.slowmo = 0.2; floatText(hp, 'PARRY', 'big gold'); shockRing(hp, '#fff2c0', 1.1); if (game.trainingOn) game.trainParry = true;
       e.stun = 1.4; e.guardUp = false; e.state = 'flinch'; e.t = 0; e.telegraph = 0; this.releaseAttackToken(e);
       e.body.vel.x = (e.pos.x - p.pos.x) * 3; e.body.vel.z = (e.pos.z - p.pos.z) * 3;
     }
@@ -538,6 +545,14 @@ const game = {
   releaseAttackToken(e) { if (this.attackToken === e) this.attackToken = null; },
   onEnemyDied(e) {
     this.player.kills++;
+    if (!e.cfg.passive) {
+      const now = this.time;
+      this.killChain = (this.lastKillT && now - this.lastKillT < 1.5) ? (this.killChain || 1) + 1 : 1;
+      this.lastKillT = now;
+      const notes = [523.3, 659.3, 784, 1046.5, 1318.5];
+      audio.tone(notes[Math.min(this.killChain - 1, 4)], notes[Math.min(this.killChain - 1, 4)], 0.32, 'triangle', 0.11);
+      if (this.killChain >= 3) floatText({ x: e.pos.x, y: e.pos.y + 1.8, z: e.pos.z }, this.killChain + ' CHAIN', 'big gold');
+    }
     if (!e.cfg.passive) { this.killsBy = this.killsBy || {}; this.killsBy[e.kind] = (this.killsBy[e.kind] || 0) + 1; }
     if (e.kind === 'captain') { this.bossDead = true; this.storm = 0; this.deathCine = 3.2; this.deathCineTarget = e; this.slowmo = 1.4; cam.shake = 1.2; this.flash = 0.8; audio.play('bossdie'); for (let k = 0; k < 4; k++) spawnFx('die', { x: e.pos.x, y: e.pos.y + 1 + k * 0.4, z: e.pos.z }, 14); for (let k = 0; k < 2; k++) spawnFx('parry', { x: e.pos.x, y: e.pos.y + 1.4, z: e.pos.z }, 20); setTimeout(() => { toast('The Siege Captain falls.', 3); spawnCrest('captain', L.goal.x + 1.5, L.goal.y, L.goal.z); }, 1200); }
     if (this.player.lockTarget === e) { this.player.lockTarget = null; cam.lock = null; }
@@ -953,9 +968,9 @@ function step(dt, inp) {
   // events → audio
   for (const ev of player.events) {
     if (ev === 'jump' || ev === 'djump') { audio.play(ev); spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z }); player.squash = { s: 1.18, t: 0.12 }; }
-    else if (ev === 'land') { spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z }, 8); audio.play('land'); player.squash = { s: 0.78, t: 0.14 }; cam.shake = Math.max(cam.shake, Math.min(0.35, -player.landVy * 0.012)); }
+    else if (ev === 'land') { player.bopChain = 0; spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z }, 8); audio.play('land'); player.squash = { s: 0.78, t: 0.14 }; cam.shake = Math.max(cam.shake, Math.min(0.35, -player.landVy * 0.012)); }
     else if (ev === 'longjump') { audio.play('djump'); spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z }, 8); player.squash = { s: 1.25, t: 0.14 }; }
-    else if (ev === 'bop') { audio.play('djump'); player.squash = { s: 0.7, t: 0.12 }; }
+    else if (ev === 'bop') { player.bopChain = (player.bopChain || 0) + 1; audio.play('djump', 1 + Math.min(6, player.bopChain) * 0.13); player.squash = { s: 0.7, t: 0.12 }; }
     else if (ev === 'thud') { audio.play('land'); cam.shake = Math.max(cam.shake, 0.3); }
     else if (ev === 'blocked') { player.blockJolt = 0.18; player.squash = { s: 0.9, t: 0.1 }; }
     else if (ev === 'parry') { player.blockJolt = 0.25; }
@@ -1312,6 +1327,8 @@ function renderHud(dt) {
 function crestGet(key) {
   const def = CRESTS.find(c => c.key === key);
   game.slowmo = 1.2; game.flash = 0.5; audio.play('win'); cam.shake = 0.4;
+  shockRing({ x: player.pos.x, y: player.pos.y + 1.2, z: player.pos.z }, '#ffd27a', 1.6);
+  for (let k = 0; k < 3; k++) spawnFx('parry', { x: player.pos.x, y: player.pos.y + 0.8 + k * 0.5, z: player.pos.z }, 10);
   const el = document.getElementById('crestcard');
   document.getElementById('crestcardname').textContent = def ? def.name : key;
   document.getElementById('crestcardcount').textContent = '\u2726 ' + (game.crests || 0) + ' of 4';
@@ -1398,6 +1415,19 @@ function render(dt) {
   updateAtmos(dt); game.slowmo = Math.max(0, game.slowmo - dt); game.vignette = Math.max(0, game.vignette - dt * 1.6); game.flash = Math.max(0, game.flash - dt * 3);
   const moving = Math.hypot(player.body.vel.x, player.body.vel.z) > 1;
   if (game.started && !game.paused && !(game.deathCine > 0)) cam.update(dt, player, moving);
+  updateRings(dt);
+  if (game.camRoll) { if (!SET.reduceMotion) camera.rotateZ(game.camRoll); game.camRoll *= Math.max(0, 1 - dt * 6); if (Math.abs(game.camRoll) < 0.002) game.camRoll = 0; }
+  // low-hp heartbeat
+  if (game.started && player.hp === 1 && !player.dead && !game.won) {
+    game.heartT = (game.heartT || 0) - dt;
+    if (game.heartT <= 0) { game.heartT = 0.95; audio.thump(52, 0.16, 0.28); audio.thump(48, 0.14, 0.2, 0.16); }
+    game.vignette = Math.max(game.vignette, 0.2 + 0.08 * Math.sin(game.time * 6.6));
+  }
+  // sprint dust puffs
+  if (player.body.grounded && Math.hypot(player.body.vel.x, player.body.vel.z) > 6.8 && SET.particles > 0) {
+    game.dustT = (game.dustT || 0) - dt;
+    if (game.dustT <= 0) { game.dustT = 0.16; spawnFx('dust', { x: player.pos.x, y: player.pos.y, z: player.pos.z }, 2); }
+  }
   else if (!game.started) { const t = performance.now() / 1000; camera.position.set(Math.sin(t * 0.06) * 30, -14 + Math.sin(t * 0.11) * 3, -110 + Math.cos(t * 0.06) * 34); camera.lookAt(-10, -6, -30); }
   animateRig(playerRig, player, dt, true);
   for (const e of game.enemies) if (e.mesh) animateRig(e.mesh, e, dt, false);
