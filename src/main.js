@@ -293,7 +293,7 @@ const game = {
       if (r === 'dup') continue;
       any = true;
       const hp = { x: e.pos.x, y: e.pos.y + 1.1, z: e.pos.z };
-      if (r === 'guard') { this.fx('clank', hp); audio.play('clank'); floatText(hp, 'GUARDED', 'dim'); this.player.body.vel.x *= -0.3; this.player.body.vel.z *= -0.3; }
+      if (r === 'guard') { this.fx('clank', hp); audio.play('clank'); floatText(hp, 'GUARDED', 'dim'); tipOnce('shieldfoe', 'A raised shield turns your sword. A charged HEAVY (hold Q) breaks it — or BOP the head.'); this.player.body.vel.x *= -0.3; this.player.body.vel.z *= -0.3; }
       else if (r === 'guardbreak') { this.fx('break', hp); audio.play('break'); floatText(hp, 'GUARD BREAK', 'big'); if (game.trainingOn && e.kind === 'pellshield') game.trainBreak = true; cam.shake = 0.6; this.hitstop = 0.07; }
       else {
         spawnFx('hit', hp, box.kind === 'heavy' ? 18 : 10, this.player.fwd()); audio.play(box.kind === 'heavy' ? 'heavyhit' : 'hit');
@@ -363,7 +363,7 @@ const game = {
     const r = p.takeHit(dmg, e.pos, opts);
     const hp = { x: p.pos.x, y: p.pos.y + 1.1, z: p.pos.z };
     if (r === 'hit') { this.fx('hurt', hp); audio.play('hurt'); cam.shake = 0.7; this.hitstop = 0.06; this.vignette = 1; floatText(hp, '-' + dmg, 'hurt'); rumble(0.7, 0.4, 220); const hpEl = document.getElementById('hp'); hpEl.classList.remove('shake'); void hpEl.offsetWidth; hpEl.classList.add('shake'); }
-    else if (r === 'blocked') { this.fx('clank', hp); audio.play('clank'); cam.shake = 0.2; floatText(hp, 'BLOCKED', 'dim'); }
+    else if (r === 'blocked') { this.fx('clank', hp); audio.play('clank'); cam.shake = 0.2; floatText(hp, 'BLOCKED', 'dim'); tipOnce('parrytip', 'A block held is safe — a block at the LAST INSTANT is a parry, and staggers them.'); }
     else if (r === 'parried') {
       this.fx('parry', hp); audio.play('parry'); cam.shake = 0.4; this.hitstop = 0.14; this.flash = 0.6; this.slowmo = 0.2; floatText(hp, 'PARRY', 'big gold'); if (game.trainingOn) game.trainParry = true;
       e.stun = 1.4; e.guardUp = false; e.state = 'flinch'; e.t = 0; e.telegraph = 0; this.releaseAttackToken(e);
@@ -552,6 +552,8 @@ let optionsFrom = 'file';
 function showOptions(on, from) { if (from) optionsFrom = from; document.getElementById('options').style.display = on ? 'flex' : 'none'; if (on) buildOptions(); else if (optionsFrom === 'file') document.getElementById('fileselect').style.display = 'flex'; else showMenu(true); }
 document.getElementById('btnOptions').onclick = () => { document.getElementById('fileselect').style.display = 'none'; showOptions(true, 'file'); };
 document.getElementById('btnOptClose').onclick = () => showOptions(false);
+document.getElementById('btnMoves').onclick = () => { document.getElementById('menu').classList.remove('show'); const mv = document.getElementById('moves'); const grid = document.getElementById('movesGrid'); if (!grid.childElementCount) { const src = document.getElementById('keysGrid'); const cl = src.cloneNode(true); cl.style.margin = '10px auto 0'; grid.appendChild(cl); } mv.style.display = 'flex'; audio.play('ui'); };
+document.getElementById('btnMovesClose').onclick = () => { document.getElementById('moves').style.display = 'none'; document.getElementById('menu').classList.add('show'); audio.play('ui'); };
 document.getElementById('btnPauseOptions').onclick = () => { document.getElementById('menu').classList.remove('show'); showOptions(true, 'pause'); };
 document.getElementById('btnResume').onclick = () => { if (lockFallback) showMenu(false); else requestLock(); };
 document.getElementById('btnQuit').onclick = () => { saveGame(); location.reload(); };
@@ -579,7 +581,7 @@ function slotKey(i) { return 'rampart_save_' + i + (VALE === 2 ? '_v2' : ''); }
 function readSlot(i) { try { return JSON.parse(localStorage.getItem(slotKey(i)) || 'null'); } catch (e) { return null; } }
 function saveGame() {
   if (!SLOT || !game.started) return;
-  const data = { braziers: (L.braziers || []).map(b2 => b2.lit), crestsGot: game.crestsGot || {}, pennants: pennantMeshes.map(p => p.got), shards: shardMeshes.map(sh => sh.got), pennantCount: game.pennants || 0, shardCount: game.shards || 0, checkpoint: game.checkpoint, time: (readSlot(SLOT)?.time || 0) + game.time - (game.lastSaveTime || 0), deaths: game.deaths, campDone: !!game.campDone };
+  const data = { tips: game.tips || {}, braziers: (L.braziers || []).map(b2 => b2.lit), crestsGot: game.crestsGot || {}, pennants: pennantMeshes.map(p => p.got), shards: shardMeshes.map(sh => sh.got), pennantCount: game.pennants || 0, shardCount: game.shards || 0, checkpoint: game.checkpoint, time: (readSlot(SLOT)?.time || 0) + game.time - (game.lastSaveTime || 0), deaths: game.deaths, campDone: !!game.campDone };
   game.lastSaveTime = game.time;
   try { localStorage.setItem(slotKey(SLOT), JSON.stringify(data)); } catch (e) {}
 }
@@ -589,7 +591,7 @@ function loadSlot(i) {
   game.crestsGot = d.crestsGot || {}; game.crests = Object.keys(game.crestsGot).length;
   (d.pennants || []).forEach((got, k) => { if (got && pennantMeshes[k]) { pennantMeshes[k].got = true; pennantMeshes[k].m.visible = false; } });
   (d.shards || []).forEach((got, k) => { if (got && shardMeshes[k]) { shardMeshes[k].got = true; shardMeshes[k].m.visible = false; } });
-  game.pennants = d.pennantCount || 0; game.shards = d.shardCount || 0; game.deaths = d.deaths || 0; game.campDone = !!d.campDone;
+  game.pennants = d.pennantCount || 0; game.shards = d.shardCount || 0; game.deaths = d.deaths || 0; game.campDone = !!d.campDone; game.tips = d.tips || {};
   if (game.campDone) game.campWave = 2;
   (d.braziers || []).forEach((lit, k) => { if (lit && L.braziers && L.braziers[k] && !L.braziers[k].lit) lightBeacon(L.braziers[k]); });
   game.checkpoint = Math.min(d.checkpoint || 0, L.checkpoints.length - 1);
@@ -623,6 +625,7 @@ let arrivedByTravel = false;
 try { const st = sessionStorage.getItem('rampart_slot'); if (st && new URLSearchParams(location.search).has('vale')) { arrivedByTravel = true; pendingSlot = +st; } else if (st && VALE === 1 && sessionStorage.getItem('rampart_travelback')) { arrivedByTravel = true; pendingSlot = +st; sessionStorage.removeItem('rampart_travelback'); } } catch (e) {}
 let atSplash = true;
 function leaveSplash() { if (!atSplash) return; atSplash = false; audio.resume(); audio.play('checkpoint'); music.start(); document.getElementById('splash').style.display = 'none'; buildSlots(); document.getElementById('fileselect').style.display = 'flex'; }
+if (VALE === 2) { const bn = document.querySelector('#boss .name'); if (bn) bn.textContent = 'THE EMBER MARSHAL'; }
 if (arrivedByTravel) { atSplash = false; document.getElementById('splash').style.display = 'none'; const t2 = document.getElementById('title'); t2.style.display = 'flex'; t2.classList.remove('hide'); if (VALE === 2) { t2.querySelector('h1').textContent = 'EMBERMOOR'; t2.querySelector('.sub').textContent = 'THE VALE BELOW THE CLOUDS'; t2.querySelector('p').innerHTML = 'Ash, dead trees, and five cold beacons. The Ember Marshal broods on the broken spire. <b style="color:var(--gold);font-style:normal">Four crests sleep here.</b>'; } }
 document.getElementById('splash').addEventListener('mousedown', leaveSplash);
 addEventListener('keydown', e => { if (atSplash) { leaveSplash(); return; } }, true);
@@ -766,7 +769,7 @@ function step(dt, inp) {
   for (const b of game.bolts) b.update(dt, world, game);
   game.bolts = game.bolts.filter(b => { if (b.dead && b.mesh) scene.remove(b.mesh); return !b.dead; });
   // ladders + swarm
-  updateLadders(dt); updateRace(dt); updateTraining(dt);
+  updateLadders(dt); updateRace(dt); updateTraining(dt); updateTips();
   // BREAK THE SIEGE CAMP: three waves, then the crest at the campfire
   if (!game.campDone && L.campArena) {
     const campAlive = game.enemies.some(e => !e.dead && e.campWave);
@@ -841,6 +844,21 @@ function updateTraining(dt) {
   const step = TRAIN_STEPS[game.trainStep || 0];
   if (!step) { game.trainingOn = false; return; }
   if (step.done(game)) { game.trainStep = (game.trainStep || 0) + 1; audio.play('checkpoint'); const nxt = TRAIN_STEPS[game.trainStep]; if (nxt) say(nxt.text, 6); if (game.trainStep >= TRAIN_STEPS.length - 1) { game.trainingOn = false; say(TRAIN_STEPS[TRAIN_STEPS.length - 1].text, 5); } }
+}
+// one-time contextual tips: fire once per save file, at the moment they matter
+function tipOnce(key, text) { game.tips = game.tips || {}; if (game.tips[key]) return; game.tips[key] = true; say(text, 6.5); audio.play('ui'); saveGame(); }
+const TIP_SPOTS = VALE === 2 ? [
+  { key: 'v2start', x: 0, z: -26, r: 10, text: 'Cold ground. The beacons will light your way \u2014 seek the braziers.' },
+  { key: 'v2void', x: -30, z: -8, r: 9, text: 'Slabs over open sky. CHARGE (F), then SPACE mid-charge to LONG JUMP the gaps.' },
+] : [
+  { key: 'gully', x: 0, z: -122, r: 10, text: 'A broken bridge. Hold F to CHARGE, then SPACE mid-charge \u2014 the LONG JUMP clears it.' },
+  { key: 'camp', x: -2, z: -100, r: 12, text: 'A war camp ahead. BOP a head (jump on it) to bounce \u2014 or CHARGE through the mob.' },
+  { key: 'spiral', x: -33, z: 26, r: 8, text: 'The keep spirals up. Hold SPACE for full jumps \u2014 a running start jumps higher.' },
+  { key: 'drill', x: 14, z: -6, r: 7, text: 'The drill yard. Press E at the post to run the combat drills.' },
+];
+function updateTips() {
+  if (!game.started || game.won) return;
+  for (const t of TIP_SPOTS) { if (game.tips && game.tips[t.key]) continue; if (Math.hypot(t.x - player.pos.x, t.z - player.pos.z) < t.r) { tipOnce(t.key, t.text); break; } }
 }
 function tryInteract() {
   if (L.trainingPost && Math.hypot(L.trainingPost.x - player.pos.x, L.trainingPost.z - player.pos.z) < 2.6) {
@@ -986,6 +1004,19 @@ function animateRig(rig, ent, dt, isPlayer) {
 }
 
 // ------------------------------------------------------------------ render/HUD
+// compass strip: cardinal letters + the objective star + next checkpoint
+const compassEls = [];
+let compassObj = null, compassCp = null;
+{ const comp = document.getElementById('compass');
+  for (const [txt, ang] of [['N', Math.PI], ['E', -Math.PI / 2], ['S', 0], ['W', Math.PI / 2]]) { const sp = document.createElement('span'); sp.textContent = txt; comp.appendChild(sp); compassEls.push({ el: sp, ang }); }
+  compassObj = document.createElement('span'); compassObj.textContent = '\u2726'; compassObj.className = 'cobj'; comp.appendChild(compassObj);
+  compassCp = document.createElement('span'); compassCp.textContent = '\u2691'; compassCp.className = 'ccp'; comp.appendChild(compassCp);
+}
+function compassPlace(entry, viewYaw) {
+  let rel = entry.ang - viewYaw; while (rel > Math.PI) rel -= Math.PI * 2; while (rel < -Math.PI) rel += Math.PI * 2;
+  if (Math.abs(rel) > 1.35) { entry.el.style.display = 'none'; return; }
+  entry.el.style.display = 'block'; entry.el.style.left = (50 + rel / 1.35 * 50) + '%';
+}
 const hud = {
   hp: document.getElementById('hp'), boss: document.getElementById('boss'), bossFill: document.getElementById('bossfill'),
   toast: document.getElementById('toast'), charge: document.getElementById('charge'), prompt: document.getElementById('prompt'), alt: document.getElementById('alt'),
@@ -995,6 +1026,7 @@ function toast(msg, t = 2.6) { hud.toast.textContent = msg; hud.toast.classList.
 function renderHud(dt) {
   // hp pips
   let s = ''; for (let i = 0; i < P.hp; i++) s += `<i class="${i < player.hp ? 'on' : ''}"></i>`; hud.hp.innerHTML = s;
+  hud.hp.classList.toggle('low', player.hp <= 1 && !player.dead);
   const boss = game.enemies.find(e => e.boss && !e.dead && e.aggroed);
   hud.boss.style.display = boss ? 'block' : 'none'; if (boss) hud.bossFill.style.width = (boss.hp / boss.maxHp * 100) + '%';
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) hud.toast.classList.remove('show'); }
@@ -1029,6 +1061,13 @@ function renderHud(dt) {
   const dist = Math.hypot(gl.x - player.pos.x, gl.y - 7 - player.pos.y, gl.z - player.pos.z);
   const obj = document.getElementById('objective');
   obj.textContent = tname + '  ' + String.fromCharCode(183) + '  ' + dist.toFixed(0) + 'm';
+  // compass strip
+  { const vd = new THREE.Vector3(); camera.getWorldDirection(vd); const viewYaw = Math.atan2(vd.x, vd.z);
+    for (const ce of compassEls) compassPlace(ce, viewYaw);
+    compassPlace({ el: compassObj, ang: Math.atan2(gl.x - player.pos.x, gl.z - player.pos.z) }, viewYaw);
+    const cp2 = L.checkpoints[game.checkpoint];
+    if (cp2 && Math.hypot(cp2.x - player.pos.x, cp2.z - player.pos.z) > 8) compassPlace({ el: compassCp, ang: Math.atan2(cp2.x - player.pos.x, cp2.z - player.pos.z) }, viewYaw); else compassCp.style.display = 'none';
+  }
   const v = new THREE.Vector3(gl.x, gl.y - 3, gl.z).project(camera); const mk = document.getElementById('marker');
   const onScreen = v.z < 1 && Math.abs(v.x) < 0.95 && Math.abs(v.y) < 0.95;
   if (onScreen) { mk.style.display = 'block'; mk.style.left = ((v.x + 1) / 2 * innerWidth) + 'px'; mk.style.top = ((1 - v.y) / 2 * innerHeight) + 'px'; mk.textContent = '▼'; }
@@ -1096,8 +1135,13 @@ function win() {
   document.getElementById('winstats').textContent = 'All four crests claimed. ' + `${(game.time / 60) | 0}:${String((game.time % 60) | 0).padStart(2, '0')} · ${player.kills} foes · ${game.deaths} deaths · ${player.stats.parries} parries`;
   document.exitPointerLock();
 }
-function showMenu(on) { document.getElementById('menu').classList.toggle('show', on && game.started && !game.won); game.paused = on; }
-function start() { if (game.started) return; if (atSplash || document.getElementById('fileselect').style.display === 'flex') return; game.started = true; if (pendingSlot) loadSlot(pendingSlot); applySettings(); ensureWorldCrests(); setTimeout(() => { if (!game.boardOpen) showBoard(true); }, 600); document.getElementById('title').classList.add('hide'); audio.resume(); music.start(); cam.yaw = Math.PI; cam.pitch = 0.38; cam.idle = 0; toast('Reclaim the eight crests of the Vale.', 3.5); }
+function showMenu(on) {
+  document.getElementById('menu').classList.toggle('show', on && game.started && !game.won);
+  if (on) { const ps = document.getElementById('pausestats'); if (ps) ps.textContent = '\u2726 ' + (game.crests || 0) + '/8   \u25b8 ' + (game.pennants || 0) + '/8   \u2b26 ' + (game.shards || 0) + '/30   \u2020 ' + (game.deaths || 0); }
+  if (!on) { const mv = document.getElementById('moves'); if (mv) mv.style.display = 'none'; }
+  game.paused = on;
+}
+function start() { if (game.started) return; if (atSplash || document.getElementById('fileselect').style.display === 'flex') return; game.started = true; document.body.classList.remove('pregame'); if (pendingSlot) loadSlot(pendingSlot); applySettings(); ensureWorldCrests(); setTimeout(() => { if (!game.boardOpen) showBoard(true); }, 600); document.getElementById('title').classList.add('hide'); audio.resume(); music.start(); cam.yaw = Math.PI; cam.pitch = 0.38; cam.idle = 0; toast('Reclaim the eight crests of the Vale.', 3.5); }
 for (const ev of ['mousedown', 'click']) document.getElementById('title').addEventListener(ev, () => { if (!game.started) { start(); requestLock(); } });
 document.getElementById('menu').addEventListener('mousedown', () => { if (lockFallback) showMenu(false); else requestLock(); });
 document.getElementById('retry').onclick = () => { document.getElementById('dead').classList.remove('show'); requestLock(); };
@@ -1206,7 +1250,7 @@ window.RAMPART = {
   game, player, world, L, P, E, cam, scene, renderer, camera, updatePickups, updateRace, raceState, startRace, renderBoard,
   collectInput, animateRig,
   audio, music,
-  debugStart() { atSplash = false; pendingSlot = 0; for (const id of ['splash', 'fileselect', 'options', 'title']) document.getElementById(id).style.display = 'none'; document.getElementById('title').classList.add('hide'); game.started = true; applySettings(); ensureWorldCrests(); },
+  debugStart() { atSplash = false; pendingSlot = 0; for (const id of ['splash', 'fileselect', 'options', 'title']) document.getElementById(id).style.display = 'none'; document.getElementById('title').classList.add('hide'); game.started = true; document.body.classList.remove('pregame'); applySettings(); ensureWorldCrests(); },
   shot() { render(0); return fetch('/shot', { method: 'POST', body: canvas.toDataURL('image/png') }).then(r => r.text()); },
   start() { start(); game.paused = false; },
   step(dt = FIXED, inp = {}) { step(dt, { ...ZERO, ...inp }); },
