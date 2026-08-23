@@ -29,6 +29,10 @@ export class ChaseCam {
     this.idle += dt;
     const p = player.pos;
     // auto-settle: ease yaw to behind the player's facing when idle & moving
+    if (this.tower && this.idle > 0.5 && !this.lock) {
+      const T = this.tower; const px = p.x - T.x, pz = p.z - T.z; const r = Math.hypot(px, pz);
+      if (r < 11 && p.y > 15.5 && p.y < T.topY - 0.5) { const want = Math.atan2(px, pz); let d = ((want - this.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI; this.yaw += d * Math.min(1, 2.2 * dt); this.pitch += (0.42 - this.pitch) * Math.min(1, 1.5 * dt); }
+    }
     if (this.idle > 0.9 && moving && !this.lock) {
       const want = player.facing + Math.PI;
       let d = ((want - this.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI;

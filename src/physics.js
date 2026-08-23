@@ -136,8 +136,10 @@ export class Body {
     // push out along axis
     const half = ax === 'x' ? this.w / 2 : this.d / 2;
     for (const b of hits) {
-      if (delta > 0) this.pos[ax] = Math.min(this.pos[ax], b.min[ax] - half - 0.001);
-      else this.pos[ax] = Math.max(this.pos[ax], b.max[ax] + half + 0.001);
+      const lo = b.min[ax] - half - 0.001, hi = b.max[ax] + half + 0.001;
+      // push toward the nearer face; prefer the face we came from when it's close
+      const fromLo = delta > 0, dLo = Math.abs(this.pos[ax] - lo), dHi = Math.abs(this.pos[ax] - hi);
+      if (fromLo ? dLo <= dHi + 0.3 : dLo + 0.3 < dHi) this.pos[ax] = lo; else this.pos[ax] = hi;
     }
     this.vel[ax] = 0; this.hitWall = true;
     this.syncAabb();

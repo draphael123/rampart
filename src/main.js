@@ -127,6 +127,14 @@ const game = {
         if (r === 'dead') { this.slowmo = 0.28; cam.shake = Math.max(cam.shake, 0.5); this.fx('die', hp); }
       }
     }
+    // barricades: only bash / heavy / pound break them
+    for (const bx of this.L.barricades) {
+      if (!bx.enabled || !overlap(box, bx)) continue;
+      const hp = { x: bx.cx, y: bx.min.y + 1.2, z: bx.cz };
+      if (box.kind === 'light') { this.fx('clank', hp); audio.play('clank'); toast('Too sturdy — shield bash (F) or a heavy', 2); this.player.body.vel.x *= -0.3; this.player.body.vel.z *= -0.3; }
+      else { this.breakBarricade(bx); }
+      any = true;
+    }
     // attacks also kick ladders
     for (const ld of this.L.ladders) {
       if (!ld.up) continue;
@@ -134,6 +142,25 @@ const game = {
       if (top.x > box.min.x && top.x < box.max.x && top.z > box.min.z - 0.6 && top.z < box.max.z + 0.6 && Math.abs(this.player.pos.y - ld.top) < 2) this.kickLadder(ld);
     }
     return any;
+  },
+  breakBarricade(bx) { bx.enabled = false; if (bx.mesh) { bx.mesh.visible = false; } for (let i = 0; i < 3; i++) this.fx('die', { x: bx.cx + (Math.random() - 0.5) * bx.w, y: bx.min.y + 0.5 + i * 0.6, z: bx.cz + (Math.random() - 0.5) * bx.d }); audio.play('break'); cam.shake = 0.6; this.hitstop = 0.06; toast('Barricade smashed', 1.6); },
+  enemySlam(e, radius, dmg) {
+    const p = this.player; cam.shake = 1.0; audio.play('pound'); this.fx('shock', { x: e.pos.x, y: e.pos.y + 0.1, z: e.pos.z });
+    for (let k = 0; k < 16; k++) this.fx('dust', { x: e.pos.x + Math.cos(k / 16 * 6.28) * radius * 0.8, y: e.pos.y + 0.1, z: e.pos.z + Math.sin(k / 16 * 6.28) * radius * 0.8 });
+    const d = Math.hypot(p.pos.x - e.pos.x, p.pos.z - e.pos.z);
+    // a slam is a floor wave: airborne players are safe
+    if (!p.dead && d < radius && p.body.grounded) { const r = p.takeHit(dmg, e.pos, { kb: 12, up: 8, unblockable: true }); if (r === 'hit') { this.fx('hurt', { x: p.pos.x, y: p.pos.y + 1, z: p.pos.z }); audio.play('hurt'); this.vignette = 1; this.hitstop = 0.08; } }
+    if (e.phase === 2) this.crumbleCrenel();
+  },
+  crumbleCrenel() {
+    const cands = this.L.arenaCrenels.filter(b => b.enabled);
+    if (!cands.length) return; const b = cands[Math.floor(Math.random() * cands.length)]; b.enabled = false; if (b.crumbleMesh) b.crumbleMesh.visible = false;
+    for (let i = 0; i < 2; i++) this.fx('die', { x: b.cx, y: b.min.y + 0.5, z: b.cz });
+  },
+  onBossPhase(e) {
+    toast('The Captain braces. Break him from above — or with a heavy.', 4); audio.play('break'); cam.shake = 0.9; this.slowmo = 0.4;
+    const T = this.L.tower; const yy = this.L.topY + 0.05;
+    for (const [ox, oz] of [[4.3, 0], [-4.3, 0]]) { const s = new Enemy('swarm', this.world, this, T.x + ox, yy, T.z + oz, {}); s.aggroed = true; s.state = 'chase'; attachRig(s); this.enemies.push(s); this.fx('shock', { x: T.x + ox, y: yy, z: T.z + oz }); }
   },
   playerPound(pos, radius, dmg) {
     cam.shake = 0.8; audio.play('pound');
@@ -144,6 +171,7 @@ const game = {
       if (d < radius && Math.abs(e.pos.y - pos.y) < 1.5) { e.takeHit(dmg, pos, { kb: 9, up: 7, breaksGuard: true, fromAbove: true, kind: 'pound' }); this.fx('hit', { x: e.pos.x, y: e.pos.y + 1, z: e.pos.z }); }
     }
     for (const ld of this.L.ladders) if (ld.up && Math.hypot(ld.x - pos.x, ld.z - 0.8 - pos.z) < radius + 0.5 && Math.abs(pos.y - ld.top) < 2) this.kickLadder(ld);
+    for (const bx of this.L.barricades) if (bx.enabled && Math.hypot(bx.cx - pos.x, bx.cz - pos.z) < radius + 1 && Math.abs(pos.y - bx.min.y) < 2) this.breakBarricade(bx);
     this.hitstop = 0.06;
   },
   enemyHit(e, box, dmg, opts) {
@@ -202,7 +230,7 @@ const game = {
   },
 };
 
-const cam = new ChaseCam(camera, world);
+const cam = new ChaseCam(camera, world); cam.tower = { x: L.tower.x, z: L.tower.z, topY: L.topY };
 const player = new Player(world, game); game.player = player;
 player.body.pos.x = L.start.x; player.body.pos.y = L.start.y; player.body.pos.z = L.start.z; player.body.syncAabb();
 cam.target.set(L.start.x, L.start.y + 1.2, L.start.z);
@@ -340,7 +368,7 @@ function step(dt, inp) {
     const d = Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z, (e.pos.y - player.pos.y) * 0.5);
     if (d > 60) continue;
     e.update(dt, player);
-    for (const ev of e.events) { if (ev === 'windup') audio.play('windup'); else if (ev === 'die') { audio.play('die'); spawnFx('die', { x: e.pos.x, y: e.pos.y + 0.8, z: e.pos.z }); } }
+    for (const ev of e.events) { if (ev === 'windup') audio.play('windup'); else if (ev === 'slamwind') { audio.play('charge'); } else if (ev === 'brace') audio.play('block'); else if (ev === 'die') { audio.play('die'); spawnFx('die', { x: e.pos.x, y: e.pos.y + 0.8, z: e.pos.z }); } }
     e.events.length = 0;
   }
   // bolts
@@ -450,7 +478,10 @@ function animateRig(rig, ent, dt, isPlayer) {
     if (ent.dead) { const k = Math.min(1, ent.deathT * 2.2); rig.rotation.x = -Math.PI / 2 * k; rig.rotation.z = 0.3 * k; rig.position.y -= Math.max(0, ent.deathT - 0.6) * 1.2; u.mat.emissive.set('#000'); u.mat.transparent = true; u.mat.opacity = Math.max(0, 1 - Math.max(0, ent.deathT - 0.7) * 1.6); }
     else {
       rig.rotation.x = 0;
-      if (st === 'windup') { armR = -2.2 - ent.telegraph * 0.6; armRz = 0.6; lean = -0.15; if (ent.kind === 'crossbow') { armR = -1.5; armRz = 0; } }
+      if (st === 'slamwind') { armR = -2.8; armL = -2.8; lean = -0.35; }
+      else if (st === 'slam') { armR = 1.2; armL = 1.2; lean = 0.6; }
+      else if (ent.brace > 0) { shieldUp = 1.2; lean = 0.25; armR = 0.4; }
+      else if (st === 'windup') { armR = -2.2 - ent.telegraph * 0.6; armRz = 0.6; lean = -0.15; if (ent.kind === 'crossbow') { armR = -1.5; armRz = 0; } }
       else if (st === 'swing') { armR = 1.3; armRz = 0.4; lean = 0.35; if (ent.kind === 'crossbow') { armR = -1.5; } }
       else if (st === 'flinch') { lean = -0.3; armR = -0.5; }
       else if (st === 'climb') { const c = Math.sin(game.time * 8); u.legL.rotation.x = c * 0.8; u.legR.rotation.x = -c * 0.8; armR = -2.2 + c * 0.4; armL = -2.2 - c * 0.4; }
@@ -596,6 +627,7 @@ setInterval(() => { if (performance.now() - lastRender > 500) render(0.016); }, 
 const ZERO = { mx: 0, mz: 0, jump: false, jumpHeld: false, dash: false, light: false, heavy: false, heavyHeld: false, block: false, bash: false, pound: false, interact: false, lock: false, respawn: false };
 window.RAMPART = {
   game, player, world, L, P, E, cam, scene, renderer, camera,
+  collectInput, animateRig,
   shot() { render(0); return fetch('/shot', { method: 'POST', body: canvas.toDataURL('image/png') }).then(r => r.text()); },
   start() { start(); game.paused = false; },
   step(dt = FIXED, inp = {}) { step(dt, { ...ZERO, ...inp }); },

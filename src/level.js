@@ -88,6 +88,12 @@ export function buildLevel(world) {
   // walkway segments at y=6.5 → top y=8 (1.5 thick). Gaps: x∈[-9,-5] (4m), x∈[7,13] (6m)
   const segs = [[-30, -9], [-5, 7], [13, 30]];
   for (const [a, b] of segs) { const w = b - a; block((a + b) / 2, 6.5, 32, w, 1.5, 4, C.stone); }
+  // BARRICADE: a wooden barricade across the walk — only a shield bash, heavy or pound breaks it
+  L.barricades = [];
+  const barricade = (x, y, z, w, d) => { const bx = world.add(new Box(x, y, z, w, 2.3, d, { tag: 'barricade' })); bx.hp = 1; L.barricades.push(bx); };
+  barricade(-14, 8, 32, 1.2, 4);
+  sign(-10.5, 8, 30.6, 'F — shield bash\nbreaks barricades', Math.PI / 2);
+  sign(6, 8, 30.6, 'CTRL in the air\nground pound kicks ladders', Math.PI);
   // rubble at gap edges
   block(-9.6, 8, 31, 0.8, 0.5, 0.8, C.stoneD); block(-4.4, 8, 33, 0.6, 0.4, 0.6, C.stoneD); block(6.4, 8, 33, 0.8, 0.5, 0.8, C.stoneD);
   // a rubble stepping block in the 6m gap (lands a double jump short of the far side)
@@ -176,9 +182,24 @@ export function buildLevel(world) {
   block(T.x, 0, T.z, 7, topY - 1, 7, C.stoneD);
   block(T.x, topY - 1, T.z, 11, 1, 11, C.stone);
   deco(T.x, topY - 0.02, T.z, 11, 0.02, 11, C.stoneL);
-  for (let i = -4; i <= 4; i += 2) { block(T.x + i, topY, T.z + 5.2, 1, 1, 0.6, C.stoneL); block(T.x + i, topY, T.z - 5.2, 1, 1, 0.6, C.stoneL); block(T.x + 5.2, topY, T.z + i, 0.6, 1, 1, C.stoneL); block(T.x - 5.2, topY, T.z + i, 0.6, 1, 1, C.stoneL); }
+  L.arenaCrenels = [];
+  const acren = (x, z, w, d) => { const bx = world.add(new Box(x, topY, z, w, 1, d)); const m = boxesMesh([{ x: 0, y: 0.5, z: 0, w, h: 1, d, c: C.stoneL }]); m.position.set(x, topY, z); bx.crumbleMesh = m; L.props.add(m); L.arenaCrenels.push(bx); };
+  for (let i = -4; i <= 4; i += 2) { acren(T.x + i, T.z + 5.2, 1, 0.6); acren(T.x + i, T.z - 5.2, 1, 0.6); acren(T.x + 5.2, T.z + i, 0.6, 1); acren(T.x - 5.2, T.z + i, 0.6, 1); }
   L.checkpoints.push({ x: T.x + 3, y: topY + 0.05, z: T.z + 3, name: 'Keep top' });
-  L.spawns.push({ kind: 'captain', x: T.x - 2.5, y: topY + 0.05, z: T.z - 2.5, boss: true });
+  L.spawns.push({ kind: 'captain', x: T.x - 1.2, y: topY + 0.05, z: T.z - 1.2, boss: true });
+  // arena cover: four pillars
+  for (const [ox, oz] of [[3.6, 3.6], [-3.6, 3.6], [3.6, -3.6], [-3.6, -3.6]]) { block(T.x + ox, topY, T.z + oz, 1.2, 3.2, 1.2, C.stoneL); deco(T.x + ox, topY + 3.2, T.z + oz, 1.6, 0.3, 1.6, C.stoneD); }
+  // keep silhouette: corner buttresses, a string course, arrow slits, banners
+  for (const [ox, oz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+    block(T.x + ox * 3.9, 0, T.z + oz * 3.9, 1.6, topY - 8, 1.6, C.stoneD);
+    deco(T.x + ox * 3.9, topY - 8, T.z + oz * 3.9, 2.0, 1.0, 2.0, C.stoneL);
+  }
+  for (let yy = 10; yy < topY - 6; yy += 8) deco(T.x, yy, T.z, 7.4, 0.5, 7.4, C.stoneL);
+  for (let yy = 14; yy < topY - 6; yy += 6) { deco(T.x + 3.52, yy, T.z, 0.06, 1.6, 0.3, '#1a1418'); deco(T.x - 3.52, yy, T.z, 0.06, 1.6, 0.3, '#1a1418'); deco(T.x, yy, T.z + 3.52, 0.3, 1.6, 0.06, '#1a1418'); deco(T.x, yy, T.z - 3.52, 0.3, 1.6, 0.06, '#1a1418'); }
+  deco(T.x + 3.55, topY - 14, T.z + 1.2, 0.1, 6, 1.4, C.banner); deco(T.x - 3.55, topY - 20, T.z - 1.2, 0.1, 6, 1.4, C.banner);
+  // banners along the north wall's inner face and the towers
+  for (const bx of [-22, -14, 14, 22]) { deco(bx, 2, 29.95, 1.4, 3.6, 0.08, C.banner); deco(bx, 5.6, 29.95, 1.8, 0.25, 0.2, C.gold); }
+  deco(30, 6, 27.9, 1.8, 5, 0.1, C.banner); deco(-30, 6, 27.9, 1.8, 5, 0.1, C.banner);
   // flagpole
   deco(T.x, topY, T.z, 0.3, 7, 0.3, C.wood);
   L.goal = { x: T.x, y: topY, z: T.z, r: 2.2 };
@@ -201,6 +222,15 @@ export function buildLevel(world) {
       ...Array.from({ length: 14 }, (_, i) => ({ x: 0, y: 0.4 + i * 0.58, z: 0, w: 0.9, h: 0.08, d: 0.1, c: C.woodD })),
     ]);
     g.add(rails); g.position.set(ld.x, ld.bottom, ld.z); ld.mesh = g; L.props.add(g);
+  }
+  // barricade meshes
+  for (const bx of L.barricades) {
+    const m = boxesMesh([
+      { x: 0, y: 1.1, z: 0, w: bx.w, h: 0.25, d: bx.d, c: C.woodD }, { x: 0, y: 0.5, z: 0, w: bx.w, h: 0.25, d: bx.d, c: C.wood }, { x: 0, y: 1.7, z: 0, w: bx.w, h: 0.25, d: bx.d, c: C.wood },
+      { x: -bx.w * 0.3, y: 1.15, z: -bx.d * 0.35, w: 0.2, h: 2.3, d: 0.2, c: C.woodD }, { x: bx.w * 0.3, y: 1.15, z: bx.d * 0.35, w: 0.2, h: 2.3, d: 0.2, c: C.woodD },
+      { x: 0, y: 1.15, z: 0, w: 0.3, h: 2.3, d: 0.3, c: '#3a3d44' },
+    ]);
+    m.position.set(bx.cx, bx.min.y, bx.cz); bx.mesh = m; L.props.add(m);
   }
   // signposts: canvas-texture planes on a post
   for (const sg of L.signs) {
