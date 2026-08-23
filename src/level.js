@@ -216,7 +216,7 @@ export function buildLevel(world) {
   const hoist = world.add(new Box(-24.5, 12, 27, 4, 0.4, 4, { moving: true, tag: 'hoist' }));
   hoist.path = { a: { x: -24.5, y: 12, z: 27 }, b: { x: -24.5, y: 15.6, z: 27 }, period: 8, phase: 0 };
   L.platforms.push(hoist);
-  deco(-26.4, 0, 27, 0.25, 17, 0.25, C.wood); deco(-22.6, 0, 27, 0.25, 17, 0.25, C.wood); deco(-24.5, 17, 27, 4.4, 0.3, 0.3, C.wood);
+  deco(-26.4, 0, 27, 0.25, 17, 0.25, C.wood); deco(-22.6, 0, 27, 0.25, 17, 0.25, C.wood); deco(-24.5, 17, 27, 4.4, 0.3, 0.3, C.wood); deco(-24.5, 17.3, 27, 0.8, 0.8, 0.8, C.woodD); deco(-21.3, 15.5, 27, 0.25, 1.8, 0.25, C.wood);
   L.torches.push({ x: -27, y: 9.5, z: 30.2 }, { x: 27, y: 9.5, z: 30.2 });
 
   // ---------------- ZONE C: THE KEEP TOWER ----------------
@@ -247,7 +247,9 @@ export function buildLevel(world) {
     }
     if (i === 6) L.spawns.push({ kind: 'grunt', x: px, y: y + 0.05, z: pz });
     if (i === 12) { L.checkpoints.push({ x: px, y: y + 0.05, z: pz, name: 'Keep mid' }); }
-    if (i === 10 || i === 20) L.torches.push({ x: px + (T.x - px) * 0.15, y: y + 1.6, z: pz + (T.z - pz) * 0.15 });
+    if (i % 4 === 2) L.torches.push({ x: px + (T.x - px) * 0.22, y: y + 1.7, z: pz + (T.z - pz) * 0.22 });
+    if (i % 3 === 0) { deco(px + (rnd() - 0.5) * 1.2, y, pz + (rnd() - 0.5) * 1.2, 0.3 + rnd() * 0.3, 0.2 + rnd() * 0.2, 0.3 + rnd() * 0.3, C.stoneD); }
+    if (i % 5 === 1) { deco(px + (T.x - px) * 0.5, y - 0.9, pz + (T.z - pz) * 0.5, 0.5, 0.5, 0.5, C.woodD); }
   }
   // tower-face crossbow perches
   block(T.x + 4.8, 24, T.z - 4.8, 2, 0.5, 2, C.stone); L.spawns.push({ kind: 'crossbow', x: T.x + 4.8, y: 24.55, z: T.z - 4.8, perch: true });

@@ -264,6 +264,17 @@ const playerRig = knightRig(); scene.add(playerRig);
 const playerMat = MAT.clone(); playerRig.traverse(o => { if (o.isMesh) o.material = playerMat; });
 const swordTrail = new THREE.Mesh(new THREE.RingGeometry(0.9, 2.1, 24, 1, -0.2, 2.2), new THREE.MeshBasicMaterial({ color: '#fff0c0', transparent: true, opacity: 0.5, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
 swordTrail.geometry.rotateX(-Math.PI / 2); swordTrail.visible = false; scene.add(swordTrail);
+// dash afterimages: three ghost rigs trailing the knight
+const ghostMat = new THREE.MeshBasicMaterial({ color: '#9ad0ff', transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending });
+const ghosts = Array.from({ length: 3 }, () => { const g = knightRig(); g.traverse(o => { if (o.isMesh) { o.material = ghostMat; o.castShadow = false; } }); g.visible = false; scene.add(g); return { rig: g, t: 0 }; });
+let ghostTimer = 0;
+function updateGhosts(dt) {
+  const dashing = player.state === S.DASH || player.state === S.BASH;
+  ghostTimer -= dt;
+  if (dashing && ghostTimer <= 0) { ghostTimer = 0.045; const g = ghosts.reduce((a, b) => a.t < b.t ? a : b); g.t = 0.28; g.rig.visible = true; g.rig.position.copy(playerRig.position); g.rig.rotation.copy(playerRig.rotation); g.rig.scale.copy(playerRig.scale); }
+  for (const g of ghosts) { if (!g.rig.visible) continue; g.t -= dt; if (g.t <= 0) { g.rig.visible = false; continue; } }
+  ghostMat.opacity = 0.32;
+}
 
 for (const sp of L.spawns) {
   const e = new Enemy(sp.kind, world, game, sp.x, sp.y, sp.z, { perch: sp.perch, facing: Math.PI });
@@ -568,6 +579,7 @@ function renderHud(dt) {
   const boss = game.enemies.find(e => e.boss && !e.dead && e.aggroed);
   hud.boss.style.display = boss ? 'block' : 'none'; if (boss) hud.bossFill.style.width = (boss.hp / boss.maxHp * 100) + '%';
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) hud.toast.classList.remove('show'); }
+  { const c = document.getElementById('combo'); const n = player.stats.hitsLanded - (game.comboBase || 0); if (player.comboT > 0 || player.state === S.LIGHT) { c.style.display = 'block'; c.textContent = (player.combo + 1) + ' HIT'; } else c.style.display = 'none'; }
   hud.charge.style.display = player.state === S.HEAVY_CHARGE ? 'block' : 'none';
   if (player.state === S.HEAVY_CHARGE) hud.charge.firstElementChild.style.width = Math.min(100, player.charge / P.heavyCharge * 100) + '%';
   hud.charge.classList.toggle('full', player.charge >= P.heavyCharge);
@@ -649,6 +661,7 @@ function frame(now) {
 }
 function render(dt) {
   if (game.falling) { game.falling -= dt; if (game.falling <= 0) { game.falling = 0; document.getElementById('fell').classList.remove('show'); player.hp = Math.max(0, player.hp - 1); game.respawn(player.hp <= 0); } }
+  for (const pl of L.platforms) if (pl.tag === 'hoist' && pl.mesh) { if (!pl.rope) { pl.rope = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1, 0.08), new THREE.MeshLambertMaterial({ color: '#5a4630' })); scene.add(pl.rope); } const top = 17; const h = Math.max(0.1, top - pl.max.y); pl.rope.scale.y = h; pl.rope.position.set(pl.cx, pl.max.y + h / 2, pl.cz); }
   updateAtmos(dt); game.slowmo = Math.max(0, game.slowmo - dt); game.vignette = Math.max(0, game.vignette - dt * 1.6); game.flash = Math.max(0, game.flash - dt * 3);
   const moving = Math.hypot(player.body.vel.x, player.body.vel.z) > 1;
   if (game.started && !game.paused) cam.update(dt, player, moving);
@@ -659,7 +672,7 @@ function render(dt) {
     if (!b.mesh) { b.mesh = boxesMesh([{ x: 0, y: 0, z: 0, w: 0.06, h: 0.06, d: 0.7, c: '#d8c8a0' }, { x: 0, y: 0, z: 0.33, w: 0.1, h: 0.1, d: 0.08, c: '#3a3d44' }], { shadow: false }); scene.add(b.mesh); }
     b.mesh.position.set(b.pos.x, b.pos.y, b.pos.z); b.mesh.lookAt(b.pos.x + b.vel.x, b.pos.y + b.vel.y, b.pos.z + b.vel.z);
   }
-  updateFx(dt); updateFloatText(dt);
+  updateFx(dt); updateFloatText(dt); updateGhosts(dt);
   // danger ring under the foe that's winding up
   { const a = game.attackToken; const show = a && !a.dead && (a.state === 'windup' || a.state === 'slamwind' || a.state === 'swing' || a.state === 'slam'); dangerRing.material.opacity = show ? 0.55 + 0.3 * Math.sin(game.time * 18) : 0; if (show) { dangerRing.position.set(a.pos.x, a.pos.y + 0.04, a.pos.z); const r = a.state === 'slamwind' || a.state === 'slam' ? (a.cfg.slam ? a.cfg.slam.radius : 2) : (a.cfg.reach + 0.3) * 0.9; dangerRing.scale.setScalar(r); dangerRing.material.color.set(a.state === 'swing' || a.state === 'slam' ? '#fff6d0' : (a.telegraph > 0.75 ? '#ff4a2a' : '#ff9a2a')); } }
   // fog grading: higher = clearer and cooler

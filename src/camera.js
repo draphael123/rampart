@@ -61,7 +61,7 @@ export class ChaseCam {
     // collision: raycast from target toward desired camera position
     const o = { x: this.target.x, y: this.target.y, z: this.target.z };
     const d = { x: dir.x, y: dir.y, z: dir.z };
-    let want = this.dist;
+    let want = this.dist * (this.lock && !this.lock.dead ? 0.85 : 1);
     const hit = this.world.raycast(o, d, this.dist, b => b.tag !== 'field');
     if (hit) want = Math.max(1.0, hit.t - 0.55);
     // pull in fast, push out slow

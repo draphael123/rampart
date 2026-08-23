@@ -23,6 +23,7 @@
   #bossfill { height: 100%; background: linear-gradient(90deg, #8a2020, #d04040); width: 100%; transition: width .15s; }
   #toast { left: 50%; top: 14%; transform: translateX(-50%); font-family: 'Cinzel', serif; font-size: 20px; letter-spacing: 5px; color: var(--gold); opacity: 0; transition: opacity .35s; text-shadow: 0 2px 12px #000, 0 0 30px rgba(227,192,112,.3); white-space: nowrap; }
   #toast.show { opacity: 1; }
+  #combo { display: none; left: 50%; top: 60%; transform: translateX(-50%); font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 4px; color: var(--gold); opacity: .8; text-shadow: 0 2px 6px #000; }
   #charge { display: none; left: 50%; top: 56%; transform: translateX(-50%); width: 96px; height: 5px; background: #1f1418; border: 1px solid var(--gold2); }
   #charge > div { height: 100%; background: var(--gold); width: 0; }
   #charge.full > div { background: #fff; box-shadow: 0 0 10px #fff; }
@@ -77,6 +78,7 @@
 <div class="hud" id="reticle"></div>
 <div class="overlay" id="fell"><h2>FELL</h2><div class="small">The red mist is the edge. Back to the last checkpoint.</div></div>
 <div class="hud" id="charge"><div></div></div>
+<div class="hud" id="combo"></div>
 <div class="hud" id="prompt">E — KICK THE LADDER</div>
 <div id="tune"></div>
 

@@ -28,12 +28,12 @@ export class Audio {
       case 'djump': this.tone(420, 900, 0.14, 'square', 0.12); this.noise(0.08, 0.05, 2000); break;
       case 'dash': this.noise(0.16, 0.18, 1200); this.tone(200, 80, 0.15, 'sawtooth', 0.08); break;
       case 'bash': this.noise(0.18, 0.2, 600); this.tone(160, 60, 0.2, 'square', 0.12); break;
-      case 'swing': this.noise(0.12, 0.14, 1800); break;
+      case 'swing': this.noise(0.1 + Math.random() * 0.05, 0.14, 1500 + Math.random() * 900); this.tone(600 + Math.random() * 200, 250, 0.08, 'sine', 0.04); break;
       case 'charge': this.tone(120, 240, 0.5, 'sawtooth', 0.06); break;
       case 'heavyrelease': this.noise(0.2, 0.22, 900); this.tone(90, 40, 0.25, 'sawtooth', 0.15); break;
-      case 'hit': this.tone(220, 110, 0.09, 'square', 0.22); this.noise(0.06, 0.15, 3000); break;
+      case 'hit': { const k = 0.85 + Math.random() * 0.35; this.tone(220 * k, 110 * k, 0.09, 'square', 0.22); this.noise(0.06, 0.15, 2600 + Math.random() * 1200); break; }
       case 'heavyhit': this.tone(140, 50, 0.18, 'square', 0.3); this.noise(0.12, 0.25, 1500); break;
-      case 'clank': this.tone(1400, 900, 0.08, 'triangle', 0.2); this.tone(2200, 1800, 0.05, 'sine', 0.1); break;
+      case 'clank': { const k = 0.9 + Math.random() * 0.25; this.tone(1400 * k, 900 * k, 0.08, 'triangle', 0.2); this.tone(2200 * k, 1800 * k, 0.05, 'sine', 0.1); break; }
       case 'break': this.tone(900, 200, 0.25, 'sawtooth', 0.2); this.noise(0.2, 0.2, 2000); break;
       case 'parry': this.tone(1800, 2600, 0.12, 'sine', 0.25); this.tone(900, 1400, 0.2, 'triangle', 0.15, 0.02); break;
       case 'block': this.tone(500, 380, 0.06, 'triangle', 0.08); break;
