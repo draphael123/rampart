@@ -54,6 +54,8 @@ export class Audio {
       case 'ui': this.tone(900, 1200, 0.06, 'sine', 0.08); break;
       case 'checkpoint': this.tone(520, 780, 0.15, 'triangle', 0.12); this.tone(780, 1040, 0.2, 'triangle', 0.12, 0.12); break;
       case 'lock': this.tone(1000, 1300, 0.06, 'sine', 0.1); break;
+      case 'crestget': { const seq = [523, 659, 784, 1047, 1319]; seq.forEach((f, i) => this.tone(f, f, 0.5, 'triangle', 0.16, i * 0.11)); this.ring(2093, 1.4, 0.12, 0.55); break; }
+      case 'bird': { const b = 2200 + Math.random() * 1200; this.tone(b, b * (0.8 + Math.random() * 0.4), 0.07 + Math.random() * 0.06, 'sine', 0.045); if (Math.random() < 0.5) this.tone(b * 1.2, b, 0.06, 'sine', 0.035, 0.09); break; }
       case 'win': [0, 0.15, 0.3, 0.45].forEach((d, i) => this.tone([520, 660, 780, 1040][i], [520, 660, 780, 1040][i], 0.4, 'triangle', 0.15, d)); break;
     }
   }
@@ -83,11 +85,29 @@ export class Music {
   tom(t, f = 90, g = 0.6) { const c = this.a.ctx; const o = c.createOscillator(), gn = c.createGain(); o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 0.6, t + 0.2); gn.gain.setValueAtTime(g, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.3); o.connect(gn); gn.connect(this.drumGain); o.start(t); o.stop(t + 0.35); }
   hat(t, g = 0.15) { const c = this.a.ctx; const n = Math.floor(c.sampleRate * 0.05); const buf = c.createBuffer(1, n, c.sampleRate); const d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(); s.buffer = buf; const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 5000; const gn = c.createGain(); gn.gain.value = g; s.connect(f); f.connect(gn); gn.connect(this.drumGain); s.start(t); }
   horn(t) { const c = this.a.ctx; for (const [f, d] of [[196, 0], [196, 0.45], [261.6, 0.9]]) { const o = c.createOscillator(), gn = c.createGain(); o.type = 'sawtooth'; o.frequency.value = f; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; gn.gain.setValueAtTime(0.0001, t + d); gn.gain.exponentialRampToValueAtTime(0.12, t + d + 0.08); gn.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.9); o.connect(lp); lp.connect(gn); gn.connect(this.bus); o.start(t + d); o.stop(t + d + 1); } }
-  update(dt, intensity) {
+  update(dt, intensity, ppos) {
     if (!this.on) return; const c = this.a.ctx;
     this.target = intensity;
     this.intensity += (this.target - this.intensity) * Math.min(1, dt * (this.target > this.intensity ? 3 : 0.5));
     this.drumGain.gain.value = 0.15 + 0.85 * this.intensity;
+    // ambience by place: birds in the green, water babble near the gully
+    if (ppos) {
+      this.birdT = (this.birdT || 0) - dt;
+      if (ppos.y < -12 && this.intensity < 0.35 && this.birdT <= 0) { this.birdT = 1.5 + Math.random() * 4; if (Math.random() < 0.7) this.a.play('bird'); }
+      const dWater = Math.hypot(ppos.x - 0, ppos.z - (-114));
+      const wg = Math.max(0, 1 - dWater / 26) * 0.06;
+      if (!this.babble && wg > 0) { const c2 = this.a.ctx; const n = c2.sampleRate * 2; const buf = c2.createBuffer(1, n, c2.sampleRate); const d2 = buf.getChannelData(0); for (let i = 0; i < n; i++) d2[i] = Math.random() * 2 - 1; const src = c2.createBufferSource(); src.buffer = buf; src.loop = true; const bp = c2.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1400; bp.Q.value = 0.8; const g2 = c2.createGain(); g2.gain.value = 0; src.connect(bp); bp.connect(g2); g2.connect(this.a.master); src.start(); this.babble = { g: g2, bp }; }
+      if (this.babble) { this.babble.g.gain.value = wg; this.babble.bp.frequency.value = 1200 + Math.sin(c.currentTime * 2.3) * 300; }
+    }
+    // gentle pluck melody while exploring (fades under the drums)
+    this.pluckT = (this.pluckT || 0) - dt;
+    if (this.intensity < 0.4 && this.pluckT <= 0) {
+      this.pluckT = 0.62 + (Math.random() < 0.3 ? 0.62 : 0);
+      const scale = [220, 261.6, 293.7, 329.6, 392, 440, 523.3];
+      this.pluckIdx = Math.max(0, Math.min(scale.length - 1, (this.pluckIdx === undefined ? 3 : this.pluckIdx) + ((Math.random() * 3) | 0) - 1));
+      const f = scale[this.pluckIdx]; const g3 = 0.05 * (1 - this.intensity);
+      this.a.tone(f, f, 0.7, 'triangle', g3); this.a.ring(f * 2, 0.9, g3 * 0.4);
+    }
     // distant battle: far clangs and a horn now and then, below the mix
     this.far = (this.far || 0) - dt; if (this.far <= 0) { this.far = 1.2 + Math.random() * 2.5; const g = 0.05 * (1 - this.intensity * 0.6); const r = Math.random(); if (r < 0.6) this.a.ring(1500 + Math.random() * 1500, 0.5, g); else if (r < 0.85) this.a.thump(70 + Math.random() * 40, 0.5, g * 2); else this.a.tone(180 + Math.random() * 60, 150, 0.9, 'sawtooth', g * 0.8); }
     if (this.wind) { const t = c.currentTime; this.wind.bp.frequency.value = 420 + Math.sin(t * 0.23) * 180 + Math.sin(t * 0.61) * 90; this.wind.g.gain.value = 0.035 + 0.025 * (0.5 + 0.5 * Math.sin(t * 0.17)); }

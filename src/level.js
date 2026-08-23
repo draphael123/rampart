@@ -59,9 +59,10 @@ export function buildLevel(world) {
     }
   };
   const tuft = (x, y, z) => { deco(x, y, z, 0.25, 0.22 + rnd() * 0.2, 0.25, rnd() < 0.5 ? '#5f7a3a' : '#4e6a30'); deco(x + 0.3, y, z + 0.2, 0.2, 0.18, 0.2, '#5a7236'); };
-  const pine = (x, y, z, s = 1) => { deco(x, y, z, 0.4 * s, 1.6 * s, 0.4 * s, C.woodD); deco(x, y + 1.2 * s, z, 2.2 * s, 1.2 * s, 2.2 * s, '#3f5a30'); deco(x, y + 2.2 * s, z, 1.5 * s, 1.1 * s, 1.5 * s, '#48663a'); deco(x, y + 3.1 * s, z, 0.8 * s, 1.0 * s, 0.8 * s, '#527544'); };
+  L.trees = [];
+  const pine = (x, y, z, s = 1) => { block(x, y, z, 0.4 * s, 1.6 * s, 0.4 * s, C.woodD); L.trees.push({ x, y, z, s, kind: 'pine' }); };
   const boulder = (x, y, z, s = 1) => { block(x, y, z, 1.6 * s, 1.1 * s, 1.4 * s, rnd() < 0.5 ? C.rock : C.rockL); deco(x + 0.3 * s, y, z + 0.2 * s, 1.2 * s, 0.5 * s, 1.0 * s, C.rockD); };
-  const oak = (x, y, z, s = 1) => { deco(x, y, z, 0.5 * s, 2.1 * s, 0.5 * s, '#5a4028'); deco(x, y + 1.9 * s, z, 2.6 * s, 1.7 * s, 2.4 * s, '#4a6a34'); deco(x + 0.7 * s, y + 2.6 * s, z + 0.4 * s, 1.6 * s, 1.2 * s, 1.5 * s, '#557842'); deco(x - 0.7 * s, y + 2.9 * s, z - 0.3 * s, 1.4 * s, 1.0 * s, 1.3 * s, '#4f7038'); };
+  const oak = (x, y, z, s = 1) => { block(x, y, z, 0.5 * s, 2.1 * s, 0.5 * s, '#5a4028'); L.trees.push({ x, y, z, s, kind: 'oak' }); };
   const bush = (x, y, z, s = 1) => { deco(x, y, z, 1.2 * s, 0.7 * s, 1.1 * s, '#42603a'); deco(x + 0.4 * s, y, z + 0.3 * s, 0.8 * s, 0.55 * s, 0.8 * s, '#4c6a3e'); };
   const flowers = (x, y, z, n = 5) => { const cols = ['#d8c050', '#c05050', '#c8c8e0', '#d07840']; for (let i = 0; i < n; i++) { const fx = x + (rnd() - 0.5) * 2.4, fz = z + (rnd() - 0.5) * 2.4; deco(fx, y, fz, 0.08, 0.28, 0.08, '#4e6a30'); deco(fx, y + 0.28, fz, 0.16, 0.12, 0.16, cols[(rnd() * 4) | 0]); } };
 
@@ -433,6 +434,17 @@ export function buildLevel(world) {
       ...Array.from({ length: Math.floor(H / 0.58) }, (_, i) => ({ x: 0, y: 0.4 + i * 0.58, z: 0, w: 0.9, h: 0.08, d: 0.1, c: C.woodD })),
     ]);
     g.add(rails); g.position.set(ld.x, ld.bottom, ld.z); ld.mesh = g; L.props.add(g);
+  }
+  // tree canopies: individual fadeable meshes (the camera sees through them politely)
+  L.treeMeshes = [];
+  for (const t of L.trees) {
+    const s2 = t.s;
+    const boxes = t.kind === 'pine'
+      ? [ { x: 0, y: 1.8 * s2, z: 0, w: 2.2 * s2, h: 1.2 * s2, d: 2.2 * s2, c: '#3f5a30' }, { x: 0, y: 2.8 * s2, z: 0, w: 1.5 * s2, h: 1.1 * s2, d: 1.5 * s2, c: '#48663a' }, { x: 0, y: 3.7 * s2, z: 0, w: 0.8 * s2, h: 1.0 * s2, d: 0.8 * s2, c: '#527544' } ]
+      : [ { x: 0, y: 2.75 * s2, z: 0, w: 2.6 * s2, h: 1.7 * s2, d: 2.4 * s2, c: '#4a6a34' }, { x: 0.7 * s2, y: 3.2 * s2, z: 0.4 * s2, w: 1.6 * s2, h: 1.2 * s2, d: 1.5 * s2, c: '#557842' }, { x: -0.7 * s2, y: 3.4 * s2, z: -0.3 * s2, w: 1.4 * s2, h: 1.0 * s2, d: 1.3 * s2, c: '#4f7038' } ];
+    const mat = MAT.clone(); mat.transparent = true;
+    const m = boxesMesh(boxes, { material: mat });
+    m.position.set(t.x, t.y, t.z); L.props.add(m); L.treeMeshes.push({ m, mat, x: t.x, z: t.z, y: t.y });
   }
   for (const sg of L.signs) {
     const cv = document.createElement('canvas'); cv.width = 512; cv.height = 256; const g = cv.getContext('2d');

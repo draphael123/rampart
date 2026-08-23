@@ -15,6 +15,10 @@
   #flash { inset: 0; background: radial-gradient(ellipse at center, rgba(255,255,255,.55), rgba(255,240,200,0) 70%); opacity: 0; }
   #hp { left: 28px; top: 24px; display: flex; gap: 7px; }
   #hp i { width: 22px; height: 22px; background: #2a1c22; border: 2px solid var(--gold2); transform: rotate(45deg) scale(0.85); box-shadow: inset 0 0 0 2px var(--ink), 0 0 10px rgba(0,0,0,.6); transition: background .15s; }
+  #hp.shake { animation: hpshake .4s; }
+  @keyframes hpshake { 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
+  #crests.pop { animation: cpop .5s; }
+  @keyframes cpop { 30% { transform: scale(1.35); color: #fff; } }
   #hp i.on { background: var(--red); box-shadow: inset 0 0 0 2px var(--ink), 0 0 12px rgba(201,58,58,.6); }
   #shardsHud { left: 28px; top: 110px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px; color: #7ad0e8; opacity: .85; }
   #dialogue { left: 50%; bottom: 90px; transform: translateX(-50%); max-width: 700px; text-align: center; font-size: 19px; font-style: italic; color: var(--cream); background: rgba(10,8,16,.72); border: 1px solid rgba(227,192,112,.4); padding: 10px 22px; opacity: 0; transition: opacity .3s; }

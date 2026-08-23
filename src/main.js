@@ -45,10 +45,15 @@ scene.add(sun); scene.add(sun.target);
 
 // sun disc low on the horizon (north, behind the gate)
 {
-  const disc = new THREE.Mesh(new THREE.CircleGeometry(14, 32), new THREE.MeshBasicMaterial({ color: '#ffd9a0', fog: false, transparent: true, opacity: 0.95 }));
-  disc.position.set(40, 14, 240); disc.lookAt(0, 0, 0); scene.add(disc);
-  const glow = new THREE.Mesh(new THREE.CircleGeometry(40, 32), new THREE.MeshBasicMaterial({ color: '#ff9a4a', fog: false, transparent: true, opacity: 0.25, depthWrite: false }));
-  glow.position.set(40, 14, 238); glow.lookAt(0, 0, 0); scene.add(glow);
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(16, 32), new THREE.MeshBasicMaterial({ color: '#fff2d8', fog: false, transparent: true, opacity: 0.98 }));
+  disc.position.set(40, 10, 240); disc.lookAt(0, 0, 0); scene.add(disc);
+  for (const [r, op, col, dz] of [[34, 0.4, '#ffd9a0', 2], [64, 0.22, '#ff9a4a', 4], [110, 0.12, '#e8683a', 6]]) {
+    const glow = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshBasicMaterial({ color: col, fog: false, transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending }));
+    glow.position.set(40, 10, 240 - dz); glow.lookAt(0, 0, 0); scene.add(glow);
+  }
+  // horizon haze band all around
+  const haze = new THREE.Mesh(new THREE.CylinderGeometry(252, 252, 60, 32, 1, true), new THREE.MeshBasicMaterial({ color: '#d88a5a', fog: false, transparent: true, opacity: 0.28, side: THREE.BackSide, depthWrite: false }));
+  haze.position.set(0, -18, 30); scene.add(haze);
 }
 // embers + smoke: two Points clouds
 const emberGeo = new THREE.BufferGeometry(); const EMBERS = 260; const emberPos = new Float32Array(EMBERS * 3); const emberVel = [];
@@ -123,13 +128,15 @@ const CRESTS = [
 ];
 const crestMesh = () => { const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 0.8, h: 1.0, d: 0.14, c: '#e3c070' }, { x: 0, y: 0.08, z: 0.09, w: 0.32, h: 0.5, d: 0.03, c: '#8a2d2d' }, { x: 0, y: -0.58, z: 0, w: 0.5, h: 0.22, d: 0.14, c: '#e3c070' }, { x: 0, y: 0.62, z: 0, w: 0.5, h: 0.16, d: 0.14, c: '#e3c070' }], { shadow: false }); return m; };
 const crestSpawns = {};   // key -> {m, c} once the crest is physically in the world
-function spawnCrest(key, x, y, z) { if (crestSpawns[key] || (game.crestsGot || {})[key]) return; const m = crestMesh(); m.position.set(x, y + 1.0, z); scene.add(m); crestSpawns[key] = { m, c: { x, y, z } }; spawnFx('parry', { x, y: y + 1, z }, 16); audio.play('checkpoint'); }
+function spawnCrest(key, x, y, z) { if (crestSpawns[key] || (game.crestsGot || {})[key]) return; const m = crestMesh(); m.position.set(x, y + 1.0, z); scene.add(m); addGlow(m, '#ffd27a', 2.6, 0.55); crestSpawns[key] = { m, c: { x, y, z } }; spawnFx('parry', { x, y: y + 1, z }, 16); audio.play('checkpoint'); }
+const glowFacers = [];
+function addGlow(parent, color, size = 1.4, op = 0.5) { const gq = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map: softTex, color, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false })); gq.userData.isGlow = true; parent.add(gq); glowFacers.push(gq); return gq; }
 const shardMeshes = [];
-for (const c of L.shards) { const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 0.26, h: 0.5, d: 0.26, c: '#7ad0e8' }, { x: 0, y: 0.32, z: 0, w: 0.14, h: 0.16, d: 0.14, c: '#b8ecf8' }], { shadow: false, material: new THREE.MeshBasicMaterial({ vertexColors: true }) }); m.position.set(c.x, c.y + 0.6, c.z); scene.add(m); shardMeshes.push({ m, c, got: false }); }
+for (const c of L.shards) { const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 0.26, h: 0.5, d: 0.26, c: '#7ad0e8' }, { x: 0, y: 0.32, z: 0, w: 0.14, h: 0.16, d: 0.14, c: '#b8ecf8' }], { shadow: false, material: new THREE.MeshBasicMaterial({ vertexColors: true }) }); m.position.set(c.x, c.y + 0.6, c.z); scene.add(m); addGlow(m, '#7ad0e8', 1.3, 0.45); shardMeshes.push({ m, c, got: false }); }
 const pennantMeshes = [];
-for (const c of L.pennants) { const m = boxesMesh([{ x: 0, y: 0.55, z: 0, w: 0.08, h: 1.6, d: 0.08, c: '#4a3119' }, { x: 0.34, y: 1.05, z: 0, w: 0.6, h: 0.44, d: 0.05, c: '#c03434' }], { shadow: false }); m.position.set(c.x, c.y, c.z); scene.add(m); pennantMeshes.push({ m, c, got: false }); }
+for (const c of L.pennants) { const m = boxesMesh([{ x: 0, y: 0.55, z: 0, w: 0.08, h: 1.6, d: 0.08, c: '#4a3119' }, { x: 0.34, y: 1.05, z: 0, w: 0.6, h: 0.44, d: 0.05, c: '#c03434' }], { shadow: false }); m.position.set(c.x, c.y, c.z); scene.add(m); addGlow(m, '#ff6a4a', 1.2, 0.35).position.y = 1.0; pennantMeshes.push({ m, c, got: false }); }
 const heartMeshes = [];
-for (const c of L.hearts) { const m = boxesMesh([{ x: -0.11, y: 0.08, z: 0, w: 0.22, h: 0.22, d: 0.12, c: '#d23a3a' }, { x: 0.11, y: 0.08, z: 0, w: 0.22, h: 0.22, d: 0.12, c: '#d23a3a' }, { x: 0, y: -0.1, z: 0, w: 0.3, h: 0.2, d: 0.12, c: '#d23a3a' }], { shadow: false }); m.position.set(c.x, c.y + 0.7, c.z); scene.add(m); heartMeshes.push({ m, c, cd: 0 }); }
+for (const c of L.hearts) { const m = boxesMesh([{ x: -0.11, y: 0.08, z: 0, w: 0.22, h: 0.22, d: 0.12, c: '#d23a3a' }, { x: 0.11, y: 0.08, z: 0, w: 0.22, h: 0.22, d: 0.12, c: '#d23a3a' }, { x: 0, y: -0.1, z: 0, w: 0.3, h: 0.2, d: 0.12, c: '#d23a3a' }], { shadow: false }); m.position.set(c.x, c.y + 0.7, c.z); scene.add(m); addGlow(m, '#ff5a5a', 1.1, 0.35); heartMeshes.push({ m, c, cd: 0 }); }
 function updatePickups(dt) {
   for (const key in crestSpawns) {
     const cr = crestSpawns[key]; if (!cr) continue;
@@ -303,7 +310,7 @@ const game = {
     if (p.dead || !overlap(box, p.body.aabb)) return;
     const r = p.takeHit(dmg, e.pos, opts);
     const hp = { x: p.pos.x, y: p.pos.y + 1.1, z: p.pos.z };
-    if (r === 'hit') { this.fx('hurt', hp); audio.play('hurt'); cam.shake = 0.7; this.hitstop = 0.06; this.vignette = 1; floatText(hp, '-' + dmg, 'hurt'); }
+    if (r === 'hit') { this.fx('hurt', hp); audio.play('hurt'); cam.shake = 0.7; this.hitstop = 0.06; this.vignette = 1; floatText(hp, '-' + dmg, 'hurt'); const hpEl = document.getElementById('hp'); hpEl.classList.remove('shake'); void hpEl.offsetWidth; hpEl.classList.add('shake'); }
     else if (r === 'blocked') { this.fx('clank', hp); audio.play('clank'); cam.shake = 0.2; floatText(hp, 'BLOCKED', 'dim'); }
     else if (r === 'parried') {
       this.fx('parry', hp); audio.play('parry'); cam.shake = 0.4; this.hitstop = 0.14; this.flash = 0.6; this.slowmo = 0.2; floatText(hp, 'PARRY', 'big gold');
@@ -649,7 +656,7 @@ function animateRig(rig, ent, dt, isPlayer) {
       case S.HEAVY: { const k = Math.min(1, t / P.heavyT); armR = k < 0.3 ? -2.7 + (k / 0.3) * 1.0 : (k < 0.55 ? -1.7 + ((k - 0.3) / 0.25) * 3.2 : 1.5 - ((k - 0.55) / 0.45) * 1.5); armRz = 0.5; lean = k < 0.55 ? 0.4 : 0.1; break; }
       case S.BLOCK: shieldUp = 1; lean = 0.1; break;
       case S.DASH: lean = 0.55; armR = 0.6; armL = 0.6; break;
-      case S.RUSH: shieldUp = 1.4; lean = 0.5; break;
+      case S.RUSH: shieldUp = 1.4; lean = 0.5; if (b.grounded && Math.random() < 0.4) spawnFx('dust', { x: b.pos.x - Math.sin(ent.facing) * 0.5, y: b.pos.y, z: b.pos.z - Math.cos(ent.facing) * 0.5 }, 1); break;
       case S.POUND: armR = -1.0; armRz = 0.3; lean = t < 0.12 ? -0.3 : 0.2; u.legL.rotation.x = 0.8; u.legR.rotation.x = 0.8; break;
       case S.HURT: lean = -0.35; armR = -0.6; armL = -0.6; break;
       case S.DEAD: rig.rotation.x = -Math.PI / 2 * Math.min(1, t * 2); rig.position.y += 0.3 * Math.min(1, t * 2); break;
@@ -657,11 +664,33 @@ function animateRig(rig, ent, dt, isPlayer) {
     }
     if (st !== S.DEAD) rig.rotation.x = 0;
     if (ent.iframes > 0 && st === S.HURT) rig.visible = Math.floor(game.time * 30) % 2 === 0; else rig.visible = true;
+    // lean into the run; skid dust on hard turns
+    const velAng = Math.atan2(b.vel.x, b.vel.z); const spd2 = Math.hypot(b.vel.x, b.vel.z);
+    if (b.grounded && spd2 > 2) { let dAng = ((velAng - ent.facing + Math.PI * 3) % (Math.PI * 2)) - Math.PI; rig.rotation.z = -Math.max(-0.16, Math.min(0.16, dAng * 0.35)); rig.rotation.x += Math.min(0.12, spd2 * 0.012); }
+    else rig.rotation.z *= 0.8;
+    if (b.grounded && ent.state === S.IDLE) { const wish2 = Math.hypot(b.vel.x, b.vel.z); if (ent.lastSpeed > 5.5 && wish2 < 2) { spawnFx('dust', { x: b.pos.x, y: b.pos.y, z: b.pos.z }, 5); audio.play('step'); } }
+    ent.lastSpeed = spd2;
+    // idle look-around after a few quiet seconds
+    if (ent.state === S.IDLE && spd2 < 0.5) { ent.idleT = (ent.idleT || 0) + dt; if (ent.idleT > 3) u.head.rotation.y = Math.sin(game.time * 0.7) * 0.55; else u.head.rotation.y *= 0.9; }
+    else { ent.idleT = 0; u.head.rotation.y *= 0.9; }
     // squash & stretch
     if (ent.squash) { ent.squash.t -= dt; const k = Math.max(0, ent.squash.t / 0.14); const s = 1 + (ent.squash.s - 1) * k; rig.scale.set(1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); if (ent.squash.t <= 0) { ent.squash = null; rig.scale.set(1, 1, 1); } }
     else if (!b.grounded) { const s = 1 + Math.max(-0.08, Math.min(0.1, b.vel.y * 0.008)); rig.scale.set(1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); }
     else rig.scale.set(1, 1, 1);
-    // fade the knight when the camera is pulled in tight so it never fills the screen
+    // canopies between the camera and the knight fade out
+  { const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z; const px2 = player.pos.x, py2 = player.pos.y + 1.2, pz2 = player.pos.z;
+    for (const t of L.treeMeshes) {
+      const ax = px2 - cx, ay = py2 - cy, az = pz2 - cz; const len2 = ax * ax + ay * ay + az * az;
+      const bx2 = t.x - cx, by2 = (t.y + 2.4) - cy, bz2 = t.z - cz;
+      const tt = Math.max(0, Math.min(1, (ax * bx2 + ay * by2 + az * bz2) / (len2 || 1)));
+      const dx2 = bx2 - ax * tt, dy2 = by2 - ay * tt, dz2 = bz2 - az * tt;
+      const between = (dx2 * dx2 + dy2 * dy2 + dz2 * dz2) < 8.5 && tt > 0.05 && tt < 0.95;
+      const want2 = between ? 0.22 : 1;
+      t.mat.opacity += (want2 - t.mat.opacity) * Math.min(1, dt * 10);
+      t.mat.depthWrite = t.mat.opacity > 0.6;
+    }
+  }
+  // fade the knight when the camera is pulled in tight so it never fills the screen
   { const cd = cam.curDist; const fade = cd < 2.6 ? Math.max(0, (cd - 1.2) / 1.4) : 1; playerMat.transparent = fade < 1; playerMat.opacity = fade; playerMat.depthWrite = fade > 0.5; }
   // footsteps
     if (moving) { const ph2 = Math.floor(ph / Math.PI); if (ph2 !== ent.lastStep) { ent.lastStep = ph2; const gnd = b.ground; audio.play(gnd && (gnd.moving || gnd.tag === 'barricade' || (gnd.h <= 0.31 && gnd.w <= 4.1)) ? 'stepwood' : 'step'); if (sp > 5) spawnFx('dust', { x: b.pos.x, y: b.pos.y, z: b.pos.z }, 2); } }
@@ -752,7 +781,8 @@ function renderHud(dt) {
   if (player.lockTarget && !player.lockTarget.dead) { const lp = new THREE.Vector3(player.lockTarget.pos.x, player.lockTarget.pos.y + 1.0 * player.lockTarget.scale, player.lockTarget.pos.z).project(camera); if (lp.z < 1) { ret.style.display = 'block'; ret.style.left = ((lp.x + 1) / 2 * innerWidth) + 'px'; ret.style.top = ((1 - lp.y) / 2 * innerHeight) + 'px'; } else ret.style.display = 'none'; }
   else ret.style.display = 'none';
   // dash FOV kick
-  const wantFov = 62 + (player.state === S.DASH || player.state === S.RUSH ? 9 : 0) + (game.slowmo > 0 ? -4 : 0);
+  const spdF = Math.min(4, Math.max(0, (Math.hypot(player.body.vel.x, player.body.vel.z) - 6) * 0.6));
+  const wantFov = 62 + spdF + (player.state === S.DASH || player.state === S.RUSH ? 8 : 0) + (game.slowmo > 0 ? -4 : 0);
   if (Math.abs(camera.fov - wantFov) > 0.05) { camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 14); camera.updateProjectionMatrix(); }
   // enemy health bars
   for (const e of game.enemies) {
@@ -773,6 +803,8 @@ function crestGet(key) {
   document.getElementById('crestcardname').textContent = def ? def.name : key;
   document.getElementById('crestcardcount').textContent = '\u2726 ' + (game.crests || 0) + ' of 4';
   el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 3400);
+  const cc = document.getElementById('crests'); cc.classList.remove('pop'); void cc.offsetWidth; cc.classList.add('pop');
+  audio.play('crestget');
   renderBoard(); refreshHallBanners(); say(CREST_LINES[key] || '');
 }
 const CREST_LINES = {
@@ -870,11 +902,12 @@ function render(dt) {
   beacon.material.opacity = 0.3 + 0.1 * Math.sin(game.time * 2); beacon.rotation.y += dt * 0.3; beaconCore.material.opacity = 0.5 + 0.2 * Math.sin(game.time * 3);
   for (let ci = 0; ci < cloudDecks.length; ci++) { const m = cloudDecks[ci]; m.material.map.offset.x += dt * 0.002 * (ci + 1); }
   if (waterMeshes.length) { waterMeshes[0].position.y = L.water.y + Math.sin(game.time * 1.2) * 0.05; waterMeshes[1].position.y = L.water.y + 0.06 + Math.sin(game.time * 1.7 + 1) * 0.06; waterMeshes[1].material.opacity = 0.18 + 0.1 * (0.5 + 0.5 * Math.sin(game.time * 2.3)); }
+  for (const gq of glowFacers) { if (gq.parent && gq.parent.visible) gq.lookAt(camera.position); }
   for (const gq of torchGlows) { gq.lookAt(camera.position); gq.material.opacity = 0.4 + 0.14 * Math.sin(game.time * 11 + gq.userData.seed); }
   if (L.flag) L.flag.rotation.y = Math.sin(game.time * 2) * 0.15 + (game.bossDead ? 0 : 0);
   renderHud(dt);
   // music intensity: nearby aggroed foes, boss
-  if (game.started) { let inten = 0.15; for (const e of game.enemies) { if (e.dead || !e.aggroed) continue; const d = Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z); if (d < 16) inten = Math.max(inten, e.boss ? 1 : 0.65); } if (game.won) inten = 0; music.update(dt, inten); }
+  if (game.started) { let inten = 0.15; for (const e of game.enemies) { if (e.dead || !e.aggroed) continue; const d = Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z); if (d < 16) inten = Math.max(inten, e.boss ? 1 : 0.65); } if (game.won) inten = 0; music.update(dt, inten, player.pos); }
   document.getElementById('vig').style.opacity = Math.min(1, game.vignette) * 0.8 + (player.hp <= 2 && !player.dead ? 0.25 + 0.15 * Math.sin(game.time * 6) : 0);
   document.getElementById('flash').style.opacity = game.flash;
   renderer.render(scene, camera);
