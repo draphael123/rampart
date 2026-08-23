@@ -27,10 +27,44 @@ export function buildLevel(world) {
     }
   };
 
+  // ---------------- ZONE 0: TRAINING YARD (tutorial) ----------------
+  // a walled yard south of the courtyard; contiguous steps so a failed jump just lands you back
+  // where you were. The portcullis opens when the drill sergeant falls.
+  L.signs = []; L.tutorial = [];
+  const sign = (x, y, z, text, facing = 0) => L.signs.push({ x, y, z, text, facing });
+  block(0, -2, -32, 26, 2, 32, C.ground); deco(0, -0.01, -32, 26, 0.02, 32, C.dirt);
+  block(-13.5, 0, -32, 1.5, 8, 34, C.stoneD); block(13.5, 0, -32, 1.5, 8, 34, C.stoneD); block(0, 0, -49, 28, 8, 2, C.stoneD);
+  for (const bx of [-8, 0, 8]) { deco(bx, 2.5, -47.9, 1.4, 3.5, 0.1, C.banner); deco(bx, 6, -47.9, 1.8, 0.25, 0.2, C.gold); }
+  L.start = { x: 0, y: 0.1, z: -46 };
+  L.checkpoints.push({ x: 0, y: 0.1, z: -46, name: 'Training yard' });
+  sign(4, 0, -44, 'WASD to move\nmouse to look', Math.PI);
+  // 1: a 1.2 ledge — jump
+  block(0, 0, -39, 26, 1.2, 4, C.stone); sign(-4, 1.2, -38.6, 'SPACE to jump', Math.PI);
+  L.tutorial.push({ z: -43, key: 'jump', text: 'SPACE — jump' });
+  // 2: a 2.6 rise — double jump
+  block(0, 0, -35, 26, 3.8, 4, C.stoneL); sign(4, 3.8, -34.6, 'SPACE again\nin the air', Math.PI);
+  L.tutorial.push({ z: -38.2, key: 'djump', text: 'SPACE again in the air — double jump' });
+  // 3: a 4.5m gap over a shallow pit (top 2.4, hop back out) — dash
+  block(0, 0, -30.75, 26, 2.4, 4.5, C.stoneD);
+  block(0, 0, -26.5, 26, 3.8, 4, C.stone); sign(-4, 3.8, -26.1, 'SHIFT in the air\nto dash', Math.PI);
+  L.tutorial.push({ z: -34.2, key: 'dash', text: 'SHIFT — dash. Works in the air, once per jump' });
+  // drop into the pell yard (z -24.5 .. -16)
+  L.spawns.push({ kind: 'pell', x: -4, y: 0.1, z: -21 }, { kind: 'pellshield', x: 4, y: 0.1, z: -21, facing: Math.PI });
+  sign(-4, 0, -19.4, 'LEFT CLICK\nthree-hit chain', Math.PI); sign(4, 0, -19.4, 'hold Q — charged heavy\nbreaks a shield', Math.PI);
+  L.tutorial.push({ z: -24.6, key: 'light', text: 'LEFT CLICK — sword. Chain three on the pell' });
+  L.tutorial.push({ key: 'heavy', after: 'light', cond: 'hit', text: 'Hold Q — a charged heavy breaks the shield pell' });
+  // drill sergeant guards the portcullis
+  L.spawns.push({ kind: 'drill', x: 0, y: 0.1, z: -17.5, facing: Math.PI });
+  L.tutorial.push({ key: 'block', after: 'heavy', cond: 'guardbreak', text: 'The sergeant attacks: hold RIGHT CLICK to block — at the last instant to parry' });
+  block(0, -2, -15, 4, 2, 2.2, C.ground);   // floor of the gate passage
+  L.portcullis = world.add(new Box(0, 0, -15, 4, 6, 1.2, { tag: 'gate' }));
+  deco(0, 6, -15, 6, 4, 2.2, C.stoneL); deco(-3.2, 0, -15, 0.6, 6, 2.4, C.stoneL); deco(3.2, 0, -15, 0.6, 6, 2.4, C.stoneL);
+  L.torches.push({ x: -3.6, y: 4.5, z: -16.8 }, { x: 3.6, y: 4.5, z: -16.8 }, { x: -12.6, y: 4, z: -40 }, { x: 12.6, y: 4, z: -28 });
+
   // ---------------- ZONE A: COURTYARD ----------------
   block(0, -2, 10, 60, 2, 48, C.ground); deco(0, -0.01, 10, 60, 0.02, 48, C.ground);
   deco(-6, 0.0, 4, 6, 0.03, 5, C.dirt); deco(9, 0.0, 14, 7, 0.03, 4, C.dirt);
-  block(0, 0, -15, 62, 10, 2, C.stoneD); block(-31, 0, 10, 2, 12, 52, C.stoneD); block(31, 0, 10, 2, 12, 52, C.stoneD);
+  block(-17, 0, -15, 28, 10, 2, C.stoneD); block(17, 0, -15, 28, 10, 2, C.stoneD); block(-31, 0, 10, 2, 12, 52, C.stoneD); block(31, 0, 10, 2, 12, 52, C.stoneD);
   block(0, 0, 32, 62, 6.5, 4, C.stone); deco(0, 0, 30.01, 62, 6.5, 0.02, C.stoneD);
   deco(0, 0, 29.9, 4, 5, 0.3, C.iron); deco(0, 5, 29.9, 6, 1, 0.3, C.stoneL);
   block(-8, 0, 0, 1.2, 1.2, 1.2, C.wood); block(-9.2, 0, 0, 1.2, 0.6, 1.2, C.woodD); block(-8, 1.2, 0, 1.2, 1.2, 1.2, C.wood);
@@ -46,9 +80,8 @@ export function buildLevel(world) {
   block(26, 7.6, 28.5, 3.2, 0.4, 3, C.stone);
   // banners on the south wall
   for (const bx of [-10, 0, 10]) { deco(bx, 3, -13.9, 1.6, 4, 0.1, C.banner); deco(bx, 7, -13.9, 2, 0.3, 0.2, C.gold); }
-  L.start = { x: 0, y: 0.1, z: -5 };
-  L.checkpoints.push({ x: 0, y: 0.1, z: -5, name: 'Courtyard' });
-  L.spawns.push({ kind: 'grunt', x: -4, y: 0.1, z: 10 }, { kind: 'grunt', x: 6, y: 0.1, z: 12 }, { kind: 'grunt', x: 1, y: 0.1, z: 22 });
+  L.checkpoints.push({ x: 0, y: 0.1, z: -10, name: 'Courtyard' });
+  L.spawns.push({ kind: 'grunt', x: -4, y: 0.1, z: 10 }, { kind: 'grunt', x: 8, y: 0.1, z: 18 });
   L.spawns.push({ kind: 'crossbow', x: 12, y: 2.2, z: 6, perch: true });
   L.torches.push({ x: -29.5, y: 4, z: 0 }, { x: 29.5, y: 4, z: 0 }, { x: -6, y: 5.5, z: 29.6 }, { x: 6, y: 5.5, z: 29.6 });
 
@@ -69,25 +102,41 @@ export function buildLevel(world) {
   // stair up the east tower from the walk: small blocks
   block(27.5, 8, 29.2, 1.2, 1.0, 1.2, C.stone); block(28.6, 8, 29.2, 1.2, 2.0, 1.2, C.stone); block(29.7, 8, 29.2, 1.2, 3.0, 1.2, C.stone);
   // enemies on the walk
-  L.spawns.push({ kind: 'shield', x: 18, y: 8.1, z: 32 }, { kind: 'shield', x: -2, y: 8.1, z: 32 }, { kind: 'grunt', x: -18, y: 8.1, z: 32 });
-  L.spawns.push({ kind: 'crossbow', x: 30, y: 12.1, z: 32, perch: true }, { kind: 'crossbow', x: -3, y: 2.25, z: 8, perch: true });
+  L.spawns.push({ kind: 'shield', x: 18, y: 8.1, z: 32 }, { kind: 'grunt', x: -18, y: 8.1, z: 32 });
+  L.spawns.push({ kind: 'crossbow', x: 30, y: 12.1, z: 32, perch: true });
   // ladders on the outer face (north side, z=34): swarm climbs from y=0 outside to wall top
-  for (const lx of [-22, -16, 16, 22, 3]) {
-    L.ladders.push({ x: lx, z: 34.6, bottom: 0, top: 8, facing: Math.PI, up: true, respawn: 0, spawnEvery: 4.5, t: 2 + Math.random() * 2 });
+  for (const lx of [-20, 3, 20]) {
+    L.ladders.push({ x: lx, z: 34.6, bottom: 0, top: 8, facing: Math.PI, up: true, respawn: 0, spawnEvery: 9, t: 3 + Math.random() * 2 });
   }
   // outside ground (so falling off the far side is death but looks like a field)
-  block(0, -3, 64, 160, 3, 60, C.grass, { tag: 'field' });
-  for (let i = 0; i < 18; i++) { const fx = -70 + (i * 37) % 140, fz = 38 + (i * 23) % 50; deco(fx, 0.0, fz, 5 + (i % 3) * 3, 0.04, 4 + (i % 4) * 2, i % 2 ? C.dirt : '#4e6230'); }
+  // THE CHASM: everything outside the walls is a drop. Field far below, red mist above it.
+  block(0, -16, 40, 240, 4, 200, '#2a1418', { tag: 'field' });
+  block(-80, -16, -10, 60, 4, 120, '#2a1418', { tag: 'field' });
+  L.mistY = -5;
   // siege camp props outside
-  for (let i = -28; i <= 28; i += 8) { const z = 46 + (i % 16 === 0 ? 6 : 0); deco(i, 0, z, 3.2, 2.4, 3.2, C.woodD); deco(i, 2.4, z, 4, 0.5, 4, C.roof); deco(i, 2.9, z, 3, 0.5, 3, C.roof); deco(i, 3.4, z, 0.2, 1.4, 0.2, C.wood); }
-  for (let i = -24; i <= 24; i += 6) { deco(i, 0, 40, 0.3, 2.2, 0.3, C.wood); deco(i, 2.2, 40, 1.6, 0.9, 0.08, C.banner); }
+  // broken stubs of the outer works, poking out of the mist
+  for (let i = -24; i <= 24; i += 12) { deco(i, -9, 44, 3, 6 + (i % 24 === 0 ? 3 : 0), 3, C.stoneD); }
   L.checkpoints.push({ x: 26, y: 8.1, z: 28.5, name: 'Wall' });
+  // the wall's west end is closed off by the tower; the only way on is down the scaffold
+
 
   // hoist at the west end: moving platform between wall (y=8) and tower ledge (y=14)
-  const hoist = world.add(new Box(-24.5, 8, 26, 4, 0.4, 4, { moving: true, tag: 'hoist' }));
-  hoist.path = { a: { x: -24.5, y: 8, z: 26 }, b: { x: -24.5, y: 15.6, z: 26 }, period: 9, phase: 0 };
+  // THE SCAFFOLD: from the wall's west end, drop down the inner face of the west wall on builders'
+  // scaffolds, cross a slider, then climb pillars back up to the hoist. (wall y=8 → down to 4.5 → up to 11)
+  const scaf = (x, y, z, w = 2.4, d = 2.4) => { block(x, y, z, w, 0.3, d, C.wood); deco(x - w / 2 + 0.15, y - 1.2, z - d / 2 + 0.15, 0.2, 1.2, 0.2, C.woodD); deco(x + w / 2 - 0.15, y - 1.2, z + d / 2 - 0.15, 0.2, 1.2, 0.2, C.woodD); };
+  scaf(-27.5, 6.6, 25.5); scaf(-27.5, 5.4, 20.5, 2.4, 6); scaf(-27.5, 4.2, 13.5, 2.4, 4);
+  const sl1 = world.add(new Box(-24, 4.2, 9, 2.6, 0.3, 2.6, { moving: true, tag: 'slider' }));
+  sl1.path = { a: { x: -26, y: 4.2, z: 9 }, b: { x: -18, y: 4.2, z: 9 }, period: 6, phase: 0.2 }; L.platforms.push(sl1);
+  scaf(-15.5, 5.5, 9, 2.6, 2.6);
+  // pillar climb north along x≈-16..-22
+  block(-16, 0, 13, 2.2, 7.0, 2.2, C.stoneL); block(-18.5, 0, 18, 2.2, 8.2, 2.2, C.stone); block(-21, 0, 22, 2.4, 9.6, 2.4, C.stoneL);
+  L.tutorial.push({ z: 19.5, key: 'hoist', text: 'Double jump onto the hoist' });
+  L.spawns.push({ kind: 'crossbow', x: -12, y: 2.25, z: 20, perch: true }); block(-12, 0, 20, 2, 2.2, 2, C.stoneD);
+  L.checkpoints.push({ x: -15.5, y: 5.6, z: 9, name: 'Scaffold' });
+  const hoist = world.add(new Box(-24.5, 12, 27, 4, 0.4, 4, { moving: true, tag: 'hoist' }));
+  hoist.path = { a: { x: -24.5, y: 12, z: 27 }, b: { x: -24.5, y: 15.6, z: 27 }, period: 8, phase: 0 };
   L.platforms.push(hoist);
-  deco(-26.4, 0, 26, 0.25, 17, 0.25, C.wood); deco(-22.6, 0, 26, 0.25, 17, 0.25, C.wood); deco(-24.5, 17, 26, 4.4, 0.3, 0.3, C.wood);
+  deco(-26.4, 0, 27, 0.25, 17, 0.25, C.wood); deco(-22.6, 0, 27, 0.25, 17, 0.25, C.wood); deco(-24.5, 17, 27, 4.4, 0.3, 0.3, C.wood);
   L.torches.push({ x: -27, y: 9.5, z: 30.2 }, { x: 27, y: 9.5, z: 30.2 });
 
   // ---------------- ZONE C: THE KEEP TOWER ----------------
@@ -118,7 +167,6 @@ export function buildLevel(world) {
     }
     if (i === 6) L.spawns.push({ kind: 'grunt', x: px, y: y + 0.05, z: pz });
     if (i === 12) { L.checkpoints.push({ x: px, y: y + 0.05, z: pz, name: 'Keep mid' }); }
-    if (i === 16) L.spawns.push({ kind: 'crossbow', x: px, y: y + 0.05, z: pz, perch: true });
     if (i === 10 || i === 20) L.torches.push({ x: px + (T.x - px) * 0.15, y: y + 1.6, z: pz + (T.z - pz) * 0.15 });
   }
   // tower-face crossbow perches
@@ -134,6 +182,7 @@ export function buildLevel(world) {
   // flagpole
   deco(T.x, topY, T.z, 0.3, 7, 0.3, C.wood);
   L.goal = { x: T.x, y: topY, z: T.z, r: 2.2 };
+  L.beacon = { x: T.x, y: topY + 7, z: T.z };
   L.torches.push({ x: T.x + 4.6, y: topY + 1.5, z: T.z + 4.6 }, { x: T.x - 4.6, y: topY + 1.5, z: T.z - 4.6 });
   L.topY = topY; L.tower = T;
 
@@ -152,6 +201,18 @@ export function buildLevel(world) {
       ...Array.from({ length: 14 }, (_, i) => ({ x: 0, y: 0.4 + i * 0.58, z: 0, w: 0.9, h: 0.08, d: 0.1, c: C.woodD })),
     ]);
     g.add(rails); g.position.set(ld.x, ld.bottom, ld.z); ld.mesh = g; L.props.add(g);
+  }
+  // signposts: canvas-texture planes on a post
+  for (const sg of L.signs) {
+    const cv = document.createElement('canvas'); cv.width = 512; cv.height = 256; const g = cv.getContext('2d');
+    g.fillStyle = '#3a2a1a'; g.fillRect(0, 0, 512, 256); g.fillStyle = '#6e4b2a'; g.fillRect(10, 10, 492, 236);
+    g.fillStyle = '#f3e6c8'; g.font = 'bold 44px Georgia'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const lines = sg.text.split('\n'); lines.forEach((ln, i) => g.fillText(ln, 256, 128 + (i - (lines.length - 1) / 2) * 56));
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.1), new THREE.MeshBasicMaterial({ map: tex }));
+    const post = new THREE.Group(); post.add(m); m.position.y = 1.9;
+    const stick = boxesMesh([{ x: 0, y: 0.7, z: -0.05, w: 0.12, h: 1.4, d: 0.12, c: C.woodD }]); post.add(stick);
+    post.position.set(sg.x, sg.y, sg.z); post.rotation.y = sg.facing; L.props.add(post);
   }
   // flag
   const flag = boxesMesh([{ x: 0.9, y: 0, z: 0, w: 1.8, h: 1.1, d: 0.06, c: C.banner }, { x: 0.9, y: 0.0, z: 0.04, w: 0.6, h: 0.5, d: 0.02, c: C.gold }]);

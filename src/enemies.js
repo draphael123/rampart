@@ -8,6 +8,9 @@ export const E = {
   crossbow: { hp: 2, speed: 0, windup: 1.1, swing: 0.1, recover: 1.6, dmg: 1, reach: 30, aggro: 34, stop: 0, boltSpeed: 22 },
   swarm:    { hp: 1, speed: 5.4, windup: 0.4, swing: 0.15, recover: 0.5, dmg: 1, reach: 1.3, aggro: 40, stop: 1.0 },
   captain:  { hp: 14, speed: 3.4, windup: 0.7, swing: 0.22, recover: 0.7, dmg: 2, reach: 2.6, aggro: 30, stop: 2.0, guardBreak: 1.2 },
+  pell:     { hp: 3, speed: 0, windup: 9, swing: 0.1, recover: 9, dmg: 0, reach: 0, aggro: 0, stop: 0, passive: true },
+  pellshield: { hp: 3, speed: 0, windup: 9, swing: 0.1, recover: 9, dmg: 0, reach: 0, aggro: 0, stop: 0, passive: true, guardBreak: 2.0 },
+  drill:    { hp: 4, speed: 2.4, windup: 1.1, swing: 0.2, recover: 1.4, dmg: 1, reach: 1.6, aggro: 9, stop: 1.3 },
 };
 
 let _id = 1;
@@ -24,7 +27,7 @@ export class Enemy {
     this.facing = opts.facing || 0;
     this.state = 'idle'; this.t = 0;
     this.telegraph = 0;       // 0..1 — drives emissive colour (hue channel, not alpha)
-    this.stun = 0; this.guardUp = kind === 'shield' || kind === 'captain';
+    this.stun = 0; this.guardUp = kind === 'shield' || kind === 'captain' || kind === 'pellshield';
     this.guardBroken = 0;
     this.dead = false; this.deathT = 0;
     this.hitIds = new Set();
@@ -49,6 +52,7 @@ export class Enemy {
     const b = this.body, c = this.cfg;
     this.t += dt; this.flinchT = Math.max(0, this.flinchT - dt);
     if (this.dead) { this.deathT += dt; return; }
+    if (this.cfg.passive) { this.telegraph = 0; b.vel.y -= G * dt; b.move(this.world, 0, b.vel.y * dt, 0); return; }
     const pp = player.pos;
     const d = this.distTo(pp);
     const dy = pp.y - this.pos.y;
@@ -58,7 +62,7 @@ export class Enemy {
 
     if (this.stun > 0) {
       this.stun -= dt; this.telegraph = 0;
-      if (this.stun <= 0) { this.state = 'idle'; this.t = 0; if (this.kind === 'shield' || this.kind === 'captain') this.guardUp = true; }
+      if (this.stun <= 0) { this.state = 'idle'; this.t = 0; if (this.kind === 'shield' || this.kind === 'captain' || this.kind === 'pellshield') this.guardUp = true; }
     } else if (this.state === 'climb') {
       // ladder swarm: climb straight up the ladder path, then drop onto the wall
       gravity = false;

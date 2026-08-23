@@ -84,6 +84,20 @@ function updateAtmos(dt) {
   for (let i = 0; i < SMOKE; i++) { const k = i * 3; smokeAge[i] += dt; smokePos[k + 1] += dt * 1.4; smokePos[k] += dt * (0.6 + Math.sin(t * 0.5 + i) * 0.3); if (smokeAge[i] > 9) { const sdx = smokeSrc[i % smokeSrc.length]; smokeAge[i] = 0; smokePos[k] = sdx.x; smokePos[k + 1] = sdx.y; smokePos[k + 2] = sdx.z; } }
   smokeGeo.attributes.position.needsUpdate = true;
 }
+// goal beacon: a tall additive light shaft over the banner, pulsing
+const beacon = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 3.2, 90, 16, 1, true), new THREE.MeshBasicMaterial({ color: '#ffd080', transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+const beaconCore = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.6, 90, 8, 1, true), new THREE.MeshBasicMaterial({ color: '#fff2cc', transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+beaconCore.position.set(L.beacon.x, L.beacon.y + 43, L.beacon.z); scene.add(beaconCore);
+beacon.position.set(L.beacon.x, L.beacon.y + 43, L.beacon.z); scene.add(beacon);
+const beaconLight = new THREE.PointLight('#ffd080', 40, 30, 2); beaconLight.position.set(L.beacon.x, L.beacon.y, L.beacon.z); scene.add(beaconLight);
+// the chasm mist: a huge red plane below the walls (anything outside the walls is a drop)
+const mist = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshBasicMaterial({ color: '#5a1620', transparent: true, opacity: 0.85, depthWrite: false }));
+mist.rotation.x = -Math.PI / 2; mist.position.set(0, L.mistY, 30); scene.add(mist);
+const mist2 = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshBasicMaterial({ color: '#7a2030', transparent: true, opacity: 0.35, depthWrite: false }));
+mist2.rotation.x = -Math.PI / 2; mist2.position.set(0, L.mistY + 1.5, 30); scene.add(mist2);
+// portcullis bars
+const gateMesh = boxesMesh(Array.from({ length: 5 }, (_, i) => ({ x: -1.6 + i * 0.8, y: 3, z: 0, w: 0.18, h: 6, d: 0.18, c: '#3a3d44' })).concat([{ x: 0, y: 1.5, z: 0, w: 3.6, h: 0.14, d: 0.2, c: '#3a3d44' }, { x: 0, y: 3.5, z: 0, w: 3.6, h: 0.14, d: 0.2, c: '#3a3d44' }]));
+gateMesh.position.set(0, 0, -15); scene.add(gateMesh);
 // landing ring under player (iso-readability lesson: elevation needs a shadow anchor)
 const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.5, 24), new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0.6, depthWrite: false }));
 ring.rotation.x = -Math.PI / 2; scene.add(ring);
@@ -172,7 +186,7 @@ const game = {
     if (e.kind === 'captain') { this.bossDead = true; toast('The Siege Captain falls. Raise the banner.'); }
     if (this.player.lockTarget === e) { this.player.lockTarget = null; cam.lock = null; }
   },
-  playerFell() { this.player.hp = Math.max(0, this.player.hp - 1); audio.play('fall'); this.respawn(this.player.hp <= 0); },
+  playerFell() { if (this.falling) return; this.falling = 0.9; audio.play('fall'); document.getElementById('fell').classList.add('show'); },
   fx(kind, pos) { spawnFx(kind, pos); },
   kickLadder(ld) { ld.up = false; ld.respawn = 14; ld.fallT = 0; audio.play('ladder'); toast('Ladder kicked!'); this.fx('shock', { x: ld.x, y: ld.top, z: ld.z }); },
   respawn(died) {
@@ -184,7 +198,7 @@ const game = {
     cam.target.set(cp.x, cp.y + 1.2, cp.z); cam.yaw = Math.PI; cam.idle = 0;
     if (died) { this.bolts.length = 0; for (const e of this.enemies) if (!e.dead && e.aggroed && e.kind !== 'crossbow') { e.state = 'idle'; e.aggroed = false; e.stun = 0; e.hp = e.maxHp; e.body.pos.x = e.home.x; e.body.pos.y = e.home.y; e.body.pos.z = e.home.z; e.body.syncAabb(); if (e.kind === 'shield' || e.kind === 'captain') e.guardUp = true; } }
     if (died) document.getElementById('dead').classList.add('show');
-    this.vignette = 0;
+    this.vignette = 0; this.falling = 0; document.getElementById('fell').classList.remove('show');
   },
 };
 
@@ -320,7 +334,8 @@ function step(dt, inp) {
   player.events.length = 0;
   // enemies
   for (const e of game.enemies) {
-    if (e.dead || game.noEnemies) continue;
+    if (e.dead) { e.deathT += dt; continue; }
+    if (game.noEnemies) continue;
     // wake-up radius only matters in 3D distance; also skip far ones for perf
     const d = Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z, (e.pos.y - player.pos.y) * 0.5);
     if (d > 60) continue;
@@ -334,6 +349,18 @@ function step(dt, inp) {
   game.bolts = game.bolts.filter(b => { if (b.dead && b.mesh) scene.remove(b.mesh); return !b.dead; });
   // ladders + swarm
   updateLadders(dt);
+  // tutorial prompts: fire once when the player passes each trigger line (south → north)
+  for (const tt of L.tutorial) {
+    if (tt.done) continue;
+    if (tt.after && !L.tutorial.find(x => x.key === tt.after).done) continue;
+    let fire = false;
+    if (tt.z !== undefined) fire = player.pos.z > tt.z && (tt.key !== 'hoist' || (player.pos.x < -13 && player.pos.y > 5));
+    else if (tt.cond === 'hit') fire = player.stats.hitsLanded > 0;
+    else if (tt.cond === 'guardbreak') fire = game.enemies.some(e => e.kind === 'pellshield' && (e.stun > 0 || e.dead));
+    if (fire) { tt.done = true; toast(tt.text, 4.5); }
+  }
+  // portcullis: opens when the drill sergeant falls
+  if (L.portcullis.enabled && !game.enemies.some(e => e.kind === 'drill' && !e.dead)) { L.portcullis.enabled = false; game.gateT = 0; toast('The gate opens. Into the courtyard.', 3); audio.play('checkpoint'); }
   // checkpoints
   for (let i = game.checkpoint + 1; i < L.checkpoints.length; i++) {
     const c = L.checkpoints[i];
@@ -365,8 +392,8 @@ function updateLadders(dt) {
     }
   }
   // cull dead after fade
-  for (const e of game.enemies) if (e.dead && e.deathT > 1.3 && e.mesh) { scene.remove(e.mesh); e.mesh = null; }
-  game.enemies = game.enemies.filter(e => !(e.dead && e.deathT > 1.3));
+  for (const e of game.enemies) if (e.dead && e.deathT > 1.4 && e.mesh) { scene.remove(e.mesh); e.mesh = null; if (e.bar) { e.bar.remove(); e.bar = null; } }
+  game.enemies = game.enemies.filter(e => !(e.dead && e.deathT > 1.4));
 }
 
 function tryInteract() {
@@ -420,7 +447,7 @@ function animateRig(rig, ent, dt, isPlayer) {
     if (st !== S.DEAD) rig.rotation.x = 0;
     if (ent.iframes > 0 && st === S.HURT) rig.visible = Math.floor(game.time * 30) % 2 === 0; else rig.visible = true;
   } else {
-    if (ent.dead) { const k = Math.min(1, ent.deathT * 1.6); rig.rotation.x = -Math.PI / 2 * k; rig.position.y -= k * 0.6 * ent.scale; }
+    if (ent.dead) { const k = Math.min(1, ent.deathT * 2.2); rig.rotation.x = -Math.PI / 2 * k; rig.rotation.z = 0.3 * k; rig.position.y -= Math.max(0, ent.deathT - 0.6) * 1.2; u.mat.emissive.set('#000'); u.mat.transparent = true; u.mat.opacity = Math.max(0, 1 - Math.max(0, ent.deathT - 0.7) * 1.6); }
     else {
       rig.rotation.x = 0;
       if (st === 'windup') { armR = -2.2 - ent.telegraph * 0.6; armRz = 0.6; lean = -0.15; if (ent.kind === 'crossbow') { armR = -1.5; armRz = 0; } }
@@ -450,7 +477,7 @@ const hud = {
   toast: document.getElementById('toast'), charge: document.getElementById('charge'), prompt: document.getElementById('prompt'), alt: document.getElementById('alt'),
 };
 let toastT = 0;
-function toast(msg) { hud.toast.textContent = msg; hud.toast.classList.add('show'); toastT = 2.6; }
+function toast(msg, t = 2.6) { hud.toast.textContent = msg; hud.toast.classList.add('show'); toastT = t; }
 function renderHud(dt) {
   // hp pips
   let s = ''; for (let i = 0; i < P.hp; i++) s += `<i class="${i < player.hp ? 'on' : ''}"></i>`; hud.hp.innerHTML = s;
@@ -465,6 +492,25 @@ function renderHud(dt) {
   for (const ld of L.ladders) if (ld.up && Math.abs(player.pos.x - ld.x) < 2 && Math.abs(player.pos.z - (ld.z - 1.2)) < 2 && Math.abs(player.pos.y - ld.top) < 2) near = ld;
   hud.prompt.style.display = near ? 'block' : 'none';
   hud.alt.textContent = 'ALT ' + player.pos.y.toFixed(0) + 'm';
+  // objective + off-screen marker
+  const gl = L.beacon; const dist = Math.hypot(gl.x - player.pos.x, gl.y - 7 - player.pos.y, gl.z - player.pos.z);
+  const obj = document.getElementById('objective');
+  obj.textContent = (game.bossDead ? 'RAISE THE BANNER' : L.portcullis.enabled ? 'TRAINING YARD — DEFEAT THE DRILL SERGEANT' : ['REACH THE WALL', 'REACH THE WALL', 'CROSS THE BATTLEMENTS', 'CLIMB TO THE HOIST', 'CLIMB THE KEEP', 'CLIMB THE KEEP', 'DEFEAT THE SIEGE CAPTAIN'][Math.min(6, game.checkpoint)]) + '  ·  ' + dist.toFixed(0) + 'm';
+  const v = new THREE.Vector3(gl.x, gl.y - 3, gl.z).project(camera); const mk = document.getElementById('marker');
+  const onScreen = v.z < 1 && Math.abs(v.x) < 0.95 && Math.abs(v.y) < 0.95;
+  if (onScreen) { mk.style.display = 'block'; mk.style.left = ((v.x + 1) / 2 * innerWidth) + 'px'; mk.style.top = ((1 - v.y) / 2 * innerHeight) + 'px'; mk.textContent = '▼'; }
+  else { const a = Math.atan2(v.x, v.y) * (v.z > 1 ? -1 : 1); const r = 0.42; mk.style.display = 'block'; mk.style.left = (innerWidth / 2 + Math.sin(a) * innerWidth * r) + 'px'; mk.style.top = (innerHeight / 2 - Math.cos(a) * innerHeight * r) + 'px'; mk.textContent = '➤'; mk.style.transform = 'translate(-50%,-50%) rotate(' + (a * 180 / Math.PI - 90) + 'deg)'; }
+  if (onScreen) mk.style.transform = 'translate(-50%,-100%)';
+  // enemy health bars
+  for (const e of game.enemies) {
+    const show = !e.dead && (e.aggroed || e.hp < e.maxHp);
+    if (!show) { if (e.bar) e.bar.style.display = 'none'; continue; }
+    if (!e.bar) { e.bar = document.createElement('div'); e.bar.className = 'ebar'; e.bar.innerHTML = '<div></div>'; document.body.appendChild(e.bar); }
+    const p = new THREE.Vector3(e.pos.x, e.pos.y + 2.1 * e.scale, e.pos.z).project(camera);
+    if (p.z > 1 || Math.abs(p.x) > 1 || Math.abs(p.y) > 1) { e.bar.style.display = 'none'; continue; }
+    e.bar.style.display = 'block'; e.bar.style.left = ((p.x + 1) / 2 * innerWidth) + 'px'; e.bar.style.top = ((1 - p.y) / 2 * innerHeight) + 'px';
+    e.bar.firstElementChild.style.width = (e.hp / e.maxHp * 100) + '%'; e.bar.classList.toggle('guard', !!e.guardUp && e.stun <= 0);
+  }
 }
 
 function win() {
@@ -511,6 +557,7 @@ function frame(now) {
   render(dt);
 }
 function render(dt) {
+  if (game.falling) { game.falling -= dt; if (game.falling <= 0) { game.falling = 0; document.getElementById('fell').classList.remove('show'); player.hp = Math.max(0, player.hp - 1); game.respawn(player.hp <= 0); } }
   updateAtmos(dt); game.slowmo = Math.max(0, game.slowmo - dt); game.vignette = Math.max(0, game.vignette - dt * 1.6); game.flash = Math.max(0, game.flash - dt * 3);
   const moving = Math.hypot(player.body.vel.x, player.body.vel.z) > 1;
   if (game.started && !game.paused) cam.update(dt, player, moving);
@@ -530,6 +577,8 @@ function render(dt) {
   // torches flicker; only nearest 8 lit
   torchLights.sort((a, b) => a.light.position.distanceToSquared(camera.position) - b.light.position.distanceToSquared(camera.position));
   torchLights.forEach((t, i) => { t.light.intensity = i < 8 ? t.base * (0.85 + 0.15 * Math.sin(game.time * 13 + t.seed) * Math.sin(game.time * 7.3 + t.seed)) : 0; });
+  beacon.material.opacity = 0.3 + 0.1 * Math.sin(game.time * 2); beacon.rotation.y += dt * 0.3; beaconCore.material.opacity = 0.5 + 0.2 * Math.sin(game.time * 3);
+  if (!L.portcullis.enabled && game.gateT !== undefined) { game.gateT += dt; gateMesh.position.y = Math.min(5.6, game.gateT * 2.5); }
   if (L.flag) L.flag.rotation.y = Math.sin(game.time * 2) * 0.15 + (game.bossDead ? 0 : 0);
   renderHud(dt);
   // music intensity: nearby aggroed foes, boss

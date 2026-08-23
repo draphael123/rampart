@@ -99,6 +99,9 @@ export function gruntRig(kind = 'grunt') {
     crossbow: { armor: '#4a4a3a', trim: '#2a2a22', cloth: '#6a4a2e', skin: '#c9a07a', steel: '#b9bec6', shield: '#4a3a2a' },
     swarm: { armor: '#3a3a32', trim: '#2a2a22', cloth: '#5a3a2a', skin: '#c9a07a', steel: '#9a9ea6', shield: '#4a3a2a' },
     captain: { armor: '#2a2a33', trim: '#d8b050', cloth: '#5a1a1a', skin: '#c9a07a', steel: '#e0e4ea', shield: '#5a1a1a' },
+    pell: { armor: '#8a6a3a', trim: '#5a3a1a', cloth: '#6a4a2a', skin: '#8a6a3a', steel: '#6a4a2a', shield: '#6a4a2a' },
+    pellshield: { armor: '#8a6a3a', trim: '#5a3a1a', cloth: '#6a4a2a', skin: '#8a6a3a', steel: '#6a4a2a', shield: '#4a5a7a' },
+    drill: { armor: '#6a6a5a', trim: '#3a3a2a', cloth: '#4a5a3e', skin: '#c9a07a', steel: '#b9bec6', shield: '#4a3a2a' },
   }[kind];
   const g = knightRig(pal);
   if (kind === 'shield' || kind === 'captain') {
@@ -116,6 +119,8 @@ export function gruntRig(kind = 'grunt') {
     g.userData.armR.add(xbow);
   }
   if (kind === 'swarm') { g.scale.set(0.85, 0.85, 0.85); g.userData.shield.visible = false; }
+  if (kind === 'pell') { g.userData.shield.visible = false; g.userData.sword.visible = false; g.userData.head.children[0].visible = false; g.add(boxesMesh([{ x: 0, y: 1.62, z: 0, w: 0.34, h: 0.34, d: 0.34, c: '#8a6a3a' }, { x: 0, y: 0.3, z: 0, w: 0.18, h: 0.6, d: 0.18, c: '#5a3a1a' }])); g.userData.legL.visible = false; g.userData.legR.visible = false; }
+  if (kind === 'pellshield') { g.userData.sword.visible = false; g.userData.head.children[0].visible = false; g.add(boxesMesh([{ x: 0, y: 1.62, z: 0, w: 0.34, h: 0.34, d: 0.34, c: '#8a6a3a' }, { x: 0, y: 0.3, z: 0, w: 0.18, h: 0.6, d: 0.18, c: '#5a3a1a' }])); g.userData.legL.visible = false; g.userData.legR.visible = false; g.userData.shield.scale.set(1.5, 1.4, 1); g.userData.shield.position.y = 0.05; }
   if (kind === 'captain') { g.scale.set(1.45, 1.45, 1.45); }
   return g;
 }

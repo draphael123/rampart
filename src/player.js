@@ -211,7 +211,7 @@ export class Player {
     if (this.state !== S.DEAD) b.move(this.world, b.vel.x * dt, b.vel.y * dt, b.vel.z * dt);
     if (b.hitCeil && b.vel.y > 0) b.vel.y = 0;
 
-    if ((b.pos.y < -8 || (b.grounded && b.ground && b.ground.tag === 'field')) && this.state !== S.DEAD) this.game.playerFell();
+    if ((b.pos.y < -6 || (b.grounded && b.ground && b.ground.tag === 'field')) && this.state !== S.DEAD) this.game.playerFell();
   }
 
   faceToward(wish, wlen) {
