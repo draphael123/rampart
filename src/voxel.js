@@ -47,7 +47,7 @@ export function boxesMesh(list, opts = {}) {
 // ---------- character rigs ----------
 // Silhouette hierarchy: big torso, small head, clear sword + shield masses.
 export function knightRig(palette = {}) {
-  const P = Object.assign({ armor: '#8d94a3', trim: '#c9a24a', cloth: '#7a2d2d', skin: '#e2b48c', steel: '#d8dde5', shield: '#7a2d2d' }, palette);
+  const P = Object.assign({ armor: '#aeb4c2', trim: '#d8b050', cloth: '#8a2d2d', skin: '#e2b48c', steel: '#e4e8ee', shield: '#8a2d2d', cape: '#7a2020' }, palette);
   const g = new THREE.Group();
   const torso = boxesMesh([
     { x: 0, y: 0.95, z: 0, w: 0.62, h: 0.6, d: 0.4, c: P.armor },
@@ -59,7 +59,8 @@ export function knightRig(palette = {}) {
   head.add(boxesMesh([
     { x: 0, y: 0, z: 0, w: 0.36, h: 0.38, d: 0.36, c: P.armor },
     { x: 0, y: -0.04, z: 0.19, w: 0.3, h: 0.08, d: 0.02, c: '#1a1a22' }, // visor slit
-    { x: 0, y: 0.22, z: -0.02, w: 0.06, h: 0.22, d: 0.3, c: P.cloth },   // plume
+    { x: 0, y: 0.3, z: -0.06, w: 0.07, h: 0.34, d: 0.36, c: P.cloth },   // plume
+    { x: 0, y: 0.5, z: -0.22, w: 0.06, h: 0.14, d: 0.2, c: P.cloth },
   ]));
   head.position.set(0, 1.55, 0);
   const legL = boxesMesh([{ x: 0, y: -0.3, z: 0, w: 0.2, h: 0.6, d: 0.22, c: P.armor }]);
@@ -87,8 +88,11 @@ export function knightRig(palette = {}) {
   shield.position.set(-0.1, -0.05, 0.05);
   armL.add(shield);
   armL.position.set(-0.4, 1.2, 0);
-  g.add(torso, head, legL, legR, armR, armL);
-  g.userData = { torso, head, legL, legR, armR, armL, sword, shield };
+  // cape: a flat cloth behind the torso, pivoting at the shoulders so it can swing
+  const cape = boxesMesh([{ x: 0, y: -0.5, z: -0.04, w: 0.56, h: 1.0, d: 0.06, c: P.cape }, { x: 0, y: -0.95, z: -0.05, w: 0.6, h: 0.14, d: 0.07, c: P.trim }]);
+  cape.position.set(0, 1.32, -0.22); cape.castShadow = false;
+  g.add(torso, head, legL, legR, armR, armL, cape);
+  g.userData = { torso, head, legL, legR, armR, armL, sword, shield, cape };
   return g;
 }
 
@@ -106,10 +110,16 @@ export function gruntRig(kind = 'grunt') {
     drillbow: { armor: '#6a6a5a', trim: '#3a3a2a', cloth: '#5a4a3e', skin: '#c9a07a', steel: '#b9bec6', shield: '#4a3a2a' },
   }[kind];
   const g = knightRig(pal);
+  const u = g.userData;
+  if (kind !== 'captain' && kind !== 'defender') u.cape.visible = false;
+  if (kind === 'grunt' || kind === 'drill') { u.head.add(boxesMesh([{ x: 0, y: 0.2, z: 0, w: 0.42, h: 0.08, d: 0.42, c: '#3a3a32' }, { x: 0, y: 0.3, z: 0, w: 0.2, h: 0.14, d: 0.2, c: '#3a3a32' }])); u.torso.add(boxesMesh([{ x: 0, y: 0.9, z: -0.24, w: 0.5, h: 0.7, d: 0.06, c: '#4a3a28' }])); }
   if (kind === 'shield' || kind === 'captain') {
-    g.userData.shield.scale.set(1.5, 1.4, 1);
-    g.userData.shield.position.y = 0.05;
+    u.shield.scale.set(1.5, 1.4, 1); u.shield.position.y = 0.05;
+    u.head.add(boxesMesh([{ x: -0.22, y: 0.18, z: 0, w: 0.08, h: 0.3, d: 0.08, c: '#d8cfa0' }, { x: 0.22, y: 0.18, z: 0, w: 0.08, h: 0.3, d: 0.08, c: '#d8cfa0' }, { x: -0.22, y: 0.36, z: 0, w: 0.06, h: 0.12, d: 0.06, c: '#d8cfa0' }, { x: 0.22, y: 0.36, z: 0, w: 0.06, h: 0.12, d: 0.06, c: '#d8cfa0' }]));
   }
+  if (kind === 'captain') { u.cape.scale.set(1.3, 1.25, 1); u.torso.add(boxesMesh([{ x: -0.45, y: 1.32, z: 0, w: 0.34, h: 0.2, d: 0.5, c: '#d8b050' }, { x: 0.45, y: 1.32, z: 0, w: 0.34, h: 0.2, d: 0.5, c: '#d8b050' }])); u.sword.scale.set(1.3, 1.3, 1.25); }
+  if (kind === 'swarm') { u.head.children[0].visible = false; u.head.add(boxesMesh([{ x: 0, y: 0, z: 0, w: 0.32, h: 0.34, d: 0.32, c: '#c9a07a' }, { x: 0, y: 0.14, z: 0, w: 0.34, h: 0.1, d: 0.34, c: '#3a2a1a' }])); u.torso.rotation.x = 0.25; u.head.position.z = 0.12; }
+  if (kind === 'crossbow' || kind === 'drillbow') { u.head.children[0].visible = false; u.head.add(boxesMesh([{ x: 0, y: 0, z: 0, w: 0.38, h: 0.4, d: 0.38, c: '#4a3a2e' }, { x: 0, y: 0.3, z: -0.06, w: 0.22, h: 0.22, d: 0.22, c: '#4a3a2e' }, { x: 0, y: -0.04, z: 0.2, w: 0.24, h: 0.12, d: 0.02, c: '#1a1a22' }])); u.torso.add(boxesMesh([{ x: 0.22, y: 1.0, z: -0.26, w: 0.18, h: 0.6, d: 0.14, c: '#5a3a1a' }, { x: 0.22, y: 1.34, z: -0.26, w: 0.12, h: 0.2, d: 0.12, c: '#d8c8a0' }])); }
   if (kind === 'crossbow' || kind === 'drillbow' || kind === 'defender') {
     g.userData.sword.visible = false;
     g.userData.shield.visible = false;

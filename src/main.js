@@ -471,6 +471,7 @@ function toggleLock() {
     if (e.dead || e.cfg.friendly) continue;
     const dx = e.pos.x - player.pos.x, dz = e.pos.z - player.pos.z; const d = Math.hypot(dx, dz);
     if (d > 16 || Math.abs(e.pos.y - player.pos.y) > 5) continue;
+    if (!game.hasLineOfSight(e, player)) continue;
     const score = d - ((dx * f.x + dz * f.z) / (d || 1)) * 4;
     if (score < bd) { bd = score; best = e; }
   }
@@ -551,6 +552,7 @@ function animateRig(rig, ent, dt, isPlayer) {
   u.armL.rotation.x = shieldUp ? -1.4 : armL; u.armL.rotation.y = shieldUp ? 0.9 * Math.min(1, shieldUp) : 0;
   u.armL.position.x = shieldUp ? -0.2 : -0.4; u.armL.position.z = shieldUp ? 0.25 * shieldUp : 0;
   u.torso.rotation.x = lean; u.head.rotation.x = lean * 0.5;
+  if (u.cape && u.cape.visible) { const v = Math.hypot(b.vel.x, b.vel.z); u.cape.rotation.x = -0.15 - Math.min(1.1, v * 0.09) - (b.grounded ? 0 : Math.max(-0.3, Math.min(0.6, -b.vel.y * 0.04))) + Math.sin(game.time * 3.1) * 0.04; }
 }
 
 // ------------------------------------------------------------------ render/HUD

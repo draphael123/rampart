@@ -48,7 +48,9 @@ export function buildLevel(world) {
   const sign = (x, y, z, text, facing = 0) => L.signs.push({ x, y, z, text, facing });
   const barricade = (x, y, z, w, d, h = 2.3) => { const bx = world.add(new Box(x, y, z, w, h, d, { tag: 'barricade' })); bx.hp = 1; L.barricades.push(bx); return bx; };
   block(0, -2, -43, 26, 2, 54, C.ground); deco(0, -0.01, -43, 26, 0.02, 54, C.dirt);
-  block(-13.5, 0, -43, 1.5, 8, 56, C.stoneD); block(13.5, 0, -43, 1.5, 8, 56, C.stoneD); block(0, 0, -71, 28, 8, 2, C.stoneD);
+  block(-13.5, 0, -43, 1.5, 6, 56, C.stoneD); block(13.5, 0, -43, 1.5, 6, 56, C.stoneD); block(0, 0, -71, 28, 8, 2, C.stoneD);
+  for (let z = -66; z < -20; z += 9) { brazier(-13.3, 6, z); brazier(13.3, 6, z + 4.5); }
+  for (let z = -68; z < -18; z += 4) { deco(-12.72, 1.5, z, 0.04, 0.08, 3.2, '#4e4a44'); deco(12.72, 1.5, z, 0.04, 0.08, 3.2, '#4e4a44'); deco(-12.72, 3.4, z, 0.04, 0.08, 3.2, '#4e4a44'); deco(12.72, 3.4, z, 0.04, 0.08, 3.2, '#4e4a44'); }
   for (const bx of [-8, 0, 8]) { deco(bx, 2.5, -69.9, 1.4, 3.5, 0.1, C.banner); deco(bx, 6, -69.9, 1.8, 0.25, 0.2, C.gold); }
   // tents, hay, a rack: the yard is where the garrison trains
   for (const [tx, tz] of [[-10, -66], [10, -66], [-10, -58]]) { deco(tx, 0, tz, 3.2, 2.2, 3.2, C.woodD); deco(tx, 2.2, tz, 4, 0.5, 4, C.roof); deco(tx, 2.7, tz, 3, 0.5, 3, C.roof); }
@@ -56,20 +58,20 @@ export function buildLevel(world) {
   deco(-11, 0, -52, 0.2, 1.8, 3, C.wood); for (let i = 0; i < 4; i++) deco(-11, 0.3, -53.2 + i * 0.8, 0.1, 1.4, 0.12, C.steel || '#d8dde5');
   L.start = { x: 0, y: 0.1, z: -68 };
   L.checkpoints.push({ x: 0, y: 0.1, z: -68, name: 'Training yard' });
-  sign(4, 0, -66, 'WASD to move\nmouse to look', Math.PI);
+  sign(9, 0, -66, 'WASD to move\nmouse to look', Math.PI);
   L.tutorial.push({ z: -65, key: 'jump', text: 'SPACE — jump' });
-  block(0, 0, -61, 26, 1.2, 4, C.stone); sign(-4, 1.2, -60.6, 'SPACE to jump', Math.PI);
+  block(0, 0, -61, 26, 1.2, 4, C.stone); sign(-9, 1.2, -60.6, 'SPACE to jump', Math.PI);
   L.tutorial.push({ z: -60.2, key: 'djump', text: 'SPACE again in the air — double jump' });
-  block(0, 0, -57, 26, 3.8, 4, C.stoneL); sign(4, 3.8, -56.6, 'SPACE again\nin the air', Math.PI);
+  block(0, 0, -57, 26, 3.8, 4, C.stoneL); sign(9, 3.8, -56.6, 'SPACE again\nin the air', Math.PI);
   L.tutorial.push({ z: -56.2, key: 'dash', text: 'SHIFT — dash. Works in the air, once per jump' });
   block(0, 0, -52.75, 26, 2.4, 4.5, C.stoneD);                       // pit (hop back out)
-  block(0, 0, -48.5, 26, 3.8, 4, C.stone); sign(-4, 3.8, -48.1, 'SHIFT in the air\nto dash', Math.PI);
+  block(0, 0, -48.5, 26, 3.8, 4, C.stone); sign(-9, 3.8, -48.1, 'SHIFT in the air\nto dash', Math.PI);
   // slider over a pit
   L.tutorial.push({ z: -47.8, key: 'slider', text: 'Ride the moving platform — you move with it' });
   block(0, 0, -42, 26, 2.4, 9, C.stoneD);                            // pit floor under the slider
   const tsl = world.add(new Box(-6, 3.5, -42, 2.8, 0.3, 2.8, { moving: true, tag: 'slider' }));
   tsl.path = { a: { x: -7, y: 3.5, z: -42 }, b: { x: 7, y: 3.5, z: -42 }, period: 7, phase: 0 }; L.platforms.push(tsl);
-  block(0, 0, -36, 26, 3.8, 3, C.stone); sign(4, 3.8, -35.6, 'Ride the platform', Math.PI);
+  block(0, 0, -36, 26, 3.8, 3, C.stone); sign(9, 3.8, -35.6, 'Ride the platform', Math.PI);
   // narrow beam: teaches the landing ring
   L.tutorial.push({ z: -35.4, key: 'beam', text: 'Narrow beam — the ring beneath you shows where you will land' });
   block(0, 0, -30.5, 26, 2.4, 8, C.stoneD);                          // pit under the beam
@@ -79,7 +81,7 @@ export function buildLevel(world) {
   L.tutorial.push({ z: -25.2, key: 'bash', text: 'F — shield bash smashes barricades (or hold Q for a heavy)' });
   block(-8.5, 0, -21, 9, 8, 1.2, C.stoneD); block(8.5, 0, -21, 9, 8, 1.2, C.stoneD); 
   barricade(0, 0, -21, 8, 1.2, 8);
-  sign(-6.5, 0, -22.6, 'F — shield bash\nbreaks it', Math.PI);
+  sign(-8.5, 0, -22.8, 'F — shield bash\nbreaks it', Math.PI);
   // pells
   L.spawns.push({ kind: 'pell', x: -5, y: 0.1, z: -18.6 }, { kind: 'pellshield', x: 5, y: 0.1, z: -18.6, facing: Math.PI });
   sign(-5, 0, -17, 'LEFT CLICK\nthree-hit chain', Math.PI); sign(5, 0, -17, 'hold Q — charged heavy\nbreaks a shield', Math.PI);
