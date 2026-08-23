@@ -238,6 +238,10 @@ if (L.water) {
 const torchGlows = [];
 const glowMat = new THREE.MeshBasicMaterial({ map: softTex, color: '#ff9a3a', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false });
 for (const t of L.torches) { const gq = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), glowMat.clone()); gq.position.set(t.x, t.y + 0.2, t.z); gq.userData.billboard = true; gq.userData.seed = Math.random() * 10; scene.add(gq); torchGlows.push(gq); }
+// storm rain over the arena (hidden until the boss rages)
+const RAIN = 260; const rainGeo = new THREE.BufferGeometry(); { const rp = new Float32Array(RAIN * 3); for (let i = 0; i < RAIN; i++) { rp[i * 3] = L.tower.x + (Math.random() - 0.5) * 26; rp[i * 3 + 1] = L.topY + Math.random() * 22; rp[i * 3 + 2] = L.tower.z + (Math.random() - 0.5) * 26; } rainGeo.setAttribute('position', new THREE.BufferAttribute(rp, 3)); }
+const stormRain = new THREE.Points(rainGeo, new THREE.PointsMaterial({ color: '#9ab4d0', size: 0.16, transparent: true, opacity: 0.5, depthWrite: false }));
+stormRain.visible = false; scene.add(stormRain);
 // landing ring under player (iso-readability lesson: elevation needs a shadow anchor)
 const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.5, 24), new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0.6, depthWrite: false }));
 ring.rotation.x = -Math.PI / 2; scene.add(ring);
@@ -282,7 +286,7 @@ const game = {
         spawnFx('hit', hp, box.kind === 'heavy' ? 18 : 10, this.player.fwd()); audio.play(box.kind === 'heavy' ? 'heavyhit' : 'hit');
         this.hitstop = box.kind === 'heavy' ? 0.09 : (box.kind === 'light' && this.player.combo === 2 ? 0.07 : 0.045);
         cam.shake = Math.max(cam.shake, box.kind === 'heavy' ? 0.55 : 0.22); cam.punch = box.kind === 'heavy' ? 0.5 : 0.25;
-        e.hitFlash = 0.1; this.player.stats.hitsLanded++; floatText(hp, String(box.dmg), box.kind === 'heavy' ? 'big' : '');
+        e.hitFlash = 0.1; this.player.stats.hitsLanded++; rumble(0.25, 0.5, 90); floatText(hp, String(box.dmg), box.kind === 'heavy' ? 'big' : '');
         if (r === 'dead') { e.body.vel.x = -(this.player.pos.x - e.pos.x) * 3; e.body.vel.z = -(this.player.pos.z - e.pos.z) * 3; e.body.vel.y = 6; }
         if (r === 'dead') { this.slowmo = 0.28; cam.shake = Math.max(cam.shake, 0.5); this.fx('die', hp); }
       }
@@ -318,8 +322,13 @@ const game = {
     for (let i = 0; i < 2; i++) this.fx('die', { x: b.cx, y: b.min.y + 0.5, z: b.cz });
   },
   onBop(e) { this.hitstop = 0.05; cam.shake = Math.max(cam.shake, 0.25); this.fx('hit', { x: e.pos.x, y: e.pos.y + e.body.h, z: e.pos.z }); },
+  onBossPhase3(e) {
+    toast('The Captain rages \u2014 the storm breaks!', 3.5); audio.play('roar'); cam.shake = 1.1; this.slowmo = 0.5;
+    this.storm = 1;   // full storm
+  },
   onBossPhase(e) {
     toast('The Captain braces. Break him from above — or with a heavy.', 4); audio.play('break'); cam.shake = 0.9; this.slowmo = 0.4;
+    this.storm = 0.5;   // clouds gather
     const T = this.L.tower; const yy = this.L.topY + 0.05;
     for (const [ox, oz] of [[4.3, 0], [-4.3, 0]]) { const s = new Enemy('swarm', this.world, this, T.x + ox, yy, T.z + oz, {}); s.aggroed = true; s.state = 'chase'; attachRig(s); this.enemies.push(s); this.fx('shock', { x: T.x + ox, y: yy, z: T.z + oz }); }
   },
@@ -340,7 +349,7 @@ const game = {
     if (p.dead || !overlap(box, p.body.aabb)) return;
     const r = p.takeHit(dmg, e.pos, opts);
     const hp = { x: p.pos.x, y: p.pos.y + 1.1, z: p.pos.z };
-    if (r === 'hit') { this.fx('hurt', hp); audio.play('hurt'); cam.shake = 0.7; this.hitstop = 0.06; this.vignette = 1; floatText(hp, '-' + dmg, 'hurt'); const hpEl = document.getElementById('hp'); hpEl.classList.remove('shake'); void hpEl.offsetWidth; hpEl.classList.add('shake'); }
+    if (r === 'hit') { this.fx('hurt', hp); audio.play('hurt'); cam.shake = 0.7; this.hitstop = 0.06; this.vignette = 1; floatText(hp, '-' + dmg, 'hurt'); rumble(0.7, 0.4, 220); const hpEl = document.getElementById('hp'); hpEl.classList.remove('shake'); void hpEl.offsetWidth; hpEl.classList.add('shake'); }
     else if (r === 'blocked') { this.fx('clank', hp); audio.play('clank'); cam.shake = 0.2; floatText(hp, 'BLOCKED', 'dim'); }
     else if (r === 'parried') {
       this.fx('parry', hp); audio.play('parry'); cam.shake = 0.4; this.hitstop = 0.14; this.flash = 0.6; this.slowmo = 0.2; floatText(hp, 'PARRY', 'big gold');
@@ -386,7 +395,7 @@ const game = {
   releaseAttackToken(e) { if (this.attackToken === e) this.attackToken = null; },
   onEnemyDied(e) {
     this.player.kills++;
-    if (e.kind === 'captain') { this.bossDead = true; this.slowmo = 1.4; cam.shake = 1.2; this.flash = 0.8; audio.play('bossdie'); for (let k = 0; k < 4; k++) spawnFx('die', { x: e.pos.x, y: e.pos.y + 1 + k * 0.4, z: e.pos.z }, 14); for (let k = 0; k < 2; k++) spawnFx('parry', { x: e.pos.x, y: e.pos.y + 1.4, z: e.pos.z }, 20); setTimeout(() => { toast('The Siege Captain falls.', 3); spawnCrest('captain', L.goal.x + 1.5, L.goal.y, L.goal.z); }, 1200); }
+    if (e.kind === 'captain') { this.bossDead = true; this.storm = 0; this.deathCine = 3.2; this.deathCineTarget = e; this.slowmo = 1.4; cam.shake = 1.2; this.flash = 0.8; audio.play('bossdie'); for (let k = 0; k < 4; k++) spawnFx('die', { x: e.pos.x, y: e.pos.y + 1 + k * 0.4, z: e.pos.z }, 14); for (let k = 0; k < 2; k++) spawnFx('parry', { x: e.pos.x, y: e.pos.y + 1.4, z: e.pos.z }, 20); setTimeout(() => { toast('The Siege Captain falls.', 3); spawnCrest('captain', L.goal.x + 1.5, L.goal.y, L.goal.z); }, 1200); }
     if (this.player.lockTarget === e) { this.player.lockTarget = null; cam.lock = null; }
   },
   playerFell() { if (this.falling) return; this.falling = 0.9; audio.play('fall'); document.getElementById('fell').classList.add('show'); },
@@ -614,33 +623,70 @@ function readGamepad() {
   const gp = gps && gps[0]; if (!gp) return null;
   const dz = v => Math.abs(v) < 0.18 ? 0 : v;
   const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
+  rumblePad = gp;
   return { mx: dz(gp.axes[0]), my: dz(gp.axes[1]), cx: dz(gp.axes[2]), cy: dz(gp.axes[3]),
-    jump: b(0), light: b(2), heavy: b(3), dash: b(1), block: b(5) || (gp.buttons[7] && gp.buttons[7].value > 0.4), bash: b(4), pound: b(6) || b(7) && false, lock: b(10) || b(9), interact: b(4) };
+    jump: b(0), light: b(2), heavy: b(3), dash: b(1), block: b(5) || (gp.buttons[7] && gp.buttons[7].value > 0.4), bash: b(4), pound: b(6), lock: b(10) || b(11), interact: b(4), start: b(9), select: b(8) };
 }
 let gpPrev = {};
 
+// ---------------- touch controls ----------------
+const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+const touch = { ax: 0, az: 0, dx: 0, dy: 0, jump: false, jumpP: false, atkP: false, dash: false, chg: false, blk: false, pnd: false, interactP: false };
+if (IS_TOUCH) {
+  document.getElementById('touchui').style.display = 'block';
+  lockFallback = true;
+  if (!localStorage.getItem('rampart_settings')) { SET.pixelRatio = 0.75; SET.shadows = 'hard'; saveSettings(); }
+  const stick = document.getElementById('stick'), knob = document.getElementById('stickKnob');
+  let stickId = null, camId = null, cx0 = 0, cy0 = 0;
+  const sRect = () => stick.getBoundingClientRect();
+  stick.addEventListener('touchstart', e => { e.preventDefault(); const t = e.changedTouches[0]; stickId = t.identifier; }, { passive: false });
+  addEventListener('touchmove', e => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === stickId) { const r = sRect(); const dx = (t.clientX - (r.left + r.width / 2)) / (r.width / 2), dy = (t.clientY - (r.top + r.height / 2)) / (r.height / 2); const l = Math.hypot(dx, dy) || 1; const cl = Math.min(1, l); touch.ax = dx / l * cl; touch.az = -dy / l * cl; knob.style.transform = 'translate(' + (touch.ax * 34) + 'px,' + (-touch.az * 34) + 'px)'; }
+      else if (t.identifier === camId) { touch.dx += (t.clientX - cx0) * 2.4; touch.dy += (t.clientY - cy0) * 2.4; cx0 = t.clientX; cy0 = t.clientY; }
+    }
+  }, { passive: false });
+  addEventListener('touchend', e => { for (const t of e.changedTouches) { if (t.identifier === stickId) { stickId = null; touch.ax = touch.az = 0; knob.style.transform = ''; } if (t.identifier === camId) camId = null; } });
+  // camera drag: touches on the canvas that are not the stick or a button
+  canvas.addEventListener('touchstart', e => { for (const t of e.changedTouches) { if (stickId === null || t.identifier !== stickId) { camId = t.identifier; cx0 = t.clientX; cy0 = t.clientY; } } if (!game.started) start(); }, { passive: true });
+  const bindBtn = (id, down, up) => { const el = document.getElementById(id); el.addEventListener('touchstart', e => { e.preventDefault(); el.classList.add('on'); down(); }, { passive: false }); el.addEventListener('touchend', e => { e.preventDefault(); el.classList.remove('on'); if (up) up(); }, { passive: false }); };
+  bindBtn('tJump', () => { touch.jump = true; touch.jumpP = true; }, () => { touch.jump = false; });
+  bindBtn('tAtk', () => { touch.atkP = true; });
+  bindBtn('tDash', () => { touch.dash = true; }, () => { touch.dash = false; });
+  bindBtn('tChg', () => { touch.chg = true; }, () => { touch.chg = false; });
+  bindBtn('tBlk', () => { touch.blk = true; }, () => { touch.blk = false; });
+  bindBtn('tPnd', () => { touch.pnd = true; });
+  bindBtn('tInteract', () => { touch.interactP = true; });
+  bindBtn('tBoard', () => { showBoard(!game.boardOpen); });
+}
+let rumblePad = null;
+function rumble(strong, weak, ms) { try { if (rumblePad && rumblePad.vibrationActuator) rumblePad.vibrationActuator.playEffect('dual-rumble', { duration: ms, strongMagnitude: strong, weakMagnitude: weak }); } catch (e) {} }
 function collectInput() {
   // camera-relative movement
   const f = cam.forward(), r = cam.right();
   let ix = (keys.right ? 1 : 0) - (keys.left ? 1 : 0), iz = (keys.up ? 1 : 0) - (keys.down ? 1 : 0);
   const gp = readGamepad();
   const gpPressed = {};
+  if (IS_TOUCH) { ix += touch.ax; iz += touch.az; cam.input(touch.dx, touch.dy); touch.dx = touch.dy = 0; }
   if (gp) {
     ix += gp.mx; iz += -gp.my;
     cam.input(gp.cx * 12, gp.cy * 10);
-    for (const k of ['jump', 'light', 'heavy', 'dash', 'bash', 'pound', 'lock', 'interact']) { gpPressed[k] = gp[k] && !gpPrev[k]; }
+    for (const k of ['jump', 'light', 'heavy', 'dash', 'bash', 'pound', 'lock', 'interact', 'start', 'select']) { gpPressed[k] = gp[k] && !gpPrev[k]; }
     gpPrev = gp;
+    if (gpPressed.start) { if (lockFallback) showMenu(!game.paused); else if (document.pointerLockElement) document.exitPointerLock(); }
+    if (gpPressed.select) showBoard(!game.boardOpen);
   }
   const inp = {
     mx: f.x * iz + r.x * ix, mz: f.z * iz + r.z * ix,
-    jump: !!pressed.jump || !!gpPressed.jump, jumpHeld: !!keys.jump || !!(gp && gp.jump),
-    dash: !!pressed.dash || !!gpPressed.dash, light: !!pressed.light || !!gpPressed.light,
+    jump: !!pressed.jump || !!gpPressed.jump || touch.jumpP, jumpHeld: !!keys.jump || !!(gp && gp.jump) || touch.jump,
+    dash: !!pressed.dash || !!gpPressed.dash || touch.dash, light: !!pressed.light || !!gpPressed.light || touch.atkP,
     heavy: !!pressed.heavy || !!gpPressed.heavy, heavyHeld: !!keys.heavy || !!(gp && gp.heavy),
-    block: !!keys.block || !!(gp && gp.block), bash: !!pressed.bash || !!gpPressed.bash, bashHeld: !!keys.bash || !!(gp && gp.bash),
-    pound: !!pressed.pound || !!gpPressed.pound || (!!pressed.block && !player.body.grounded), interact: !!pressed.interact || !!gpPressed.interact,
+    block: !!keys.block || !!(gp && gp.block) || touch.blk, bash: (!!pressed.bash || !!gpPressed.bash || (touch.chg && !touch.chgHeld)), bashHeld: !!keys.bash || !!(gp && gp.bash) || touch.chg,
+    pound: !!pressed.pound || !!gpPressed.pound || touch.pnd, interact: !!pressed.interact || !!gpPressed.interact || touch.interactP,
     lock: !!pressed.lock || !!gpPressed.lock, respawn: !!pressed.respawn,
   };
   for (const k in pressed) pressed[k] = false;
+  touch.chgHeld = touch.chg; touch.jumpP = false; touch.atkP = false; touch.pnd = false; touch.interactP = false;
   return inp;
 }
 
@@ -896,6 +942,7 @@ function renderHud(dt) {
   const nearTable = L.warTable && Math.hypot(L.warTable.x - player.pos.x, L.warTable.z - player.pos.z) < 2.8;
   hud.prompt.textContent = near ? 'E \u2014 KICK THE LADDER' : nearTable ? 'E \u2014 THE WAR TABLE' : 'E \u2014 RACE THE SQUIRE';
   hud.prompt.style.display = (near || nearSquire || nearTable) ? 'block' : 'none';
+  { const ti = document.getElementById('tInteract'); if (ti) ti.style.display = (IS_TOUCH && (near || nearSquire || nearTable)) ? 'flex' : 'none'; }
   hud.alt.textContent = 'ALT ' + player.pos.y.toFixed(0) + 'm';
   // objective + off-screen marker
   // nearest unclaimed crest target drives the objective line and the marker
@@ -1014,7 +1061,7 @@ function render(dt) {
   for (const pl of L.platforms) if (pl.tag === 'hoist' && pl.mesh) { if (!pl.rope) { pl.rope = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1, 0.08), new THREE.MeshLambertMaterial({ color: '#5a4630' })); scene.add(pl.rope); } const top = 17; const h = Math.max(0.1, top - pl.max.y); pl.rope.scale.y = h; pl.rope.position.set(pl.cx, pl.max.y + h / 2, pl.cz); }
   updateAtmos(dt); game.slowmo = Math.max(0, game.slowmo - dt); game.vignette = Math.max(0, game.vignette - dt * 1.6); game.flash = Math.max(0, game.flash - dt * 3);
   const moving = Math.hypot(player.body.vel.x, player.body.vel.z) > 1;
-  if (game.started && !game.paused) cam.update(dt, player, moving);
+  if (game.started && !game.paused && !(game.deathCine > 0)) cam.update(dt, player, moving);
   else if (!game.started) { const t = performance.now() / 1000; camera.position.set(Math.sin(t * 0.06) * 30, -14 + Math.sin(t * 0.11) * 3, -110 + Math.cos(t * 0.06) * 34); camera.lookAt(-10, -6, -30); }
   animateRig(playerRig, player, dt, true);
   for (const e of game.enemies) if (e.mesh) animateRig(e.mesh, e, dt, false);
@@ -1025,6 +1072,23 @@ function render(dt) {
     else b.mesh.lookAt(b.pos.x + b.vel.x, b.pos.y + b.vel.y, b.pos.z + b.vel.z);
   }
   updateFx(dt); updateFloatText(dt); updateGhosts(dt); updatePickups(dt);
+  // BOSS STORM: rain + lightning over the arena while the Captain rages
+  if (game.storm && !stormRain.visible) { stormRain.visible = true; }
+  if (stormRain.visible) {
+    const T2 = L.tower; const on = (game.storm || 0) > 0 && !game.won;
+    stormRain.material.opacity = on ? 0.5 * game.storm : Math.max(0, stormRain.material.opacity - dt * 0.5);
+    if (stormRain.material.opacity <= 0.01 && !on) stormRain.visible = false;
+    const pos2 = stormRain.geometry.attributes.position.array;
+    for (let i = 0; i < RAIN; i++) { const k = i * 3; pos2[k + 1] -= dt * (26 + (i % 5) * 4); if (pos2[k + 1] < L.topY - 3) { pos2[k] = T2.x + (Math.random() - 0.5) * 26; pos2[k + 1] = L.topY + 16 + Math.random() * 8; pos2[k + 2] = T2.z + (Math.random() - 0.5) * 26; } }
+    stormRain.geometry.attributes.position.needsUpdate = true;
+    game.boltT = (game.boltT || 0) - dt;
+    if ((game.storm || 0) >= 1 && game.boltT <= 0) { game.boltT = 2.2 + Math.random() * 3.5; game.flash = Math.max(game.flash, 0.55); audio.play('thunder'); cam.shake = Math.max(cam.shake, 0.35); }
+  }
+  // death cinematic: slow orbit around the fallen captain
+  if (game.deathCine > 0) {
+    game.deathCine -= dt; const e2 = game.deathCineTarget;
+    if (e2) { const a2 = game.time * 0.6; camera.position.set(e2.pos.x + Math.cos(a2) * 7, e2.pos.y + 3.4, e2.pos.z + Math.sin(a2) * 7); camera.lookAt(e2.pos.x, e2.pos.y + 1, e2.pos.z); if (Math.random() < dt * 6) spawnFx('parry', { x: e2.pos.x + (Math.random() - 0.5) * 3, y: e2.pos.y + 1 + Math.random() * 2, z: e2.pos.z + (Math.random() - 0.5) * 3 }, 4); }
+  }
   // danger ring under the foe that's winding up
   { const a = game.attackToken; const show = a && !a.dead && (a.state === 'windup' || a.state === 'slamwind' || a.state === 'swing' || a.state === 'slam'); dangerRing.material.opacity = show ? 0.55 + 0.3 * Math.sin(game.time * 18) : 0; if (show) { dangerRing.position.set(a.pos.x, a.pos.y + 0.04, a.pos.z); const r = a.state === 'slamwind' || a.state === 'slam' ? (a.cfg.slam ? a.cfg.slam.radius : 2) : (a.cfg.reach + 0.3) * 0.9; dangerRing.scale.setScalar(r); dangerRing.material.color.set(a.state === 'swing' || a.state === 'slam' ? '#fff6d0' : (a.telegraph > 0.75 ? '#ff4a2a' : '#ff9a2a')); } }
   // fog grading: higher = clearer and cooler

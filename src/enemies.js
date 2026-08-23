@@ -98,7 +98,7 @@ export class Enemy {
           this.face(pp);
           const canAttack = c.bomb ? (d < c.reach && d > 3 && this.game.hasLineOfSight(this, player)) : (c.bow || this.kind === 'crossbow') ? (d < c.reach && this.game.hasLineOfSight(this, player)) : (d < c.reach + 0.2 && Math.abs(dy) < 1.6);
           if (this.brace > 0) { this.brace -= dt; this.telegraph = 0.35; if (this.brace <= 0) this.emit('unbrace'); break; }
-          if (c.slam && d < c.slam.radius - 0.4 && Math.abs(dy) < 2 && (this.phase === 2 ? this.attackCount % 2 === 1 : this.attackCount % 3 === 2) && this.game.requestAttackToken(this)) { this.state = 'slamwind'; this.t = 0; this.slamming = true; this.emit('slamwind'); }
+          if (c.slam && d < c.slam.radius - 0.4 && Math.abs(dy) < 2 && (this.phase >= 2 ? this.attackCount % 2 === 1 : this.attackCount % 3 === 2) && this.game.requestAttackToken(this)) { this.state = 'slamwind'; this.t = 0; this.slamming = true; this.doubleSlam = this.phase === 3; this.emit('slamwind'); }
           else if (canAttack && this.game.requestAttackToken(this)) { this.state = 'windup'; this.t = 0; this.slamming = false; this.emit('windup'); }
           else if (c.retreat && d < c.retreat) { const f = this.fwd(); move = { x: -f.x, z: -f.z }; }
           else if (!this.perch && d > c.stop) {
@@ -117,7 +117,7 @@ export class Enemy {
           break;
         }
         case 'slamwind': {
-          const w = c.slam.windup * (this.phase === 2 ? 0.8 : 1);
+          const w = c.slam.windup * (this.phase === 3 ? 0.62 : this.phase === 2 ? 0.8 : 1);
           this.telegraph = Math.min(1, this.t / w); b.vel.x *= 0.8; b.vel.z *= 0.8;
           if (this.t >= w) { this.state = 'slam'; this.t = 0; this.hitDone = false; this.attackCount++; this.emit('slam'); }
           break;
@@ -125,7 +125,7 @@ export class Enemy {
         case 'slam':
           this.telegraph = 1;
           if (!this.hitDone) { this.hitDone = true; this.game.enemySlam(this, c.slam.radius, c.slam.dmg); }
-          if (this.t >= 0.25) { this.state = 'recover'; this.t = 0; this.game.releaseAttackToken(this); if (this.phase === 2) { this.brace = 2.4; this.emit('brace'); } }
+          if (this.t >= 0.25) { if (this.doubleSlam) { this.doubleSlam = false; this.state = 'slamwind'; this.t = 0; this.hitDone = false; this.emit('slamwind'); } else { this.state = 'recover'; this.t = 0; this.game.releaseAttackToken(this); if (this.phase >= 2) { this.brace = this.phase === 3 ? 1.6 : 2.4; this.emit('brace'); } } }
           break;
         case 'windup':
           this.telegraph = Math.min(1, this.t / c.windup);
@@ -195,6 +195,7 @@ export class Enemy {
     }
     this.hp -= dmg;
     if (this.cfg.slam && this.phase === 1 && this.hp <= this.maxHp / 2) { this.phase = 2; this.emit('phase2'); this.game.onBossPhase(this); }
+    if (this.cfg.slam && this.phase === 2 && this.hp <= this.maxHp / 4) { this.phase = 3; this.emit('phase3'); this.game.onBossPhase3(this); }
     this.body.vel.x = -(dx / len) * (opts.kb || 5); this.body.vel.z = -(dz / len) * (opts.kb || 5);
     this.body.vel.y = opts.up || 2; this.body.grounded = false;
     this.flinchT = 0.15;

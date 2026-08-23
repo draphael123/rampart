@@ -108,6 +108,20 @@
   .optrow .otoggle { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 2px; color: var(--gold); cursor: pointer; border: 1px solid rgba(227,192,112,.4); padding: 5px 14px; }
   .optrow .otoggle.off { color: #6a6e8a; border-color: rgba(106,110,138,.4); }
   .optrow select { background: #1a1a2e; color: var(--cream); border: 1px solid rgba(227,192,112,.4); font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 1px; padding: 5px 8px; }
+  #touchui { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
+  #stick { position: fixed; left: 26px; bottom: 26px; width: 128px; height: 128px; border-radius: 50%; border: 2px solid rgba(227,192,112,.4); background: rgba(10,8,16,.3); pointer-events: auto; touch-action: none; }
+  #stickKnob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: rgba(227,192,112,.35); border: 2px solid rgba(227,192,112,.7); }
+  #tbtns { position: fixed; right: 18px; bottom: 20px; display: grid; grid-template-columns: repeat(3, 64px); gap: 10px; pointer-events: none; }
+  .tbtn { width: 60px; height: 60px; border-radius: 50%; border: 2px solid rgba(227,192,112,.55); background: rgba(10,8,16,.42); color: var(--gold); font-size: 24px; display: flex; align-items: center; justify-content: center; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; font-family: 'Cinzel', serif; }
+  .tbtn.on { background: rgba(227,192,112,.4); color: #fff; }
+  .tbtn.tbig { width: 74px; height: 74px; font-size: 30px; }
+  @media (max-width: 900px) {
+    #hp i { width: 16px; height: 16px; } #crests, #pennantsHud, #shardsHud, #alt, #objective { font-size: 11px; }
+    #toast { font-size: 15px; } #dialogue { font-size: 15px; max-width: 86vw; }
+    #title h1 { font-size: 46px; letter-spacing: 10px; } .keys { font-size: 12px; gap: 2px 10px; } #title .frame { padding: 18px 20px; max-width: 92vw; }
+    .bframe { min-width: 0 !important; width: 92vw; padding: 18px 12px; } .btitle { font-size: 26px !important; } #boardrows { grid-template-columns: 1fr; } .brow { min-width: 0; }
+    #crestcard #crestcardname { font-size: 22px; }
+  }
   #credits { position: fixed; bottom: 14px; right: 18px; font-size: 12px; letter-spacing: 2px; opacity: .45; font-family: 'Cinzel', serif; }
 </style>
 </head>
@@ -132,6 +146,20 @@
 <div class="hud" id="combo"></div>
 <div class="hud" id="prompt">E — KICK THE LADDER</div>
 <div id="tune"></div>
+
+<div id="touchui" style="display:none">
+  <div id="stick"><div id="stickKnob"></div></div>
+  <div id="tbtns">
+    <div class="tbtn tbig" id="tJump">↑</div>
+    <div class="tbtn" id="tAtk">⚔</div>
+    <div class="tbtn" id="tDash">»</div>
+    <div class="tbtn" id="tChg">⛨</div>
+    <div class="tbtn" id="tBlk">⛊</div>
+    <div class="tbtn" id="tPnd">⬇</div>
+  </div>
+  <div class="tbtn" id="tInteract" style="display:none;position:fixed;right:24px;top:38%;">E</div>
+  <div class="tbtn" id="tBoard" style="position:fixed;left:16px;top:150px;width:44px;height:44px;font-size:18px;">✦</div>
+</div>
 
 <div class="overlay" id="crestboard">
   <div class="bframe">

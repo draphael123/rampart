@@ -61,6 +61,25 @@ export function buildLevel(world) {
   const tuft = (x, y, z) => { deco(x, y, z, 0.25, 0.22 + rnd() * 0.2, 0.25, rnd() < 0.5 ? '#5f7a3a' : '#4e6a30'); deco(x + 0.3, y, z + 0.2, 0.2, 0.18, 0.2, '#5a7236'); };
   L.trees = [];
   const pine = (x, y, z, s = 1) => { block(x, y, z, 0.4 * s, 1.6 * s, 0.4 * s, C.woodD); L.trees.push({ x, y, z, s, kind: 'pine' }); };
+  const routePost = (x, y, z) => { deco(x, y, z, 0.18, 2.6, 0.18, C.woodD); deco(x + 0.35, y + 1.9, z, 0.75, 0.55, 0.06, '#b03a3a'); deco(x + 0.28, y + 2.42, z, 0.5, 0.3, 0.05, '#8a2d2d'); };
+  const statue = (x, y, z, ry = 0) => {   // the FALLEN KNIGHT: a mossy memorial of the war
+    deco(x, y, z, 3.4, 0.7, 3.4, C.stoneL); deco(x, y + 0.7, z, 2.6, 0.5, 2.6, C.stone);
+    deco(x, y + 1.2, z, 1.0, 2.1, 1.0, '#8a8a94'); deco(x, y + 3.3, z, 0.62, 0.62, 0.62, '#8a8a94');
+    deco(x + 0.75, y + 1.5, z + 0.2, 0.28, 2.4, 0.28, '#9a9aa4');                       // raised sword arm
+    deco(x + 0.75, y + 3.9, z + 0.2, 0.16, 1.3, 0.16, '#c8ccd4');
+    deco(x - 0.72, y + 1.7, z, 0.5, 1.1, 0.24, '#7a7a84');                              // shield
+    deco(x, y + 0.7, z + 1.15, 1.8, 0.28, 0.3, C.stoneD);
+    for (let i = 0; i < 4; i++) deco(x - 1.4 + rnd() * 2.8, y + 0.7 + rnd() * 1.4, z - 1.2 + rnd() * 2.4, 0.3, 0.2, 0.3, '#4f6a3a');  // moss
+  };
+  const trebuchet = (x, y, z) => {
+    deco(x - 1.2, y, z, 0.4, 2.6, 0.4, C.woodD); deco(x + 1.2, y, z, 0.4, 2.6, 0.4, C.woodD);
+    deco(x, y + 2.4, z, 3.2, 0.35, 0.35, C.wood); deco(x, y + 2.5, z, 0.35, 0.35, 5.6, C.wood);
+    deco(x, y + 2.6, z - 2.9, 0.9, 0.9, 0.9, C.rockD); deco(x, y + 1.2, z + 2.6, 0.25, 1.5, 0.25, '#5a4630');
+    deco(x, y, z + 1.4, 2.6, 0.5, 1.4, C.woodD); boulder(x + 2.2, y, z + 1.2, 0.8); boulder(x + 2.9, y, z + 0.5, 0.6);
+  };
+  const stones = (x, y, z) => { for (let k = 0; k < 6; k++) { const a2 = k / 6 * Math.PI * 2; deco(x + Math.cos(a2) * 3.4, y, z + Math.sin(a2) * 3.4, 0.9, 2.2 + (k % 3) * 0.7, 0.7, k % 2 ? C.rockL : C.rock); } deco(x, y, z, 1.6, 0.4, 1.6, C.stoneL); };
+  const aqueduct = (x, y, z, n = 3) => { for (let k = 0; k < n; k++) { const zz = z + k * 4.4; deco(x - 1.7, y, zz, 1.0, 5.2, 1.0, C.stoneL); deco(x + 1.7, y, zz, 1.0, 5.2, 1.0, C.stoneL); deco(x, y + 5.2, zz, 4.6, 0.8, 1.4, C.stone); deco(x, y + 4.4, zz, 2.4, 0.9, 1.0, C.stoneD); } deco(x, y + 6.0, z + (n - 1) * 2.2, 1.2, 0.6, (n - 1) * 4.4 + 1.4, C.stoneD); };
+  const millwheel = (x, y, z) => { for (let k = 0; k < 8; k++) { const a2 = k / 8 * Math.PI * 2; deco(x, y + 2.2 + Math.sin(a2) * 1.9, z + Math.cos(a2) * 1.9, 0.35, 0.9, 0.9, C.woodD); } deco(x, y + 2.2, z, 0.5, 0.7, 0.7, '#5a4630'); deco(x - 0.5, y + 2.2, z, 0.3, 4.4, 0.3, C.woodD); deco(x, y, z + 2.8, 2.2, 3.4, 2.6, C.wood); deco(x, y + 3.4, z + 2.8, 3.0, 0.6, 3.2, C.roof); };
   const boulder = (x, y, z, s = 1) => { block(x, y, z, 1.6 * s, 1.1 * s, 1.4 * s, rnd() < 0.5 ? C.rock : C.rockL); deco(x + 0.3 * s, y, z + 0.2 * s, 1.2 * s, 0.5 * s, 1.0 * s, C.rockD); };
   const oak = (x, y, z, s = 1) => { block(x, y, z, 0.5 * s, 2.1 * s, 0.5 * s, '#5a4028'); L.trees.push({ x, y, z, s, kind: 'oak' }); };
   const bush = (x, y, z, s = 1) => { deco(x, y, z, 1.2 * s, 0.7 * s, 1.1 * s, '#42603a'); deco(x + 0.4 * s, y, z + 0.3 * s, 0.8 * s, 0.55 * s, 0.8 * s, '#4c6a3e'); };
@@ -80,6 +99,11 @@ export function buildLevel(world) {
   oak(12, -30, -144, 1.1); oak(-8, -30, -125, 1.3); bush(-18, -30, -140); bush(22, -30, -134); bush(2, -30, -150);
   flowers(6, -30, -138, 7); flowers(-20, -30, -132, 6); flowers(16, -30, -128, 5); flowers(-6, -30, -147, 6);
   boulder(-20, -30, -136, 1.3); boulder(16, -30, -148, 1);
+  statue(22, -30, -120);
+  // training corner: a pell and an archery target by the spawn
+  deco(-6, -30, -141, 0.3, 1.8, 0.3, C.woodD); deco(-6, -28.4, -141, 0.7, 0.7, 0.7, '#8a6a3a'); deco(-6, -29.1, -141, 0.9, 0.24, 0.9, '#6a4a2a');
+  deco(-9, -30, -140, 0.25, 2.0, 1.6, C.wood); deco(-9.02, -29.3, -140, 0.1, 1.0, 1.0, '#d8cfa0'); deco(-9.05, -29.05, -140, 0.1, 0.5, 0.5, '#b03a3a'); deco(-9.08, -28.92, -140, 0.1, 0.22, 0.22, '#e8d8a0');
+  routePost(8, -30, -136); routePost(6, -30, -124);
   // the pennant shrine: where the 8-pennant crest appears
   pad(-16, -142, 8, 8, -29.4, 8.6, C.stoneL);
   deco(-16, -29.4, -142, 5, 0.3, 5, C.stone); deco(-16, -29.1, -142, 3.4, 0.25, 3.4, C.stoneL);
@@ -118,6 +142,7 @@ export function buildLevel(world) {
   deco(0, -35.04, -114, 55, 0.05, 4.8, '#31424f');
   for (let wx = -24; wx < 26; wx += 4.5) { deco(wx, -34.98, -116.6, 2.6, 0.06, 0.5, '#8a8276'); deco(wx + 2, -34.98, -111.6, 2.2, 0.06, 0.5, '#8a8276'); }
   pennant(0, -34.2, -114);
+  millwheel(-13.4, -35, -114);
   boulder(14, -35, -113, 1.2); tuft(-4, -35, -116, 1); tuft(10, -35, -111, 1);
 
   // --- rise A: gully's north bank → camp level (-24), west switchback (z -108 → -92)
@@ -125,6 +150,7 @@ export function buildLevel(world) {
   shelves(-14, -104, -14, -92, -29.2, -24, 9, 9);
   pine(8, -29.2, -100, 1.1); pine(-2, -29.2, -95, 0.8); boulder(18, -29.2, -98, 1);
   L.spawns.push({ kind: 'hound', x: 12, y: -29.1, z: -100 });
+  routePost(-10, -29.2, -102); routePost(-10.5, -26.2, -94);
   L.tutorial.push({ z: -104, key: 'dash', text: 'SHIFT — dash. Works once in the air; it refreshes when you land or BOP a foe' });
 
   // --- siege camp plateau (-24), z -92 → -72
@@ -141,6 +167,7 @@ export function buildLevel(world) {
   L.spawns.push({ kind: 'bomber', x: 18, y: -23.9, z: -86, camp: true });
   L.campArena = { x: 4, y: -24, z: -82 };
   bush(-16, -24, -84); flowers(-14, -24, -78, 4); oak(24, -24, -88, 1.0);
+  trebuchet(-12, -24, -73);
   pennant(8, -21, -78);                       // atop a tent
   pennant(-20, -24, -74);
   L.tutorial.push({ z: -90, key: 'combat', text: 'Grunts ahead — LEFT CLICK chains, BOP their heads, or CHARGE through them' });
@@ -155,6 +182,8 @@ export function buildLevel(world) {
   L.tutorial.push({ z: -66, key: 'block', text: 'Hold RIGHT CLICK to block — at the last instant to PARRY' });
   pine(-22, -16, -64, 1.2); boulder(-16, -16, -60, 1.1); tuft(8, -16, -62, 1); tuft(-6, -16, -58, 1);
   oak(6, -16, -66, 1.2); bush(12, -16, -60); flowers(-2, -16, -62, 6); flowers(24, -16, -66, 4);
+  stones(-4, -16, -66);
+  routePost(16, -20.5, -70); routePost(17, -16, -62);
 
   // --- the watchtower (race finish): spur at west, base -16, top -3
   const WT = { x: -18, z: -58 };
@@ -185,6 +214,8 @@ export function buildLevel(world) {
   pennant(6, -8, -44);
   pine(-16, -8, -42, 1.0); tuft(-10, -8, -38, 1); boulder(20, -8, -40, 1.2);
   oak(-22, -8, -38, 1.1); bush(8, -8, -38); flowers(-4, -8, -42, 5);
+  aqueduct(-14, -8, -44, 3);
+  routePost(8, -8, -44); routePost(4, -5.5, -30);
 
   // --- castle approach: shelf → gate (0), z -40 → -16
   shelves(0, -34, 0, -20, -8, 0, 10, 12);

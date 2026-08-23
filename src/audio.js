@@ -25,6 +25,7 @@ export class Audio {
     const now = performance.now(); if (this.last[name] && now - this.last[name] < 40) return; this.last[name] = now;
     switch (name) {
       case 'jump': this.tone(300, 620, 0.12, 'square', 0.12); break;
+      case 'thunder': this.noise(0.7, 0.35, 150); this.thump(60, 0.9, 0.5, 0.05); this.noise(0.4, 0.2, 400, 0.25); break;
       case 'roar': this.tone(90, 40, 1.2, 'sawtooth', 0.35); this.tone(130, 55, 1.0, 'square', 0.2, 0.05); this.noise(0.8, 0.25, 200); break;
       case 'bossdie': this.tone(160, 30, 1.6, 'sawtooth', 0.3); this.noise(1.2, 0.3, 300); [0.3, 0.6, 0.9].forEach((d, i) => this.tone([392, 523, 659][i], [392, 523, 659][i], 0.8, 'triangle', 0.14, d)); break;
       case 'heart': this.tone(70, 50, 0.12, 'sine', 0.25); this.tone(60, 45, 0.1, 'sine', 0.18, 0.18); break;
