@@ -29,6 +29,7 @@ export function buildLevel2(world) {
     for (let sy = top - th + 0.6; sy < top - 1.2; sy += 1.5 + rnd()) deco(x, sy, z, w + 0.1 + rnd() * 0.16, 0.28, d + 0.1 + rnd() * 0.16, rnd() < 0.5 ? C.rockD : '#4a4248');
   };
   const emberCrack = (x, z, w, d) => { deco(x, 0.02 - 30, z, w, 0.03, d, C.emberD); deco(x, 0.04 - 30, z, w * 0.55, 0.03, d * 0.55, C.ember); };
+  const rubble = (x, y, z, n = 5) => { for (let i = 0; i < n; i++) deco(x + (rnd() - 0.5) * 2.2, y, z + (rnd() - 0.5) * 2.2, 0.3 + rnd() * 0.5, 0.2 + rnd() * 0.4, 0.3 + rnd() * 0.5, rnd() < 0.5 ? C.rockD : C.rock); };
   const deadTree = (x, y, z, s = 1) => { block(x, y, z, 0.35 * s, 2.4 * s, 0.35 * s, C.woodD); deco(x + 0.5 * s, y + 1.8 * s, z, 1.1 * s, 0.16 * s, 0.16 * s, C.woodD); deco(x - 0.4 * s, y + 2.1 * s, z + 0.2 * s, 0.9 * s, 0.14 * s, 0.14 * s, C.wood); };
   const shard = (x, y, z) => L.shards.push({ x, y, z });
   const boulder = (x, y, z, s = 1) => { block(x, y, z, 1.6 * s, 1.1 * s, 1.4 * s, rnd() < 0.5 ? C.rock : C.rockL); };
@@ -59,6 +60,30 @@ export function buildLevel2(world) {
     L.braziers.push({ x, y: y + 1.6, z, lit: false });
   };
   beacon(-20, -30, -34); beacon(22, -30, -8); beacon(-18, -26, 26); beacon(16, -21, 58); beacon(0, -30, 6);
+  // CHARRED WATCHTOWER: a burned stump of the old moor-watch
+  block(24, -30, -46, 3.4, 1.0, 3.4, C.rockD);
+  block(25.2, -29, -47.2, 1.0, 4.0, 1.0, '#1c1820'); block(22.8, -29, -47.2, 1.0, 2.4, 1.0, '#241e28');
+  block(25.2, -29, -44.8, 1.0, 1.5, 1.0, '#241e28'); block(22.8, -29, -44.8, 1.0, 3.2, 1.0, '#1c1820');
+  deco(24, -29, -46, 1.6, 0.9, 1.6, C.rockD);
+  deco(25.2, -25.0, -47.2, 1.3, 0.24, 1.3, '#2c2430');
+  rubble(24, -30, -43.4, 5); rubble(26.2, -30, -46, 3);
+  deco(23.4, -29.98, -48.6, 1.4, 0.05, 1.0, '#16121c');
+  // BONE ARCH: something vast died on this moor
+  block(-8.4, -30, 2, 0.8, 3.4, 0.8, '#cfc8b8'); block(-3.6, -30, 2, 0.8, 3.4, 0.8, '#c4bcac');
+  deco(-8.4, -26.6, 2, 1.0, 0.5, 1.0, '#dcd4c4'); deco(-3.6, -26.6, 2, 1.0, 0.5, 1.0, '#dcd4c4');
+  deco(-6, -26.3, 2, 4.4, 0.55, 0.7, '#dcd4c4');
+  deco(-6, -25.9, 2, 2.6, 0.4, 0.6, '#cfc8b8');
+  deco(-10.4, -30, 3.4, 0.5, 1.9, 0.5, '#c4bcac'); deco(-1.6, -30, 0.8, 0.5, 1.5, 0.5, '#cfc8b8');
+  deco(-11.4, -30, 1.2, 0.4, 1.1, 0.4, '#b8b0a0'); deco(-0.8, -30, 3.2, 0.4, 0.8, 0.4, '#c4bcac');
+  // BURNING TREE: one dead oak that never stopped smouldering
+  deadTree(18, -26, 22, 1.4);
+  deco(18, -26, 22, 1.3, 0.35, 1.3, '#1c1014');
+  L.torches.push({ x: 18.4, y: -22.4, z: 22 });
+  // geyser cracks: scorched seams where the moor breathes
+  for (const [gx, gy, gz] of [[12, -30, -28], [-14, -30, 4], [6, -26, 36]]) {
+    deco(gx, gy + 0.02, gz, 2.4, 0.05, 0.9, '#160e12'); deco(gx, gy + 0.03, gz, 1.6, 0.05, 0.45, '#5a1e12');
+    deco(gx + 0.9, gy + 0.02, gz + 0.7, 1.0, 0.04, 0.5, '#160e12'); deco(gx - 0.8, gy + 0.02, gz - 0.6, 0.9, 0.04, 0.5, '#160e12');
+  }
   // the shrine where the beacon crest rises
   deco(0, -30, -16, 4.4, 0.4, 4.4, C.stone); deco(0, -29.6, -16, 3, 0.3, 3, C.stoneL);
   for (const [ox, oz] of [[1.7, 1.7], [-1.7, 1.7], [1.7, -1.7], [-1.7, -1.7]]) deco(ox, -30, -16 + oz, 0.45, 1.9, 0.45, C.stoneD);

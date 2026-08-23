@@ -42,7 +42,7 @@ scene.add(sun); scene.add(sun.target);
 {
   const g = new THREE.SphereGeometry(260, 24, 12);
   const cols = []; const pos = g.attributes.position;
-  const top = new THREE.Color('#1d1630'), mid = new THREE.Color('#7a3a3e'), hor = new THREE.Color('#e8884a');
+  const top = new THREE.Color(VALE === 2 ? '#0a0918' : '#1d1630'), mid = new THREE.Color(VALE === 2 ? '#242040' : '#7a3a3e'), hor = new THREE.Color(VALE === 2 ? '#51406a' : '#e8884a');
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i) / 260; const c = new THREE.Color();
     if (y > 0.12) c.copy(mid).lerp(top, Math.min(1, (y - 0.12) / 0.7)); else c.copy(hor).lerp(mid, Math.max(0, Math.min(1, (y + 0.05) / 0.17)));
@@ -61,12 +61,12 @@ if (VALE === 2) {
 {
   const disc = new THREE.Mesh(new THREE.CircleGeometry(VALE === 2 ? 11 : 16, 32), new THREE.MeshBasicMaterial({ color: VALE === 2 ? '#e8ecff' : '#fff2d8', fog: false, transparent: true, opacity: 0.98 }));
   disc.position.set(40, 10, 240); disc.lookAt(0, 0, 0); scene.add(disc);
-  for (const [r, op, col, dz] of [[34, 0.4, '#ffd9a0', 2], [64, 0.22, '#ff9a4a', 4], [110, 0.12, '#e8683a', 6]]) {
+  for (const [r, op, col, dz] of (VALE === 2 ? [[22, 0.3, '#c8d4f8', 2], [44, 0.14, '#8a9ae0', 4], [80, 0.07, '#5a6ab0', 6]] : [[34, 0.4, '#ffd9a0', 2], [64, 0.22, '#ff9a4a', 4], [110, 0.12, '#e8683a', 6]])) {
     const glow = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshBasicMaterial({ color: col, fog: false, transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending }));
     glow.position.set(40, 10, 240 - dz); glow.lookAt(0, 0, 0); scene.add(glow);
   }
   // horizon haze band all around
-  const haze = new THREE.Mesh(new THREE.CylinderGeometry(252, 252, 60, 32, 1, true), new THREE.MeshBasicMaterial({ color: '#d88a5a', fog: false, transparent: true, opacity: 0.28, side: THREE.BackSide, depthWrite: false }));
+  const haze = new THREE.Mesh(new THREE.CylinderGeometry(252, 252, 60, 32, 1, true), new THREE.MeshBasicMaterial({ color: VALE === 2 ? '#2c2848' : '#d88a5a', fog: false, transparent: true, opacity: VALE === 2 ? 0.34 : 0.28, side: THREE.BackSide, depthWrite: false }));
   haze.position.set(0, -18, 30); scene.add(haze);
 }
 // embers + smoke: two Points clouds
@@ -116,6 +116,89 @@ const fallMat = new THREE.MeshBasicMaterial({ color: '#8fc0da', transparent: tru
 const fall = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4.6), fallMat); fall.position.set(-10.1, -32.6, -114); fall.rotation.y = Math.PI / 2; fall.visible = VALE === 1; scene.add(fall);
 const fallFoam = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 1.0), new THREE.MeshBasicMaterial({ color: '#dceef8', transparent: true, opacity: 0.55, depthWrite: false }));
 fallFoam.rotation.x = -Math.PI / 2; fallFoam.position.set(-10.8, -34.68, -114); fallFoam.visible = VALE === 1; scene.add(fallFoam);
+// ---------------- sky island atmosphere ----------------
+// clouds BELOW the vale: the whole level floats above a slow sea of cloud
+const underClouds = [];
+{
+  const tint = VALE === 2 ? '#2e2a44' : '#e8ae8a';
+  const op = VALE === 2 ? 0.5 : 0.62;
+  for (let i = 0; i < 14; i++) {
+    const grp = new THREE.Group();
+    const ca = (i / 14) * Math.PI * 2 + Math.random() * 0.4;
+    const cr = 52 + Math.random() * 105;
+    grp.position.set(Math.cos(ca) * cr, -52 - Math.random() * 34, Math.sin(ca) * cr - 40);
+    const n = 3 + (i % 3);
+    for (let j = 0; j < n; j++) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex, color: tint, transparent: true, opacity: op * (0.6 + Math.random() * 0.4), depthWrite: false, fog: false }));
+      const w = 16 + Math.random() * 20;
+      sp.scale.set(w, w * 0.38, 1);
+      sp.position.set((Math.random() - 0.5) * w * 0.9, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * w * 0.5);
+      grp.add(sp);
+    }
+    scene.add(grp);
+    underClouds.push({ grp, speed: 1.1 + Math.random() * 1.6 });
+  }
+}
+// distant floating islets: other shards of the torn earth, adrift
+const islets = [];
+{
+  const rockC = VALE === 2 ? '#2c2836' : '#4a4442', rockD = VALE === 2 ? '#221e2c' : '#3a3634';
+  const topC = VALE === 2 ? '#4a3440' : '#5c7a38';
+  for (let i = 0; i < 5; i++) {
+    const a2 = i * 1.35 + 0.6, r2 = 120 + i * 16;
+    const bx = [];
+    const w = 9 + (i % 3) * 4;
+    bx.push({ x: 0, y: 0, z: 0, w, h: 1.2, d: w * 0.8, c: topC });
+    bx.push({ x: 0, y: -1.6, z: 0, w: w * 0.8, h: 2.2, d: w * 0.62, c: rockC });
+    bx.push({ x: 0.8, y: -3.6, z: -0.5, w: w * 0.5, h: 2.4, d: w * 0.4, c: rockD });
+    bx.push({ x: -0.5, y: -5.4, z: 0.4, w: w * 0.26, h: 2.2, d: w * 0.2, c: rockC });
+    if (i % 2 === 0) { bx.push({ x: -w * 0.24, y: 1.6, z: 0.6, w: 0.7, h: 2.2, d: 0.7, c: '#3a3026' }); bx.push({ x: -w * 0.24, y: 3.4, z: 0.6, w: 2.6, h: 2.2, d: 2.6, c: VALE === 2 ? '#3a2c34' : '#3e5c2a' }); }
+    if (i === 2) { bx.push({ x: w * 0.2, y: 2.2, z: -0.8, w: 1.6, h: 4.4, d: 1.6, c: rockD }); bx.push({ x: w * 0.2, y: 4.6, z: -0.8, w: 2.2, h: 0.7, d: 2.2, c: rockC }); }
+    const m = boxesMesh(bx, { shadow: false });
+    m.position.set(Math.cos(a2) * r2, -18 + i * 11 - 20, Math.sin(a2) * r2 - 30);
+    scene.add(m);
+    islets.push({ m, baseY: m.position.y, ph: i * 2.1 });
+  }
+}
+// air motes around the player: dusk pollen in the Vale, drifting ash on the moor
+const MOTES = 90;
+const moteGeo = new THREE.BufferGeometry(); const motePos = new Float32Array(MOTES * 3); const moteSeed = new Float32Array(MOTES);
+for (let i = 0; i < MOTES; i++) { motePos[i * 3] = L.start.x + (Math.random() - 0.5) * 30; motePos[i * 3 + 1] = L.start.y + Math.random() * 7; motePos[i * 3 + 2] = L.start.z + (Math.random() - 0.5) * 30; moteSeed[i] = Math.random() * 100; }
+moteGeo.setAttribute('position', new THREE.BufferAttribute(motePos, 3));
+const motes = new THREE.Points(moteGeo, VALE === 2
+  ? new THREE.PointsMaterial({ color: '#b8b4ac', size: 0.12, map: softTex, transparent: true, opacity: 0.55, depthWrite: false })
+  : new THREE.PointsMaterial({ color: '#ffe9a0', size: 0.1, map: softTex, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending }));
+scene.add(motes);
+// fireflies by the gully water and the grotto mouth (Vale 1, two blink phases)
+const fireflyClouds = [];
+if (VALE === 1) {
+  for (const [cx, cy, cz, rr, ph] of [[6, -33.6, -114, 9, 0], [-21, -33.8, -114, 4, 1.7], [16, -33.4, -113, 6, 3.1]]) {
+    const n = 10; const g2 = new THREE.BufferGeometry(); const pp = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { pp[i * 3] = cx + (Math.random() - 0.5) * rr; pp[i * 3 + 1] = cy + Math.random() * 1.6; pp[i * 3 + 2] = cz + (Math.random() - 0.5) * 4; }
+    g2.setAttribute('position', new THREE.BufferAttribute(pp, 3));
+    const pts = new THREE.Points(g2, new THREE.PointsMaterial({ color: '#c8ff6a', size: 0.16, map: softTex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+    scene.add(pts); fireflyClouds.push({ pts, pp, g2, cx, cy, cz, rr, ph });
+  }
+}
+// waterfall mist: cool spray climbing from the plunge pool
+const MIST = 18; const mistGeo = new THREE.BufferGeometry(); const mistPos = new Float32Array(MIST * 3); const mistAge = new Float32Array(MIST);
+for (let i = 0; i < MIST; i++) { mistPos[i * 3] = -10.8 + (Math.random() - 0.5) * 2.6; mistPos[i * 3 + 1] = -34.6; mistPos[i * 3 + 2] = -114 + (Math.random() - 0.5) * 3; mistAge[i] = Math.random() * 1.8; }
+mistGeo.setAttribute('position', new THREE.BufferAttribute(mistPos, 3));
+const mist = new THREE.Points(mistGeo, new THREE.PointsMaterial({ color: '#cfe6f2', size: 1.1, map: softTex, transparent: true, opacity: 0.22, depthWrite: false }));
+mist.visible = VALE === 1; scene.add(mist);
+// ember geysers on the moor: cracks that breathe sparks (visual only)
+const geysers = [];
+if (VALE === 2) {
+  for (const [gx, gy, gz, ph] of [[12, -30, -28, 0], [-14, -30, 4, 1.4], [6, -26, 36, 2.7]]) {
+    const n = 20; const g2 = new THREE.BufferGeometry(); const pp = new Float32Array(n * 3); const ages = new Float32Array(n);
+    for (let i = 0; i < n; i++) { pp[i * 3] = gx; pp[i * 3 + 1] = gy; pp[i * 3 + 2] = gz; ages[i] = Math.random() * 1.2; }
+    g2.setAttribute('position', new THREE.BufferAttribute(pp, 3));
+    const pts = new THREE.Points(g2, new THREE.PointsMaterial({ color: '#ff9a3a', size: 0.3, map: softTex, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
+    scene.add(pts);
+    const glow = addGlow(scene, '#ff6a2a', 4.5, 0.0); glow.position.set(gx, gy + 0.15, gz); glow.rotation.x = -Math.PI / 2;
+    geysers.push({ pts, pp, g2, ages, gx, gy, gz, ph, glow });
+  }
+}
 function updateAtmos(dt) {
   const t = game.time;
   for (let i = 0; i < CROWS; i++) { const k = i * 3; const c = i < 8 ? { x: L.tower.x, y: L.topY + 6, z: L.tower.z, r: 9 } : { x: (i % 2 ? 30 : -30), y: 15, z: 32, r: 6 }; const a = t * (0.35 + (i % 3) * 0.1) + i * 1.3; crowPos[k] = c.x + Math.cos(a) * (c.r + (i % 4)); crowPos[k + 1] = c.y + Math.sin(t * 0.9 + i) * 1.5 + (i % 3); crowPos[k + 2] = c.z + Math.sin(a) * (c.r + (i % 4)); }
@@ -132,6 +215,37 @@ function updateAtmos(dt) {
   emberGeo.attributes.position.needsUpdate = true;
   for (let i = 0; i < SMOKE; i++) { const k = i * 3; smokeAge[i] += dt; smokePos[k + 1] += dt * 1.4; smokePos[k] += dt * (0.6 + Math.sin(t * 0.5 + i) * 0.3); if (smokeAge[i] > 9) { const sdx = smokeSrc[i % smokeSrc.length]; smokeAge[i] = 0; smokePos[k] = sdx.x; smokePos[k + 1] = sdx.y; smokePos[k + 2] = sdx.z; } }
   smokeGeo.attributes.position.needsUpdate = true;
+  // undercloud drift (wrap on a big ring)
+  for (const uc of underClouds) { uc.grp.position.x += uc.speed * dt; if (uc.grp.position.x > 175) uc.grp.position.x = -175; }
+  // islet bob
+  for (const il of islets) il.m.position.y = il.baseY + Math.sin(t * 0.12 + il.ph) * 2.2;
+  // air motes: recycle around the player
+  { const px = player.pos.x, py = player.pos.y, pz = player.pos.z; const on = SET.particles > 0; motes.visible = on;
+    if (on) { for (let i = 0; i < MOTES; i++) { const k = i * 3;
+      if (VALE === 2) { motePos[k + 1] -= dt * (0.35 + (i % 4) * 0.1); motePos[k] += Math.sin(t * 0.7 + moteSeed[i]) * dt * 0.5; }
+      else { motePos[k + 1] += Math.sin(t * 0.9 + moteSeed[i]) * dt * 0.35; motePos[k] += dt * 0.3 + Math.sin(t * 0.6 + moteSeed[i]) * dt * 0.3; motePos[k + 2] += Math.cos(t * 0.5 + moteSeed[i]) * dt * 0.3; }
+      const dx = motePos[k] - px, dy = motePos[k + 1] - py, dz2 = motePos[k + 2] - pz;
+      if (dx * dx + dz2 * dz2 > 340 || dy < -9 || dy > 12) { motePos[k] = px + (Math.random() - 0.5) * 32; motePos[k + 1] = py + Math.random() * 8 - 1; motePos[k + 2] = pz + (Math.random() - 0.5) * 32; }
+    } moteGeo.attributes.position.needsUpdate = true; } }
+  // fireflies: slow wander, phased blink
+  for (const fc of fireflyClouds) {
+    fc.pts.material.opacity = Math.max(0, Math.sin(t * 0.9 + fc.ph)) * 0.85;
+    for (let i = 0; i < 10; i++) { const k = i * 3; fc.pp[k] += Math.sin(t * 0.8 + i * 2.2 + fc.ph) * dt * 0.5; fc.pp[k + 1] = fc.cy + 0.8 + Math.sin(t * 1.3 + i * 1.7) * 0.7; fc.pp[k + 2] += Math.cos(t * 0.7 + i * 1.9) * dt * 0.4; }
+    fc.g2.attributes.position.needsUpdate = true;
+  }
+  // waterfall mist
+  if (mist.visible) { for (let i = 0; i < MIST; i++) { const k = i * 3; mistAge[i] += dt; mistPos[k + 1] += dt * 1.1; mistPos[k] += Math.sin(t + i) * dt * 0.3; if (mistAge[i] > 1.9) { mistAge[i] = 0; mistPos[k] = -10.8 + (Math.random() - 0.5) * 2.6; mistPos[k + 1] = -34.6; mistPos[k + 2] = -114 + (Math.random() - 0.5) * 3; } } mistGeo.attributes.position.needsUpdate = true; }
+  // ember geysers: 1.4s breath every ~4.5s
+  for (const gy2 of geysers) {
+    const cyc = (t * 0.22 + gy2.ph) % 1; const active = cyc < 0.31; const k2 = active ? (cyc / 0.31) : 0;
+    gy2.glow.material.opacity = active ? 0.5 * Math.sin(k2 * Math.PI) + 0.08 : 0.08 + 0.04 * Math.sin(t * 7 + gy2.ph);
+    for (let i = 0; i < 20; i++) { const k = i * 3; gy2.ages[i] += dt;
+      if (active) { gy2.pp[k + 1] += dt * (4.5 + (i % 5)); gy2.pp[k] += Math.sin(t * 3 + i) * dt * 0.6; }
+      else gy2.pp[k + 1] += dt * 0.4;
+      if (gy2.ages[i] > (active ? 0.8 : 2.2) || gy2.pp[k + 1] > gy2.gy + 6) { gy2.ages[i] = Math.random() * 0.4; gy2.pp[k] = gy2.gx + (Math.random() - 0.5) * 0.8; gy2.pp[k + 1] = gy2.gy; gy2.pp[k + 2] = gy2.gz + (Math.random() - 0.5) * 0.8; }
+    }
+    gy2.g2.attributes.position.needsUpdate = true;
+  }
 }
 // goal beacon: a tall additive light shaft over the banner, pulsing
 const beacon = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 3.2, 90, 16, 1, true), new THREE.MeshBasicMaterial({ color: '#ffd080', transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
