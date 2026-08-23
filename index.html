@@ -16,6 +16,9 @@
   #hp { left: 28px; top: 24px; display: flex; gap: 7px; }
   #hp i { width: 22px; height: 22px; background: #2a1c22; border: 2px solid var(--gold2); transform: rotate(45deg) scale(0.85); box-shadow: inset 0 0 0 2px var(--ink), 0 0 10px rgba(0,0,0,.6); transition: background .15s; }
   #hp i.on { background: var(--red); box-shadow: inset 0 0 0 2px var(--ink), 0 0 12px rgba(201,58,58,.6); }
+  #shardsHud { left: 28px; top: 110px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px; color: #7ad0e8; opacity: .85; }
+  #dialogue { left: 50%; bottom: 90px; transform: translateX(-50%); max-width: 700px; text-align: center; font-size: 19px; font-style: italic; color: var(--cream); background: rgba(10,8,16,.72); border: 1px solid rgba(227,192,112,.4); padding: 10px 22px; opacity: 0; transition: opacity .3s; }
+  #dialogue.show { opacity: 1; }
   #pennantsHud { left: 28px; top: 84px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px; color: #d05050; opacity: .85; }
   #crests { left: 28px; top: 58px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px; color: var(--gold); opacity: .85; }
   #alt { right: 28px; top: 24px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 3px; color: var(--gold); opacity: 0.8; }
@@ -55,7 +58,8 @@
   .bframe { text-align: center; padding: 40px 70px; border: 2px solid rgba(227,192,112,.5); background: rgba(10,10,30,.6); box-shadow: 0 0 0 8px rgba(10,10,30,.4), 0 30px 90px #000; }
   .btitle { font-family: 'Cinzel', serif; font-weight: 900; font-size: 44px; letter-spacing: 12px; color: var(--cream); text-shadow: 0 3px 0 #2a2a5a, 0 0 40px rgba(120,140,255,.4); }
   .bsub { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 6px; color: var(--gold); margin: 6px 0 26px; }
-  .brow { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 16px; padding: 12px 18px; margin: 8px 0; border: 1px solid rgba(227,192,112,.25); background: rgba(255,255,255,.03); text-align: left; min-width: 480px; }
+  #boardrows { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  .brow { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 16px; padding: 12px 18px; margin: 8px 0; border: 1px solid rgba(227,192,112,.25); background: rgba(255,255,255,.03); text-align: left; min-width: 340px; }
   .brow .bic { font-size: 26px; color: #55597a; } .brow.got .bic { color: var(--gold); text-shadow: 0 0 14px rgba(227,192,112,.8); animation: spin 3s linear infinite; display: inline-block; }
   @keyframes spin { 50% { transform: scaleX(0.2); } }
   .brow .bname { font-family: 'Cinzel', serif; font-size: 16px; letter-spacing: 3px; color: var(--cream); } .brow.got .bname { color: var(--gold); }
@@ -96,6 +100,8 @@
 <div class="hud" id="alt">ALT 0m</div>
 <div class="hud" id="crests">✦ 0/4</div>
 <div class="hud" id="pennantsHud">▸ 0/8</div>
+<div class="hud" id="shardsHud">⬦ 0/30</div>
+<div class="hud" id="dialogue"></div>
 <div class="hud" id="boss"><div class="name">THE SIEGE CAPTAIN</div><div class="bar"><div id="bossfill"></div></div></div>
 <div class="hud" id="toast"></div>
 <div class="hud" id="objective"></div>
@@ -127,7 +133,7 @@
   <div class="frame">
     <h1>RAMPART</h1>
     <div class="sub">A KNIGHT'S CLIMB AT DUSK</div>
-    <p>A valley adrift in the evening sky. Climb from the meadow past the siege camp and the watchtower to the castle on the summit. <b style="color:var(--gold);font-style:normal">Four crests await:</b> fell the Captain, outrun the Squire, gather the eight red pennants, and brave the peaks.</p>
+    <p>When the war ended, the Vale tore itself from the earth and drifted into the evening sky — castle, meadow and all. Its eight crests scattered where they fell. You are the last knight of its banner.<br><b style="color:var(--gold);font-style:normal">Reclaim all eight,</b> and the war table in the Great Hall will chart the way to the next vale.</p>
     <div class="rule"></div>
     <div class="keys">
       <b>WASD · MOUSE</b><span>move · orbit the camera</span>
@@ -149,7 +155,7 @@
 </div>
 <div class="overlay" id="menu"><h2>PAUSED</h2><div class="small">click to resume · T for tuning</div></div>
 <div class="overlay" id="dead"><h2>FALLEN</h2><div class="small">The wall holds without you.</div><button id="retry">RISE AGAIN</button></div>
-<div class="overlay" id="win"><h2>THE BANNER FLIES</h2><div class="small" id="winstats"></div><div class="small" style="margin-top:10px">The keep holds.</div></div>
+<div class="overlay" id="win"><h2>THE VALE IS YOURS</h2><div class="small" id="winstats"></div><div class="small" style="margin-top:10px">The keep holds.</div></div>
 <div id="credits">RAMPART · a voxel siege</div>
 
 <script type="module" src="src/main.js"></script>

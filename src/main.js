@@ -1,7 +1,7 @@
 import * as THREE from '../vendor/three.module.js';
 import { World, overlap } from './physics.js';
 import { Player, P, S } from './player.js';
-import { Enemy, Bolt, E } from './enemies.js';
+import { Enemy, Bolt, Bomb, E } from './enemies.js';
 import { buildLevel, updatePlatforms } from './level.js';
 import { ChaseCam } from './camera.js';
 import { knightRig, gruntRig, boxesMesh, MAT } from './voxel.js';
@@ -15,15 +15,15 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPrefere
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.25;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.32;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#2a1f2e');
 scene.fog = new THREE.Fog('#3a2a36', 40, 140);
 const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 320);
 
-const hemi = new THREE.HemisphereLight('#c4a4a8', '#5a4632', 2.4); scene.add(hemi);
+const hemi = new THREE.HemisphereLight('#cfb0ac', '#5f4c36', 2.9); scene.add(hemi);
 scene.add(new THREE.AmbientLight('#5a4a5a', 0.5));
-const sun = new THREE.DirectionalLight('#ffc080', 2.0);
+const sun = new THREE.DirectionalLight('#ffc890', 2.3);
 sun.position.set(-30, 45, 20); sun.castShadow = true;
 sun.shadow.mapSize.set(4096, 4096);
 sun.shadow.camera.left = -32; sun.shadow.camera.right = 32; sun.shadow.camera.top = 32; sun.shadow.camera.bottom = -32;
@@ -116,10 +116,16 @@ const CRESTS = [
   { key: 'race', name: 'RACE THE SQUIRE', hint: 'the meadow' },
   { key: 'pennants', name: 'EIGHT RED PENNANTS', hint: 'all over the vale' },
   { key: 'peaks', name: 'CREST OF THE PEAKS', hint: 'the spires past the watchtower' },
+  { key: 'camp', name: 'BREAK THE SIEGE CAMP', hint: 'hold the camp against three waves' },
+  { key: 'grotto', name: 'THE GROTTO BELOW', hint: 'beneath the west bank of the gully' },
+  { key: 'shards', name: 'THIRTY SKY SHARDS', hint: 'glittering along the whole road' },
+  { key: 'shadow', name: 'THE KEEP\'S SHADOW', hint: 'below the arena\'s south rim' },
 ];
 const crestMesh = () => { const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 0.8, h: 1.0, d: 0.14, c: '#e3c070' }, { x: 0, y: 0.08, z: 0.09, w: 0.32, h: 0.5, d: 0.03, c: '#8a2d2d' }, { x: 0, y: -0.58, z: 0, w: 0.5, h: 0.22, d: 0.14, c: '#e3c070' }, { x: 0, y: 0.62, z: 0, w: 0.5, h: 0.16, d: 0.14, c: '#e3c070' }], { shadow: false }); return m; };
 const crestSpawns = {};   // key -> {m, c} once the crest is physically in the world
 function spawnCrest(key, x, y, z) { if (crestSpawns[key] || (game.crestsGot || {})[key]) return; const m = crestMesh(); m.position.set(x, y + 1.0, z); scene.add(m); crestSpawns[key] = { m, c: { x, y, z } }; spawnFx('parry', { x, y: y + 1, z }, 16); audio.play('checkpoint'); }
+const shardMeshes = [];
+for (const c of L.shards) { const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 0.26, h: 0.5, d: 0.26, c: '#7ad0e8' }, { x: 0, y: 0.32, z: 0, w: 0.14, h: 0.16, d: 0.14, c: '#b8ecf8' }], { shadow: false, material: new THREE.MeshBasicMaterial({ vertexColors: true }) }); m.position.set(c.x, c.y + 0.6, c.z); scene.add(m); shardMeshes.push({ m, c, got: false }); }
 const pennantMeshes = [];
 for (const c of L.pennants) { const m = boxesMesh([{ x: 0, y: 0.55, z: 0, w: 0.08, h: 1.6, d: 0.08, c: '#4a3119' }, { x: 0.34, y: 1.05, z: 0, w: 0.6, h: 0.44, d: 0.05, c: '#c03434' }], { shadow: false }); m.position.set(c.x, c.y, c.z); scene.add(m); pennantMeshes.push({ m, c, got: false }); }
 const heartMeshes = [];
@@ -134,10 +140,19 @@ function updatePickups(dt) {
       crestGet(key);
     }
   }
+  for (const sh of shardMeshes) { if (sh.got) continue; sh.m.rotation.y += dt * 3; sh.m.position.y = sh.c.y + 0.6 + Math.sin(game.time * 2.6 + sh.c.x) * 0.1; if (Math.hypot(sh.c.x - player.pos.x, sh.c.z - player.pos.z) < 1.3 && Math.abs(sh.c.y + 0.6 - player.pos.y) < 2) { sh.got = true; sh.m.visible = false; game.shards = (game.shards || 0) + 1; audio.play('ui'); spawnFx('parry', { x: sh.c.x, y: sh.c.y + 0.6, z: sh.c.z }, 5); if (game.shards >= 30 && !(game.crestsGot || {}).shards) { game.crestsGot = game.crestsGot || {}; game.crestsGot.shards = true; game.crests = Object.keys(game.crestsGot).length; crestGet('shards'); } } }
   for (const pn of pennantMeshes) { if (pn.got) continue; pn.m.rotation.y += dt * 2.4; if (Math.hypot(pn.c.x - player.pos.x, pn.c.z - player.pos.z) < 1.3 && Math.abs(pn.c.y + 0.8 - player.pos.y) < 2) { pn.got = true; pn.m.visible = false; game.pennants = (game.pennants || 0) + 1; audio.play('ui'); spawnFx('hit', { x: pn.c.x, y: pn.c.y + 1, z: pn.c.z }, 10); toast('Pennant ' + game.pennants + ' of 8', 1.6); if (game.pennants >= 8) { spawnCrest('pennants', L.shrine.x, L.shrine.y, L.shrine.z); toast('The shrine kindles ' + '\u2014' + ' a crest rises in the meadow', 4); } } }
   for (const h of heartMeshes) { h.cd = Math.max(0, h.cd - dt); h.m.visible = h.cd <= 0; if (h.cd <= 0) { h.m.rotation.y += dt * 2.4; if (player.hp < P.hp && Math.hypot(h.c.x - player.pos.x, h.c.z - player.pos.z) < 1.2 && Math.abs(h.c.y + 0.6 - player.pos.y) < 1.6) { h.cd = 30; player.hp = Math.min(P.hp, player.hp + 1); audio.play('checkpoint'); spawnFx('hurt', { x: h.c.x, y: h.c.y + 0.8, z: h.c.z }, 8); } } }
-  document.getElementById('crests').textContent = '\u2726 ' + (game.crests || 0) + '/4';
+  document.getElementById('crests').textContent = '\u2726 ' + (game.crests || 0) + '/8';
   document.getElementById('pennantsHud').textContent = '\u25b8 ' + (game.pennants || 0) + '/8';
+  document.getElementById('shardsHud').textContent = '\u2b26 ' + (game.shards || 0) + '/30';
+}
+// hall banners: one kindles per crest earned
+const hallBannerMeshes = [];
+for (const hb of L.hallBanners) { const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 1.3, h: 2.6, d: 0.08, c: '#3a3440' }, { x: 0, y: -1.15, z: 0, w: 1.3, h: 0.3, d: 0.09, c: '#2a2630' }], { shadow: false }); m.position.set(hb.x, hb.y, hb.z + hb.face * 0.35); scene.add(m); hallBannerMeshes.push({ m, hb, lit: false }); }
+function refreshHallBanners() {
+  const n = game.crests || 0;
+  for (let i = 0; i < hallBannerMeshes.length; i++) { const b = hallBannerMeshes[i]; if (i < n && !b.lit) { b.lit = true; scene.remove(b.m); const m = boxesMesh([{ x: 0, y: 0, z: 0, w: 1.3, h: 2.6, d: 0.08, c: '#8a2d2d' }, { x: 0, y: 0.2, z: 0.06 * b.hb.face, w: 0.55, h: 0.7, d: 0.03, c: '#e3c070' }, { x: 0, y: -1.15, z: 0, w: 1.3, h: 0.3, d: 0.09, c: '#c9a24a' }], { shadow: false }); m.position.set(b.hb.x, b.hb.y, b.hb.z + b.hb.face * 0.35); scene.add(m); b.m = m; } }
 }
 // THE SQUIRE: the race rival waiting in the meadow
 const squireRig = gruntRig('defender'); scene.add(squireRig);
@@ -174,6 +189,19 @@ function updateRace(dt) {
     const u = squireRig.userData; u.legL.rotation.x = 0; u.legR.rotation.x = 0;
   }
 }
+// gully water: two offset translucent planes shimmering
+let waterMeshes = [];
+if (L.water) {
+  const wm = new THREE.Mesh(new THREE.PlaneGeometry(L.water.w, L.water.d), new THREE.MeshBasicMaterial({ color: '#3a5a74', transparent: true, opacity: 0.62, depthWrite: false }));
+  wm.rotation.x = -Math.PI / 2; wm.position.set(L.water.x, L.water.y, L.water.z); scene.add(wm);
+  const wm2 = new THREE.Mesh(new THREE.PlaneGeometry(L.water.w, L.water.d), new THREE.MeshBasicMaterial({ color: '#6a92b0', transparent: true, opacity: 0.25, depthWrite: false, blending: THREE.AdditiveBlending }));
+  wm2.rotation.x = -Math.PI / 2; wm2.position.set(L.water.x, L.water.y + 0.06, L.water.z); scene.add(wm2);
+  waterMeshes = [wm, wm2];
+}
+// torch glow sprites: warm additive quads at every torch
+const torchGlows = [];
+const glowMat = new THREE.MeshBasicMaterial({ map: softTex, color: '#ff9a3a', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false });
+for (const t of L.torches) { const gq = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), glowMat.clone()); gq.position.set(t.x, t.y + 0.2, t.z); gq.userData.billboard = true; gq.userData.seed = Math.random() * 10; scene.add(gq); torchGlows.push(gq); }
 // landing ring under player (iso-readability lesson: elevation needs a shadow anchor)
 const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.5, 24), new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0.6, depthWrite: false }));
 ring.rotation.x = -Math.PI / 2; scene.add(ring);
@@ -283,6 +311,20 @@ const game = {
       e.body.vel.x = (e.pos.x - p.pos.x) * 3; e.body.vel.z = (e.pos.z - p.pos.z) * 3;
     }
   },
+  lobBomb(e, player) {
+    const src = { x: e.pos.x, y: e.pos.y + 1.5, z: e.pos.z };
+    const dx = player.pos.x - src.x, dz = player.pos.z - src.z; const d = Math.hypot(dx, dz) || 1;
+    const t = Math.max(0.8, Math.min(1.6, d / 10));
+    const vy = (player.pos.y + 0.5 - src.y + 0.5 * 22 * t * t) / t;
+    this.bolts.push(Object.assign(new Bomb(src.x, src.y, src.z, dx / d * (d / t), vy, dz / d * (d / t), e), { isBomb: true }));
+    audio.play('bolt');
+  },
+  explode(pos, radius, dmg, owner) {
+    cam.shake = Math.max(cam.shake, 0.7); audio.play('pound'); this.fx('shock', { x: pos.x, y: pos.y, z: pos.z }); spawnFx('hit', { x: pos.x, y: pos.y + 0.5, z: pos.z }, 16);
+    const p = this.player;
+    if (!p.dead && Math.hypot(p.pos.x - pos.x, (p.pos.y + 0.8 - pos.y) * 0.7, p.pos.z - pos.z) < radius) { const r = p.takeHit(dmg, pos, { kb: 10, up: 6, unblockable: false }); if (r === 'hit') { this.vignette = 1; audio.play('hurt'); } }
+    for (const e of this.enemies) { if (e.dead || e.cfg.friendly || e === owner) continue; if (Math.hypot(e.pos.x - pos.x, (e.pos.y + 0.8 - pos.y) * 0.7, e.pos.z - pos.z) < radius) e.takeHit(2, pos, { kb: 8, up: 5, breaksGuard: true }); }
+  },
   fireBolt(e, player) {
     const src = { x: e.pos.x, y: e.pos.y + 1.3, z: e.pos.z };
     const tgt = { x: player.pos.x, y: player.pos.y + 0.9, z: player.pos.z };
@@ -348,6 +390,7 @@ function updateGhosts(dt) {
 
 for (const sp of L.spawns) {
   const e = new Enemy(sp.kind, world, game, sp.x, sp.y, sp.z, { perch: sp.perch, facing: Math.PI });
+  e.camp = !!sp.camp;
   e.boss = !!sp.boss;
   attachRig(e);
   game.enemies.push(e);
@@ -498,6 +541,14 @@ function step(dt, inp) {
   game.bolts = game.bolts.filter(b => { if (b.dead && b.mesh) scene.remove(b.mesh); return !b.dead; });
   // ladders + swarm
   updateLadders(dt); updateRace(dt);
+  // BREAK THE SIEGE CAMP: three waves, then the crest at the campfire
+  if (!game.campDone) {
+    const campAlive = game.enemies.some(e => !e.dead && e.campWave);
+    if (game.campWave === undefined) { if (!game.enemies.some(e => !e.dead && e.camp)) { game.campWave = 1; spawnCampWave(1); } }
+    else if (!campAlive && game.campWave === 1) { game.campWave = 2; spawnCampWave(2); }
+    else if (!campAlive && game.campWave === 2) { game.campDone = true; toast('The camp is broken', 3); spawnCrest('camp', L.campArena.x, L.campArena.y, L.campArena.z); }
+  }
+
   // tutorial prompts: fire once when the player passes each trigger line (south → north)
   for (const tt of L.tutorial) {
     if (tt.done) continue;
@@ -517,7 +568,7 @@ function step(dt, inp) {
   if (!game.bossIntroDone) { const cap = game.enemies.find(e => e.boss && !e.dead); if (cap && player.pos.y > L.topY - 0.5 && Math.hypot(cap.pos.x - player.pos.x, cap.pos.z - player.pos.z) < 11) { game.bossIntroDone = true; game.bossIntro = 2.6; game.slowmo = 2.6; cap.aggroed = true; cap.state = 'chase'; player.lockTarget = cap; cam.lock = cap; cam.idle = 0; audio.play('roar'); document.getElementById('bosscard').classList.add('show'); setTimeout(() => document.getElementById('bosscard').classList.remove('show'), 3200); cam.shake = 0.6; for (let k = 0; k < 3; k++) spawnFx('shock', { x: cap.pos.x, y: cap.pos.y + 0.1, z: cap.pos.z }, 10); } }
   if (game.bossIntro > 0) { game.bossIntro -= dt; }
   // all four crests = the vale is yours
-  if (!game.won && (game.crests || 0) >= 4) win();
+  if (!game.won && (game.crests || 0) >= 8) win();
   // lock maintenance
   if (player.lockTarget && (player.lockTarget.dead || Math.hypot(player.lockTarget.pos.x - player.pos.x, player.lockTarget.pos.z - player.pos.z) > 22)) { player.lockTarget = null; cam.lock = null; }
 }
@@ -546,8 +597,15 @@ function updateLadders(dt) {
   game.enemies = game.enemies.filter(e => !(e.dead && e.deathT > 1.4));
 }
 
+function spawnCampWave(n) {
+  toast(n === 1 ? 'The camp rallies! Second wave!' : 'Their last stand!', 3); audio.play('roar');
+  const A = L.campArena;
+  const defs = n === 1 ? [['hound', -8, -88], ['hound', 16, -76], ['bomber', -14, -76]] : [['swarm', -8, -88], ['swarm', 16, -88], ['swarm', -14, -78], ['bomber', 20, -80]];
+  for (const [k, x, z] of defs) { const e = new Enemy(k, world, game, x, A.y + 0.1, z, {}); e.aggroed = true; e.state = 'chase'; e.campWave = true; attachRig(e); game.enemies.push(e); spawnFx('shock', { x, y: A.y + 0.1, z }, 8); }
+}
 function tryInteract() {
   if (raceState.state === 'idle' && !(game.crestsGot || {}).race && Math.hypot(L.race.start.x - player.pos.x, L.race.start.z - player.pos.z) < 2.6) { startRace(); return; }
+  if (L.warTable && Math.hypot(L.warTable.x - player.pos.x, L.warTable.z - player.pos.z) < 2.8) { showBoard(true); say('The map of Pennant Vale. Another vale lies beyond the clouds \u2014 when all eight crests are claimed.', 5); return; }
   for (const ld of L.ladders) {
     if (ld.up && Math.abs(player.pos.x - ld.x) < 2 && Math.abs(player.pos.z - ld.z) < 2.4 && Math.abs(player.pos.y - ld.top) < 2) { game.kickLadder(ld); return; }
   }
@@ -618,6 +676,7 @@ function animateRig(rig, ent, dt, isPlayer) {
     if (ent.dead) { const k = Math.min(1, ent.deathT * 2.2); rig.rotation.x = -Math.PI / 2 * k; rig.rotation.z = 0.3 * k; rig.rotation.y = ent.facing + ent.deathT * 5; rig.position.y -= Math.max(0, ent.deathT - 0.6) * 1.2; u.mat.emissive.set('#000'); u.mat.transparent = true; u.mat.opacity = Math.max(0, 1 - Math.max(0, ent.deathT - 0.7) * 1.6); }
     else {
       rig.rotation.x = 0;
+      if (ent.kind === 'hound') { const gal = Math.sin(ph * 1.4); u.legL.rotation.x = gal * 0.9; u.legR.rotation.x = gal * 0.9; u.armR.rotation.x = -gal * 0.9; u.armL.rotation.x = -gal * 0.9; if (st === 'windup') { rig.scale.set(1, 0.8, 1); } else rig.scale.set(1, 1, 1); const m2 = u.mat; if (st === 'windup') m2.emissive.set('#ff9a2a').multiplyScalar(ent.telegraph * ent.telegraph * 0.7); return; }
       if (st === 'slamwind') { armR = -2.8; armL = -2.8; lean = -0.35; }
       else if (st === 'slam') { armR = 1.2; armL = 1.2; lean = 0.6; }
       else if (ent.brace > 0) { shieldUp = 1.2; lean = 0.25; armR = 0.4; }
@@ -657,6 +716,7 @@ function renderHud(dt) {
   const boss = game.enemies.find(e => e.boss && !e.dead && e.aggroed);
   hud.boss.style.display = boss ? 'block' : 'none'; if (boss) hud.bossFill.style.width = (boss.hp / boss.maxHp * 100) + '%';
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) hud.toast.classList.remove('show'); }
+  if (sayT > 0) { sayT -= dt; if (sayT <= 0) document.getElementById('dialogue').classList.remove('show'); }
   { const c = document.getElementById('combo'); const n = player.stats.hitsLanded - (game.comboBase || 0); if (player.comboT > 0 || player.state === S.LIGHT) { c.style.display = 'block'; c.textContent = (player.combo + 1) + ' HIT'; } else c.style.display = 'none'; }
   hud.charge.style.display = player.state === S.HEAVY_CHARGE ? 'block' : 'none';
   if (player.state === S.HEAVY_CHARGE) hud.charge.firstElementChild.style.width = Math.min(100, player.charge / P.heavyCharge * 100) + '%';
@@ -665,8 +725,9 @@ function renderHud(dt) {
   let near = null;
   for (const ld of L.ladders) if (ld.up && Math.abs(player.pos.x - ld.x) < 2 && Math.abs(player.pos.z - ld.z) < 2.4 && Math.abs(player.pos.y - ld.top) < 2) near = ld;
   const nearSquire = raceState.state === 'idle' && !(game.crestsGot || {}).race && Math.hypot(L.race.start.x - player.pos.x, L.race.start.z - player.pos.z) < 2.6;
-  hud.prompt.textContent = near ? 'E \u2014 KICK THE LADDER' : 'E \u2014 RACE THE SQUIRE';
-  hud.prompt.style.display = (near || nearSquire) ? 'block' : 'none';
+  const nearTable = L.warTable && Math.hypot(L.warTable.x - player.pos.x, L.warTable.z - player.pos.z) < 2.8;
+  hud.prompt.textContent = near ? 'E \u2014 KICK THE LADDER' : nearTable ? 'E \u2014 THE WAR TABLE' : 'E \u2014 RACE THE SQUIRE';
+  hud.prompt.style.display = (near || nearSquire || nearTable) ? 'block' : 'none';
   hud.alt.textContent = 'ALT ' + player.pos.y.toFixed(0) + 'm';
   // objective + off-screen marker
   // nearest unclaimed crest target drives the objective line and the marker
@@ -712,8 +773,20 @@ function crestGet(key) {
   document.getElementById('crestcardname').textContent = def ? def.name : key;
   document.getElementById('crestcardcount').textContent = '\u2726 ' + (game.crests || 0) + ' of 4';
   el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 3400);
-  renderBoard();
+  renderBoard(); refreshHallBanners(); say(CREST_LINES[key] || '');
 }
+const CREST_LINES = {
+  captain: 'Squire: The Captain has fallen! The Vale breathes again.',
+  race: 'Squire: Fairly run, my lord. The flag is yours.',
+  pennants: 'Squire: Eight pennants! The shrine remembers our colours.',
+  peaks: 'Squire: You climbed the spires? The crows will speak of it.',
+  camp: 'Smith: That camp plagued the road for a month. Well struck.',
+  grotto: 'Smith: The grotto? My grandmother said the river hid its gold there.',
+  shards: 'Squire: Thirty shards of sky. The Vale glitters for you.',
+  shadow: 'Smith: The old balcony... no one has stood there since the siege began.',
+};
+let sayT = 0;
+function say(text, t = 4.5) { if (!text) return; const el = document.getElementById('dialogue'); el.textContent = text; el.classList.add('show'); sayT = t; }
 function renderBoard() {
   const rows = document.getElementById('boardrows'); if (!rows) return;
   rows.innerHTML = CRESTS.map(c => { const got = (game.crestsGot || {})[c.key]; return '<div class="brow' + (got ? ' got' : '') + '"><span class="bic">' + (got ? '\u2726' : '\u2727') + '</span><span class="bname">' + c.name + '</span><span class="bhint">' + (got ? 'CLAIMED' : c.hint) + '</span></div>'; }).join('');
@@ -728,7 +801,7 @@ function win() {
   document.exitPointerLock();
 }
 function showMenu(on) { document.getElementById('menu').classList.toggle('show', on && game.started && !game.won); game.paused = on; }
-function start() { if (game.started) return; game.started = true; spawnCrest('peaks', L.peakCrest.x, L.peakCrest.y, L.peakCrest.z); setTimeout(() => { if (!game.boardOpen) showBoard(true); }, 600); document.getElementById('title').classList.add('hide'); audio.resume(); music.start(); cam.yaw = Math.PI; cam.pitch = 0.38; cam.idle = 0; toast('Reach the keep. Raise the banner.'); }
+function start() { if (game.started) return; game.started = true; spawnCrest('peaks', L.peakCrest.x, L.peakCrest.y, L.peakCrest.z); spawnCrest('grotto', L.grotto.x, L.grotto.y, L.grotto.z); spawnCrest('shadow', L.balcony.x, L.balcony.y, L.balcony.z); setTimeout(() => { if (!game.boardOpen) showBoard(true); }, 600); document.getElementById('title').classList.add('hide'); audio.resume(); music.start(); cam.yaw = Math.PI; cam.pitch = 0.38; cam.idle = 0; toast('Reach the keep. Raise the banner.'); }
 for (const ev of ['mousedown', 'click']) document.getElementById('title').addEventListener(ev, () => { if (!game.started) { start(); requestLock(); } });
 document.getElementById('menu').addEventListener('mousedown', () => { if (lockFallback) showMenu(false); else requestLock(); });
 document.getElementById('retry').onclick = () => { document.getElementById('dead').classList.remove('show'); requestLock(); };
@@ -774,8 +847,10 @@ function render(dt) {
   animateRig(playerRig, player, dt, true);
   for (const e of game.enemies) if (e.mesh) animateRig(e.mesh, e, dt, false);
   for (const b of game.bolts) {
-    if (!b.mesh) { b.mesh = boxesMesh([{ x: 0, y: 0, z: 0, w: 0.06, h: 0.06, d: 0.7, c: '#d8c8a0' }, { x: 0, y: 0, z: 0.33, w: 0.1, h: 0.1, d: 0.08, c: '#3a3d44' }], { shadow: false }); scene.add(b.mesh); }
-    b.mesh.position.set(b.pos.x, b.pos.y, b.pos.z); b.mesh.lookAt(b.pos.x + b.vel.x, b.pos.y + b.vel.y, b.pos.z + b.vel.z);
+    if (!b.mesh) { b.mesh = b.isBomb ? boxesMesh([{ x: 0, y: 0, z: 0, w: 0.5, h: 0.5, d: 0.5, c: '#22222a' }, { x: 0, y: 0.32, z: 0, w: 0.1, h: 0.16, d: 0.1, c: '#c9a24a' }], { shadow: false }) : boxesMesh([{ x: 0, y: 0, z: 0, w: 0.06, h: 0.06, d: 0.7, c: '#d8c8a0' }, { x: 0, y: 0, z: 0.33, w: 0.1, h: 0.1, d: 0.08, c: '#3a3d44' }], { shadow: false }); scene.add(b.mesh); }
+    b.mesh.position.set(b.pos.x, b.pos.y, b.pos.z);
+    if (b.isBomb) { b.mesh.rotation.x += 0.1; if (b.fuse < 1 && Math.floor(game.time * 12) % 2 === 0) b.mesh.children === undefined ? 0 : 0; }
+    else b.mesh.lookAt(b.pos.x + b.vel.x, b.pos.y + b.vel.y, b.pos.z + b.vel.z);
   }
   updateFx(dt); updateFloatText(dt); updateGhosts(dt); updatePickups(dt);
   // danger ring under the foe that's winding up
@@ -794,6 +869,8 @@ function render(dt) {
   torchLights.forEach((t, i) => { t.light.intensity = i < 8 ? t.base * (0.85 + 0.15 * Math.sin(game.time * 13 + t.seed) * Math.sin(game.time * 7.3 + t.seed)) : 0; });
   beacon.material.opacity = 0.3 + 0.1 * Math.sin(game.time * 2); beacon.rotation.y += dt * 0.3; beaconCore.material.opacity = 0.5 + 0.2 * Math.sin(game.time * 3);
   for (let ci = 0; ci < cloudDecks.length; ci++) { const m = cloudDecks[ci]; m.material.map.offset.x += dt * 0.002 * (ci + 1); }
+  if (waterMeshes.length) { waterMeshes[0].position.y = L.water.y + Math.sin(game.time * 1.2) * 0.05; waterMeshes[1].position.y = L.water.y + 0.06 + Math.sin(game.time * 1.7 + 1) * 0.06; waterMeshes[1].material.opacity = 0.18 + 0.1 * (0.5 + 0.5 * Math.sin(game.time * 2.3)); }
+  for (const gq of torchGlows) { gq.lookAt(camera.position); gq.material.opacity = 0.4 + 0.14 * Math.sin(game.time * 11 + gq.userData.seed); }
   if (L.flag) L.flag.rotation.y = Math.sin(game.time * 2) * 0.15 + (game.bossDead ? 0 : 0);
   renderHud(dt);
   // music intensity: nearby aggroed foes, boss

@@ -11,6 +11,8 @@ export const E = {
   pell:     { hp: 3, speed: 0, windup: 9, swing: 0.1, recover: 9, dmg: 0, reach: 0, aggro: 0, stop: 0, passive: true },
   pellshield: { hp: 3, speed: 0, windup: 9, swing: 0.1, recover: 9, dmg: 0, reach: 0, aggro: 0, stop: 0, passive: true, guardBreak: 2.0 },
   drill:    { hp: 4, speed: 2.4, windup: 1.1, swing: 0.2, recover: 1.4, dmg: 1, reach: 1.6, aggro: 9, stop: 1.3 },
+  bomber:   { hp: 2, speed: 2.6, windup: 0.95, swing: 0.15, recover: 2.2, dmg: 1, reach: 13, aggro: 17, stop: 6, bomb: true, retreat: 5 },
+  hound:    { hp: 1, speed: 7.0, windup: 0.38, swing: 0.16, recover: 1.1, dmg: 1, reach: 2.2, aggro: 18, stop: 1.6, hound: true },
   defender: { hp: 99, speed: 0, windup: 9, swing: 0.1, recover: 9, dmg: 0, reach: 0, aggro: 0, stop: 0, passive: true, friendly: true },
   drillbow: { hp: 1, speed: 0, windup: 1.4, swing: 0.1, recover: 2.4, dmg: 1, reach: 14, aggro: 12, stop: 0, boltSpeed: 9, bow: true },
 };
@@ -23,7 +25,7 @@ export class Enemy {
     this.kind = kind; this.cfg = E[kind]; this.world = world; this.game = game;
     const s = kind === 'captain' ? 1.45 : kind === 'swarm' ? 0.85 : 1;
     this.scale = s;
-    this.body = new Body(0.7 * s, 1.6 * s, 0.7 * s);
+    this.body = kind === 'hound' ? new Body(0.7, 0.95, 1.15) : new Body(0.7 * s, 1.6 * s, 0.7 * s);
     this.body.pos.x = x; this.body.pos.y = y; this.body.pos.z = z; this.body.syncAabb();
     this.hp = this.cfg.hp; this.maxHp = this.cfg.hp;
     this.facing = opts.facing || 0;
@@ -94,10 +96,11 @@ export class Enemy {
         case 'chase': {
           this.telegraph = 0;
           this.face(pp);
-          const canAttack = (c.bow || this.kind === 'crossbow') ? (d < c.reach && this.game.hasLineOfSight(this, player)) : (d < c.reach + 0.2 && Math.abs(dy) < 1.6);
+          const canAttack = c.bomb ? (d < c.reach && d > 3 && this.game.hasLineOfSight(this, player)) : (c.bow || this.kind === 'crossbow') ? (d < c.reach && this.game.hasLineOfSight(this, player)) : (d < c.reach + 0.2 && Math.abs(dy) < 1.6);
           if (this.brace > 0) { this.brace -= dt; this.telegraph = 0.35; if (this.brace <= 0) this.emit('unbrace'); break; }
           if (c.slam && d < c.slam.radius - 0.4 && Math.abs(dy) < 2 && (this.phase === 2 ? this.attackCount % 2 === 1 : this.attackCount % 3 === 2) && this.game.requestAttackToken(this)) { this.state = 'slamwind'; this.t = 0; this.slamming = true; this.emit('slamwind'); }
           else if (canAttack && this.game.requestAttackToken(this)) { this.state = 'windup'; this.t = 0; this.slamming = false; this.emit('windup'); }
+          else if (c.retreat && d < c.retreat) { const f = this.fwd(); move = { x: -f.x, z: -f.z }; }
           else if (!this.perch && d > c.stop) {
             // blocked by a pillar/crate: slide sideways for a moment, alternating sides
             if (b.hitWall && !this.sideT) { this.sideT = 0.7; this.side = this.side ? -this.side : (Math.random() < 0.5 ? 1 : -1); }
@@ -133,10 +136,12 @@ export class Enemy {
           this.telegraph = 1;
           if (!this.hitDone) {
             this.hitDone = true;
-            if (this.kind === 'crossbow' || c.bow) this.game.fireBolt(this, player);
+            if (c.bomb) this.game.lobBomb(this, player);
+            else if (this.kind === 'crossbow' || c.bow) this.game.fireBolt(this, player);
             else {
               const f = this.fwd();
-              const step = this.kind === 'captain' ? 6 : 4;
+              const step = this.kind === 'captain' ? 6 : c.hound ? 11 : 4;
+              if (c.hound) b.vel.y = 5;
               b.vel.x = f.x * step; b.vel.z = f.z * step;
               const reach = c.reach + 0.3;
               const cx = this.pos.x + f.x * reach * 0.55, cz = this.pos.z + f.z * reach * 0.55;
@@ -164,7 +169,7 @@ export class Enemy {
     else { const f = Math.max(0, 1 - 8 * dt); b.vel.x *= f; b.vel.z *= f; }
     if (gravity) b.vel.y -= G * dt;
     b.move(this.world, b.vel.x * dt, b.vel.y * dt, b.vel.z * dt);
-    if (b.pos.y < -8) this.die(true);
+    if (b.pos.y < -50) this.die(true);
   }
 
   // returns 'guard' | 'hit' | 'dead'
@@ -244,5 +249,28 @@ export class Bolt {
         }
       }
     }
+  }
+}
+
+
+export class Bomb {
+  constructor(x, y, z, vx, vy, vz, owner) {
+    this.pos = { x, y, z }; this.vel = { x: vx, y: vy, z: vz }; this.owner = owner;
+    this.fuse = 3.2; this.dead = false; this.mesh = null; this.hit = false;
+  }
+  explode(game) {
+    if (this.dead) return; this.dead = true;
+    game.explode(this.pos, 2.6, 1, this.owner);
+  }
+  update(dt, world, game) {
+    this.fuse -= dt; if (this.fuse <= 0) { this.explode(game); return; }
+    this.vel.y -= 22 * dt;
+    const d = { x: this.vel.x * dt, y: this.vel.y * dt, z: this.vel.z * dt };
+    const len = Math.hypot(d.x, d.y, d.z) || 1e-6;
+    const hitW = world.raycast(this.pos, { x: d.x / len, y: d.y / len, z: d.z / len }, len, b => !b.oneWay && b.tag !== 'field');
+    if (hitW) { this.explode(game); return; }
+    this.pos.x += d.x; this.pos.y += d.y; this.pos.z += d.z;
+    const p = game.player;
+    if (!p.dead && Math.abs(this.pos.x - p.pos.x) < 0.6 && Math.abs(this.pos.z - p.pos.z) < 0.6 && this.pos.y > p.pos.y - 0.2 && this.pos.y < p.pos.y + 1.8) this.explode(game);
   }
 }

@@ -5,7 +5,7 @@ import { boxesMesh, MAT } from './voxel.js';
 const C = {
   stone: '#7d7a72', stoneD: '#5f5c55', stoneL: '#9a968c', ground: '#6b6a4f', dirt: '#5c4a36',
   wood: '#6e4b2a', woodD: '#4a3119', roof: '#6a2f2a', iron: '#3a3d44', gold: '#c9a24a', banner: '#7a1f1f',
-  grass: '#5d7a3e', grassD: '#4c6832', rock: '#6a6258', rockD: '#56504a', rockL: '#7d766c',
+  grass: '#66854a', grassD: '#53713c', rock: '#7d7468', rockD: '#645c52', rockL: '#8f867a',
 };
 
 // PENNANT VALE — one open level, Bob-omb-Battlefield shaped:
@@ -42,19 +42,28 @@ export function buildLevel(world) {
   const pennant = (x, y, z) => L.pennants.push({ x, y, z });
 
   // terrain kit: a grass-topped pad and a rock ramp of shelves
-  const pad = (x, z, w, d, top, th = 7, c = C.grass) => { block(x, top - th, z, w, th, d, C.rock); deco(x, top - 0.01, z, w, 0.04, d, c); };
+  const pad = (x, z, w, d, top, th = 7, c = C.grass) => {
+    block(x, top - th, z, w, th, d, C.rock);
+    deco(x, top - 0.01, z, w, 0.04, d, c);
+    deco(x, top - 0.5, z, w + 0.24, 0.5, d + 0.24, c === C.dirt ? '#6a5840' : C.grassD);           // grass lip overhang
+    for (let sy = top - th + 0.6; sy < top - 1.2; sy += 1.5 + rnd()) deco(x, sy, z, w + 0.1 + rnd() * 0.16, 0.28, d + 0.1 + rnd() * 0.16, rnd() < 0.5 ? C.rockD : '#615a52');  // strata bands
+  };
   const shelves = (x0, z0, x1, z1, y0, y1, w, n) => {   // n shelf-steps from (x0,z0,y0) → (x1,z1,y1)
     for (let i = 0; i < n; i++) {
       const t = i / (n - 1); const sx = x0 + (x1 - x0) * t, sz = z0 + (z1 - z0) * t, sy = y0 + (y1 - y0) * (i / n);
       const len = Math.hypot(x1 - x0, z1 - z0) / n + 1.4;
       const horiz = Math.abs(x1 - x0) > Math.abs(z1 - z0);
-      block(sx, sy - 4, sz, horiz ? len : w, 4 + (y1 - y0) * (i / n) * 0 + 0.45, horiz ? w : len, i % 2 ? C.rock : C.rockD);
+      block(sx, sy - 4, sz, horiz ? len : w, 4 + 0.45, horiz ? w : len, i % 2 ? C.rock : C.rockD);
       deco(sx, sy + 0.44, sz, (horiz ? len : w) - 0.2, 0.03, (horiz ? w : len) - 0.2, i % 2 ? C.grass : C.grassD);
+      deco(sx, sy + 0.1, sz, (horiz ? len : w) + 0.18, 0.34, (horiz ? w : len) + 0.18, C.grassD);
     }
   };
   const tuft = (x, y, z) => { deco(x, y, z, 0.25, 0.22 + rnd() * 0.2, 0.25, rnd() < 0.5 ? '#5f7a3a' : '#4e6a30'); deco(x + 0.3, y, z + 0.2, 0.2, 0.18, 0.2, '#5a7236'); };
   const pine = (x, y, z, s = 1) => { deco(x, y, z, 0.4 * s, 1.6 * s, 0.4 * s, C.woodD); deco(x, y + 1.2 * s, z, 2.2 * s, 1.2 * s, 2.2 * s, '#3f5a30'); deco(x, y + 2.2 * s, z, 1.5 * s, 1.1 * s, 1.5 * s, '#48663a'); deco(x, y + 3.1 * s, z, 0.8 * s, 1.0 * s, 0.8 * s, '#527544'); };
-  const boulder = (x, y, z, s = 1) => block(x, y, z, 1.6 * s, 1.1 * s, 1.4 * s, rnd() < 0.5 ? C.rock : C.rockL);
+  const boulder = (x, y, z, s = 1) => { block(x, y, z, 1.6 * s, 1.1 * s, 1.4 * s, rnd() < 0.5 ? C.rock : C.rockL); deco(x + 0.3 * s, y, z + 0.2 * s, 1.2 * s, 0.5 * s, 1.0 * s, C.rockD); };
+  const oak = (x, y, z, s = 1) => { deco(x, y, z, 0.5 * s, 2.1 * s, 0.5 * s, '#5a4028'); deco(x, y + 1.9 * s, z, 2.6 * s, 1.7 * s, 2.4 * s, '#4a6a34'); deco(x + 0.7 * s, y + 2.6 * s, z + 0.4 * s, 1.6 * s, 1.2 * s, 1.5 * s, '#557842'); deco(x - 0.7 * s, y + 2.9 * s, z - 0.3 * s, 1.4 * s, 1.0 * s, 1.3 * s, '#4f7038'); };
+  const bush = (x, y, z, s = 1) => { deco(x, y, z, 1.2 * s, 0.7 * s, 1.1 * s, '#42603a'); deco(x + 0.4 * s, y, z + 0.3 * s, 0.8 * s, 0.55 * s, 0.8 * s, '#4c6a3e'); };
+  const flowers = (x, y, z, n = 5) => { const cols = ['#d8c050', '#c05050', '#c8c8e0', '#d07840']; for (let i = 0; i < n; i++) { const fx = x + (rnd() - 0.5) * 2.4, fz = z + (rnd() - 0.5) * 2.4; deco(fx, y, fz, 0.08, 0.28, 0.08, '#4e6a30'); deco(fx, y + 0.28, fz, 0.16, 0.12, 0.16, cols[(rnd() * 4) | 0]); } };
 
   // ============================ THE VALLEY ============================
   // Heights: meadow -30 → camp -24 → terrace -16 → shelf -8 → castle gate 0.
@@ -67,6 +76,8 @@ export function buildLevel(world) {
   L.tutorial.push({ z: -144, key: 'jump', text: 'Welcome to the Vale. Four crests are hidden here.' });
   for (let i = 0; i < 14; i++) tuft(-24 + rnd() * 48, -30, -150 + rnd() * 28);
   pine(-20, -30, -147, 1.2); pine(24, -30, -141, 1.0); pine(-24, -30, -128, 1.4); pine(18, -30, -126, 0.9);
+  oak(12, -30, -144, 1.1); oak(-8, -30, -125, 1.3); bush(-18, -30, -140); bush(22, -30, -134); bush(2, -30, -150);
+  flowers(6, -30, -138, 7); flowers(-20, -30, -132, 6); flowers(16, -30, -128, 5); flowers(-6, -30, -147, 6);
   boulder(-20, -30, -136, 1.3); boulder(16, -30, -148, 1);
   // the pennant shrine: where the 8-pennant crest appears
   pad(-16, -142, 8, 8, -29.4, 8.6, C.stoneL);
@@ -81,7 +92,14 @@ export function buildLevel(world) {
 
   // --- gully + broken bridge (z -122 → -108)
   pad(0, -114, 56, 10, -35, 6, C.dirt);                     // gully floor
-  block(-19, -35, -114, 18, 5, 10.4, C.rock); deco(-19, -30, -114, 18, 0.04, 10.4, C.grass);   // west bank stays high
+  // west bank hides THE GROTTO: roof + wall strips leave a cavity, mouth opening east
+  block(-19, -31.4, -114, 18, 1.4, 10.4, C.rock); deco(-19, -30, -114, 18, 0.04, 10.4, C.grass);
+  block(-19, -35, -117.9, 18, 3.6, 2.6, C.rock);
+  block(-19, -35, -110.0, 18, 3.6, 2.2, C.rock);
+  block(-26.5, -35, -114, 3, 3.6, 10.4, C.rockD);
+  deco(-24, -34.99, -114, 2, 0.02, 4, '#3a3430'); deco(-13, -32.2, -115.5, 1.4, 0.8, 0.1, '#cfd6da'); deco(-12.4, -33.8, -112.8, 0.9, 0.5, 0.1, '#cfd6da');
+  L.torches.push({ x: -23, y: -33.4, z: -114 });
+  L.grotto = { x: -23.5, y: -34.9, z: -114 };
   // bridge over the gully at meadow height, BROKEN in the middle (5.5m — long jump, or drop & climb)
   const bw = 4.4;
   block(4, -30.6, -111.6, bw, 0.6, 5.6, C.wood); block(4, -30.6, -116.4, bw, 0.6, 0.1, C.woodD);
@@ -95,13 +113,16 @@ export function buildLevel(world) {
   stairs(-8, -35, -116.2, { x: 0, z: 1 }, 14, 0.42, 0.55, 5.2, C.rock);
   stairs(-3.5, -35, -109.9, { x: -1, z: 0 }, 14, 0.42, 0.55, 2.2, C.rockD);   // wall-hugging ramp, mount from the east
   stairs(-2, -35, -112.4, { x: 0, z: -1 }, 13, 0.42, 0.55, 5.2, C.rockD);
-  pennant(0, -35, -114);
+  L.water = { x: 0, y: -34.4, z: -114, w: 55, d: 9 };
+  deco(0, -35.05, -114, 55, 0.05, 9, '#2c3a4a');
+  pennant(0, -34.2, -114);
   boulder(14, -35, -113, 1.2); tuft(-4, -35, -116, 1); tuft(10, -35, -111, 1);
 
   // --- rise A: gully's north bank → camp level (-24), west switchback (z -108 → -92)
   pad(0, -100, 56, 18, -29.2, 7);
   shelves(-14, -104, -14, -92, -29.2, -24, 9, 9);
   pine(8, -29.2, -100, 1.1); pine(-2, -29.2, -95, 0.8); boulder(18, -29.2, -98, 1);
+  L.spawns.push({ kind: 'hound', x: 12, y: -29.1, z: -100 });
   L.tutorial.push({ z: -104, key: 'dash', text: 'SHIFT — dash. Works once in the air; it refreshes when you land or BOP a foe' });
 
   // --- siege camp plateau (-24), z -92 → -72
@@ -114,7 +135,10 @@ export function buildLevel(world) {
   deco(2, -24, -80, 1.4, 0.35, 1.4, C.iron); L.torches.push({ x: 2, y: -23.4, z: -80 });   // campfire
   crate(-9, -24, -79); crate(-9, -22.9, -79, 0.9); barrel(-7.6, -24, -80); hay(13, -24, -74); hay(14.3, -24, -74.4);
   arrows(6, -24, -86, 5); rubble(22, -24, -76, 4);
-  L.spawns.push({ kind: 'grunt', x: -2, y: -23.9, z: -82 }, { kind: 'grunt', x: 12, y: -23.9, z: -79 });
+  L.spawns.push({ kind: 'grunt', x: -2, y: -23.9, z: -82, camp: true }, { kind: 'grunt', x: 12, y: -23.9, z: -79, camp: true });
+  L.spawns.push({ kind: 'bomber', x: 18, y: -23.9, z: -86, camp: true });
+  L.campArena = { x: 4, y: -24, z: -82 };
+  bush(-16, -24, -84); flowers(-14, -24, -78, 4); oak(24, -24, -88, 1.0);
   pennant(8, -21, -78);                       // atop a tent
   pennant(-20, -24, -74);
   L.tutorial.push({ z: -90, key: 'combat', text: 'Grunts ahead — LEFT CLICK chains, BOP their heads, or CHARGE through them' });
@@ -128,6 +152,7 @@ export function buildLevel(world) {
   pad(0, -62, 60, 16, -16, 8);
   L.tutorial.push({ z: -66, key: 'block', text: 'Hold RIGHT CLICK to block — at the last instant to PARRY' });
   pine(-22, -16, -64, 1.2); boulder(-16, -16, -60, 1.1); tuft(8, -16, -62, 1); tuft(-6, -16, -58, 1);
+  oak(6, -16, -66, 1.2); bush(12, -16, -60); flowers(-2, -16, -62, 6); flowers(24, -16, -66, 4);
 
   // --- the watchtower (race finish): spur at west, base -16, top -3
   const WT = { x: -18, z: -58 };
@@ -155,6 +180,7 @@ export function buildLevel(world) {
   sl1.path = { a: { x: -12, y: -8.6, z: -47 }, b: { x: 2, y: -8.6, z: -47 }, period: 7, phase: 0.2 }; L.platforms.push(sl1);
   pennant(6, -8, -44);
   pine(-16, -8, -42, 1.0); tuft(-10, -8, -38, 1); boulder(20, -8, -40, 1.2);
+  oak(-22, -8, -38, 1.1); bush(8, -8, -38); flowers(-4, -8, -42, 5);
 
   // --- castle approach: shelf → gate (0), z -40 → -16
   shelves(0, -34, 0, -20, -8, 0, 10, 12);
@@ -177,6 +203,8 @@ export function buildLevel(world) {
   block(0, -36, -158, 80, 26, 10, C.rockD);     // south rim behind spawn
   for (let i = 0; i < 10; i++) { const rx = rnd() < 0.5 ? -30 - rnd() * 4 : 30 + rnd() * 5; deco(rx, -8 + rnd() * 6, -140 + rnd() * 120, 3 + rnd() * 4, 3 + rnd() * 5, 3 + rnd() * 4, C.rock); }
   for (let i = 0; i < 8; i++) pine(-30 + rnd() * 3, -4 + rnd() * 2, -130 + rnd() * 90, 0.8 + rnd() * 0.5);
+  for (let i = 0; i < 22; i++) { const rx = rnd() < 0.5 ? -33 - rnd() * 3 : 34 + rnd() * 3; const rz = -150 + rnd() * 135; deco(rx, -6 + rnd() * 4, rz, 2.5 + rnd() * 3.5, 3 + rnd() * 6, 2.5 + rnd() * 3.5, rnd() < 0.5 ? C.rockD : '#5e564e'); }
+  for (let i = 0; i < 12; i++) { const rz = -156 + rnd() * 8; deco(-36 + rnd() * 72, -12 + rnd() * 4, rz, 3 + rnd() * 4, 4 + rnd() * 7, 3 + rnd() * 3, C.rockD); }
   // crag undersides
   deco(0, -44, -100, 70, 9, 100, '#3e362e'); deco(0, -50, -95, 44, 7, 70, '#332c26');
 
@@ -192,7 +220,7 @@ export function buildLevel(world) {
   for (let i = 0; i < 9; i++) { const gx = -26 + rnd() * 52, gz = -12 + rnd() * 40; deco(gx, 0.0, gz, 2 + rnd() * 4, 0.025, 1.5 + rnd() * 3, rnd() < 0.5 ? C.dirt : '#615f48'); }
   // south wall (two segments + the open gate), side walls with a DOORWAY cut in the west wall at z 24..28
   block(-17, 0, -15, 28, 10, 2, C.stoneD); block(17, 0, -15, 28, 10, 2, C.stoneD);
-  block(31, 0, 10, 2, 12, 52, C.stoneD);
+  block(31, 0, -9.75, 2, 12, 12.5, C.stoneD); block(31, 0, 17.75, 2, 12, 36.5, C.stoneD); block(31, 6, -2, 2, 6, 4, C.stoneD);
   block(-31, 0, -2, 2, 12, 28, C.stoneD);        // west wall south segment (z -16..12)
   block(-31, 0, 18, 2, 12, 12, C.stoneD);        // west wall mid segment (z 12..24)
   block(-31, 8, 26, 2, 4, 4, C.stoneD);          // above the doorway (z 24..28): passage below at y 0..8? no — bridge crosses at 8
@@ -213,6 +241,8 @@ export function buildLevel(world) {
   // towers at the wall ends
   block(30, 0, 32, 6, 12, 8, C.stoneD); block(-30, 0, 32, 6, 12, 8, C.stoneD);
   crenels(28, 32, 12, 36); crenels(28, 32, 12, 28);
+  for (const tx of [30, -30]) { deco(tx, 12, 32, 6.6, 0.7, 8.6, C.stoneL); deco(tx, 12.7, 32, 5.2, 1.2, 7, C.roof); deco(tx, 13.9, 32, 3.6, 1.2, 5, C.roof); deco(tx, 15.1, 32, 2.0, 1.1, 3, C.roof); deco(tx, 16.2, 32, 0.3, 1.6, 0.3, C.wood); deco(tx + 0.6, 17.2, 32, 1.2, 0.7, 0.06, C.banner); }
+  for (const [wx, wy, wz] of [[-30.98, 5, 6], [-30.98, 5, 16], [30.98, 5, 6], [30.98, 5, 16], [-30.98, 8.5, 32], [30.98, 8.5, 32]]) { deco(wx, wy, wz, 0.06, 1.1, 0.7, '#ffb45a'); }
   block(27.5, 8, 29.2, 1.2, 1.0, 1.2, C.stone); block(28.6, 8, 29.2, 1.2, 2.0, 1.2, C.stone); block(29.7, 8, 29.2, 1.2, 3.0, 1.2, C.stone);
   // props: garrison life
   block(-8, 0, 0, 1.2, 1.2, 1.2, C.wood); block(-9.2, 0, 0, 1.2, 0.6, 1.2, C.woodD); block(-8, 1.2, 0, 1.2, 1.2, 1.2, C.wood);
@@ -238,14 +268,48 @@ export function buildLevel(world) {
   for (const bx of [-10, 10]) { deco(bx, 3, -13.9, 1.6, 4, 0.1, C.banner); deco(bx, 7, -13.9, 2, 0.3, 0.2, C.gold); }
   for (const bx of [-22, -14, 14, 22]) { deco(bx, 2, 29.95, 1.4, 3.6, 0.08, C.banner); deco(bx, 5.6, 29.95, 1.8, 0.25, 0.2, C.gold); }
   deco(30, 6, 27.9, 1.8, 5, 0.1, C.banner); deco(-30, 6, 27.9, 1.8, 5, 0.1, C.banner);
+  for (const [sx, sz, sw, sd] of [[0, 29.9, 60, 0.5], [-30.9, 10, 0.5, 50], [30.9, 10, 0.5, 50], [-17, -13.9, 27, 0.5], [17, -13.9, 27, 0.5]]) deco(sx, 0.01, sz, sw, 0.02, sd, '#4a463e');
   L.checkpoints.push({ x: 0, y: 0.1, z: -10, name: 'Courtyard' });
   L.spawns.push({ kind: 'grunt', x: 2, y: 0.1, z: 14 });
+  L.spawns.push({ kind: 'hound', x: -20, y: 0.1, z: 24 });
   L.torches.push({ x: -29.5, y: 4, z: 0 }, { x: 29.5, y: 4, z: 0 }, { x: -6, y: 5.5, z: 29.6 }, { x: 6, y: 5.5, z: 29.6 });
   L.spawns.push({ kind: 'defender', x: -24.5, y: 8.1, z: 33, facing: 0 }, { kind: 'defender', x: 2, y: 8.1, z: 33, facing: 0 }, { kind: 'defender', x: 24, y: 8.1, z: 33, facing: 0 }, { kind: 'defender', x: 30, y: 12.1, z: 35, facing: 0 });
   pennant(-14, 1.2, 14);                                      // on the well
   // crag undersides for the summit
   deco(0, -9, 9, 52, 7, 40, '#4a4038'); deco(0, -14, 8, 38, 5, 28, '#3e362e');
   deco(0, -7, 33, 40, 5, 8, '#4a4038'); deco(-40, -8, 22, 8, 6, 8, '#3e362e');
+
+  // ============================ THE GREAT HALL (the hub seed) ============================
+  // door through the east wall at z 8, into a hall beyond
+  { const hx = 40, hz = -2;
+    // cut the east wall: rebuild as two segments around a doorway (z 6..10)
+    // (the original east wall block spans z -16..36; we overlay a doorway frame and passage)
+    block(33.5, -2, hz, 7, 2, 6, C.ground); deco(33.5, -0.01, hz, 7, 0.02, 6, '#7a7468');
+    deco(31, 6, hz, 2.4, 3, 4.4, C.stoneL); deco(29.9, 0, hz - 2.6, 0.5, 6, 0.9, C.stoneL); deco(29.9, 0, hz + 2.6, 0.5, 6, 0.9, C.stoneL);
+    L.hallDoor = { x: 31, y: 0, z: hz };
+    // hall shell
+    block(hx, -2, hz, 15, 2, 16, C.ground); deco(hx, -0.01, hz, 15, 0.02, 16, '#6a5f52');
+    block(hx, 0, hz - 8.6, 16, 8, 1.2, C.stoneD); block(hx, 0, hz + 8.6, 16, 8, 1.2, C.stoneD);
+    block(hx + 8.1, 0, hz, 1.2, 8, 18.4, C.stoneD);
+    block(hx - 8.1, 0, hz - 5.4, 1.2, 8, 7.6, C.stoneD); block(hx - 8.1, 0, hz + 5.4, 1.2, 8, 7.6, C.stoneD);   // west wall w/ door gap z 6..10
+    block(hx - 8.1, 6, hz, 1.2, 2, 4, C.stoneD);
+    block(hx, 8, hz, 17, 1, 18.6, C.stoneD);
+    deco(hx, 7.2, hz, 15.5, 0.6, 0.6, C.woodD); deco(hx, 7.2, hz - 4, 15.5, 0.5, 0.5, C.woodD); deco(hx, 7.2, hz + 4, 15.5, 0.5, 0.5, C.woodD);
+    // war table with the map of the vale
+    block(hx, 0, hz, 4.6, 1.1, 2.8, C.woodD); deco(hx, 1.1, hz, 4.2, 0.08, 2.4, '#caa96a');
+    deco(hx - 0.9, 1.2, hz + 0.3, 0.7, 0.06, 0.5, '#66854a'); deco(hx + 0.6, 1.2, hz - 0.4, 0.5, 0.06, 0.4, '#7d7468'); deco(hx + 1.2, 1.25, hz + 0.5, 0.3, 0.12, 0.3, C.stoneL);
+    L.warTable = { x: hx, y: 1.2, z: hz };
+    // fireplace on the east wall
+    deco(hx + 7.4, 0, hz, 0.6, 3, 3.4, C.stoneL); deco(hx + 7.3, 0.2, hz, 0.5, 1.6, 2.2, '#1a1418'); L.torches.push({ x: hx + 7, y: 0.9, z: hz });
+    brazier(hx - 6.5, 0, hz - 6.5); brazier(hx - 6.5, 0, hz + 6.5);
+    // 8 banner slots (lit when a crest is earned) — main.js toggles these
+    L.hallBanners = [];
+    for (let i = 0; i < 8; i++) { const bx2 = hx - 5.6 + (i % 4) * 3.6, bz2 = i < 4 ? hz - 8.0 : hz + 8.0; L.hallBanners.push({ x: bx2, y: 3.2, z: bz2, face: i < 4 ? 1 : -1 }); }
+    // benches
+    block(hx - 3, 0, hz - 4.6, 3.2, 0.55, 0.9, C.wood); block(hx + 3, 0, hz + 4.6, 3.2, 0.55, 0.9, C.wood);
+    L.checkpoints.push({ x: 33.5, y: 0.1, z: hz, name: 'The Great Hall' });
+    deco(hx, -8, hz, 15, 6, 15, '#4a4038'); deco(hx, -12.5, hz, 10, 4, 10, '#3e362e');
+  }
 
   // --- keep approach: stairs up the west courtyard wall to a landing, through the doorway, to the ledge
   stairs(-27.2, 0, 6, { x: 0, z: 1 }, 14, 0.42, 0.75, 3.0, C.stone);   // rises to ~5.9 at z ≈ 16
@@ -310,14 +374,36 @@ export function buildLevel(world) {
   deco(T.x, -6, T.z, 8.2, 12, 8.2, '#4a4642');
   for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; const f = 8.8 / Math.max(Math.abs(Math.cos(a)), Math.abs(Math.sin(a))); deco(T.x + Math.cos(a) * (f - 0.25), topY - 1.9, T.z + Math.sin(a) * (f - 0.25), 0.8, 0.95, 0.8, C.stoneL); }
   for (let yy = 12; yy < topY - 6; yy += 6) for (const [ox, oz, w, d] of [[3.55, 0, 0.14, 0.7], [-3.55, 0, 0.14, 0.7], [0, 3.55, 0.7, 0.14], [0, -3.55, 0.7, 0.14]]) deco(T.x + ox, yy - 0.25, T.z + oz, w, 2.1, d, C.stoneL);
+  for (let yy = 12; yy < topY - 6; yy += 12) { deco(T.x + 3.54, yy + 0.2, T.z, 0.05, 1.1, 0.24, '#ffb45a'); deco(T.x - 3.54, yy + 6.2, T.z, 0.05, 1.1, 0.24, '#ffb45a'); }
   for (let yy = 12; yy < topY - 6; yy += 6) { deco(T.x + 3.52, yy, T.z, 0.06, 1.6, 0.3, '#1a1418'); deco(T.x - 3.52, yy, T.z, 0.06, 1.6, 0.3, '#1a1418'); deco(T.x, yy, T.z + 3.52, 0.3, 1.6, 0.06, '#1a1418'); deco(T.x, yy, T.z - 3.52, 0.3, 1.6, 0.06, '#1a1418'); }
   deco(T.x + 3.6, topY - 9, T.z - 2, 0.1, 8, 1.6, C.banner); deco(T.x - 3.6, topY - 9, T.z + 2, 0.1, 8, 1.6, C.banner); deco(T.x + 2, topY - 9, T.z + 3.6, 1.6, 8, 0.1, C.banner); deco(T.x - 2, topY - 9, T.z - 3.6, 1.6, 8, 0.1, C.banner);
   for (const [ox, oz] of [[3.6, -2], [-3.6, 2]]) deco(T.x + ox, topY - 1, T.z + oz, 0.14, 0.25, 2.0, C.gold); for (const [ox, oz] of [[2, 3.6], [-2, -3.6]]) deco(T.x + ox, topY - 1, T.z + oz, 2.0, 0.25, 0.14, C.gold);
   deco(T.x, topY, T.z, 0.3, 7, 0.3, C.wood);
+  // THE KEEP'S SHADOW: a balcony below the arena's south rim; corbels lead back up
+  block(T.x, topY - 5.2, T.z - 10.2, 4.4, 0.5, 2.6, C.stoneL); deco(T.x, topY - 6.2, T.z - 9.4, 1.2, 1.0, 1.2, C.stoneD);
+  block(T.x + 3.2, topY - 3.8, T.z - 9.9, 2.2, 0.4, 2.2, C.stoneL);
+  block(T.x + 5.6, topY - 2.5, T.z - 9.3, 2.2, 0.4, 2.2, C.stoneL);
+  block(T.x + 7.6, topY - 1.2, T.z - 8.0, 2.2, 0.4, 2.2, C.stoneL);
+  deco(T.x - 1.4, topY - 4.7, T.z - 10.8, 0.14, 0.25, 1.2, C.gold);
+  L.balcony = { x: T.x, y: topY - 4.7, z: T.z - 10.2 };
   L.goal = { x: T.x, y: topY, z: T.z, r: 2.2 };
   L.beacon = { x: T.x, y: topY + 7, z: T.z };
   L.torches.push({ x: T.x + 4.6, y: topY + 1.5, z: T.z + 4.6 }, { x: T.x - 4.6, y: topY + 1.5, z: T.z - 4.6 });
   L.topY = topY; L.tower = T;
+  L.shards = [];
+  const shard = (x, y, z) => L.shards.push({ x, y, z });
+  // meadow & shrine ring (6)
+  shard(6, -29.6, -140); shard(-8, -29.6, -137); shard(-16, -28.4, -142); shard(14, -29.6, -133); shard(-22, -29.6, -127); shard(0, -29.6, -128);
+  // bridge & gully (4)
+  shard(4, -29.4, -118); shard(4, -28.8, -114); shard(4, -29.4, -110); shard(12, -34.2, -113);
+  // rise A + camp (6)
+  shard(-14, -28.2, -98); shard(-14, -26.4, -95); shard(-6, -23.4, -88); shard(8, -23.2, -80); shard(18, -23.4, -77); shard(2, -22.8, -80);
+  // rise B + terrace + watchtower (6)
+  shard(20, -22.6, -74); shard(20, -19.8, -69); shard(20, -16.8, -66); shard(2, -15.4, -60); shard(-14, -5.0, -58); shard(-18, -15.2, -52);
+  // rise C + shelf + approach (4)
+  shard(14, -14.8, -55); shard(14, -11.6, -50); shard(-4, -7.4, -47); shard(0, -5.2, -28);
+  // castle & keep (4)
+  shard(0, 0.8, -6); shard(26, 8.6, 25); shard(-33, 9.0, 26); shard(T.x, topY + 0.8, T.z + 7);
   L.hearts = [ { x: 2, y: -23.9, z: -76 }, { x: 0, y: 0.1, z: -8 }, { x: T.x, y: topY + 0.1, z: T.z + 7.5 } ];
 
   // the race path: waypoints the Squire runs (meadow → bridge → rise A → camp → rise B → tower stairs)

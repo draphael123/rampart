@@ -106,6 +106,7 @@ export function gruntRig(kind = 'grunt') {
     pell: { armor: '#8a6a3a', trim: '#5a3a1a', cloth: '#6a4a2a', skin: '#8a6a3a', steel: '#6a4a2a', shield: '#6a4a2a' },
     pellshield: { armor: '#8a6a3a', trim: '#5a3a1a', cloth: '#6a4a2a', skin: '#8a6a3a', steel: '#6a4a2a', shield: '#4a5a7a' },
     drill: { armor: '#6a6a5a', trim: '#3a3a2a', cloth: '#4a5a3e', skin: '#c9a07a', steel: '#b9bec6', shield: '#4a3a2a' },
+    bomber: { armor: '#4a4438', trim: '#2a2a22', cloth: '#6a3a2e', skin: '#c9a07a', steel: '#b9bec6', shield: '#4a3a2a' },
     defender: { armor: '#8d94a3', trim: '#c9a24a', cloth: '#7a2d2d', skin: '#e2b48c', steel: '#d8dde5', shield: '#7a2d2d' },
     drillbow: { armor: '#6a6a5a', trim: '#3a3a2a', cloth: '#5a4a3e', skin: '#c9a07a', steel: '#b9bec6', shield: '#4a3a2a' },
   }[kind];
@@ -118,6 +119,7 @@ export function gruntRig(kind = 'grunt') {
     u.head.add(boxesMesh([{ x: -0.22, y: 0.18, z: 0, w: 0.08, h: 0.3, d: 0.08, c: '#d8cfa0' }, { x: 0.22, y: 0.18, z: 0, w: 0.08, h: 0.3, d: 0.08, c: '#d8cfa0' }, { x: -0.22, y: 0.36, z: 0, w: 0.06, h: 0.12, d: 0.06, c: '#d8cfa0' }, { x: 0.22, y: 0.36, z: 0, w: 0.06, h: 0.12, d: 0.06, c: '#d8cfa0' }]));
   }
   if (kind === 'captain') { u.cape.scale.set(1.3, 1.25, 1); u.torso.add(boxesMesh([{ x: -0.45, y: 1.32, z: 0, w: 0.34, h: 0.2, d: 0.5, c: '#d8b050' }, { x: 0.45, y: 1.32, z: 0, w: 0.34, h: 0.2, d: 0.5, c: '#d8b050' }])); u.sword.scale.set(1.3, 1.3, 1.25); }
+  if (kind === 'bomber') { u.sword.visible = false; u.shield.visible = false; u.armR.add(boxesMesh([{ x: 0, y: -0.45, z: 0.1, w: 0.55, h: 0.55, d: 0.55, c: '#22222a' }, { x: 0, y: -0.12, z: 0.1, w: 0.1, h: 0.16, d: 0.1, c: '#c9a24a' }])); u.torso.add(boxesMesh([{ x: -0.3, y: 0.8, z: -0.26, w: 0.5, h: 0.5, d: 0.24, c: '#3a3428' }])); }
   if (kind === 'swarm') { u.head.children[0].visible = false; u.head.add(boxesMesh([{ x: 0, y: 0, z: 0, w: 0.32, h: 0.34, d: 0.32, c: '#c9a07a' }, { x: 0, y: 0.14, z: 0, w: 0.34, h: 0.1, d: 0.34, c: '#3a2a1a' }])); u.torso.rotation.x = 0.25; u.head.position.z = 0.12; }
   if (kind === 'crossbow' || kind === 'drillbow') { u.head.children[0].visible = false; u.head.add(boxesMesh([{ x: 0, y: 0, z: 0, w: 0.38, h: 0.4, d: 0.38, c: '#4a3a2e' }, { x: 0, y: 0.3, z: -0.06, w: 0.22, h: 0.22, d: 0.22, c: '#4a3a2e' }, { x: 0, y: -0.04, z: 0.2, w: 0.24, h: 0.12, d: 0.02, c: '#1a1a22' }])); u.torso.add(boxesMesh([{ x: 0.22, y: 1.0, z: -0.26, w: 0.18, h: 0.6, d: 0.14, c: '#5a3a1a' }, { x: 0.22, y: 1.34, z: -0.26, w: 0.12, h: 0.2, d: 0.12, c: '#d8c8a0' }])); }
   if (kind === 'crossbow' || kind === 'drillbow' || kind === 'defender') {
@@ -131,6 +133,23 @@ export function gruntRig(kind = 'grunt') {
     g.userData.armR.add(xbow);
   }
   if (kind === 'swarm') { g.scale.set(0.85, 0.85, 0.85); g.userData.shield.visible = false; }
+  if (kind === 'hound') {
+    // a low quadruped: rebuild the silhouette but keep the userData contract
+    for (const ch of [...g.children]) g.remove(ch);
+    const body = boxesMesh([{ x: 0, y: 0.55, z: 0, w: 0.55, h: 0.42, d: 1.05, c: '#4a4038' }, { x: 0, y: 0.76, z: -0.14, w: 0.4, h: 0.14, d: 0.5, c: '#3a322c' }]);
+    const head = new THREE.Group();
+    head.add(boxesMesh([{ x: 0, y: 0, z: 0.12, w: 0.34, h: 0.3, d: 0.42, c: '#4a4038' }, { x: 0, y: -0.05, z: 0.36, w: 0.22, h: 0.18, d: 0.22, c: '#3a322c' }, { x: -0.1, y: 0.2, z: 0, w: 0.09, h: 0.16, d: 0.06, c: '#3a322c' }, { x: 0.1, y: 0.2, z: 0, w: 0.09, h: 0.16, d: 0.06, c: '#3a322c' }, { x: 0, y: 0.02, z: 0.48, w: 0.1, h: 0.06, d: 0.06, c: '#181410' }]));
+    head.position.set(0, 0.72, 0.5);
+    const mkLeg = () => boxesMesh([{ x: 0, y: -0.22, z: 0, w: 0.14, h: 0.44, d: 0.14, c: '#3f362e' }]);
+    const legL = mkLeg(), legR = mkLeg(), armR = new THREE.Group(), armL = new THREE.Group();
+    armR.add(mkLeg()); armL.add(mkLeg());
+    legL.position.set(-0.18, 0.5, 0.38); legR.position.set(0.18, 0.5, 0.38);
+    armR.position.set(0.18, 0.5, -0.38); armL.position.set(-0.18, 0.5, -0.38);
+    const tail = boxesMesh([{ x: 0, y: 0.1, z: -0.25, w: 0.1, h: 0.1, d: 0.5, c: '#3a322c' }]); tail.position.set(0, 0.75, -0.55);
+    const sword = new THREE.Group(), shield = new THREE.Group(), cape = new THREE.Group(); cape.visible = false;
+    g.add(body, head, legL, legR, armR, armL, tail, cape);
+    g.userData = { torso: body, head, legL, legR, armR, armL, sword, shield, cape };
+  }
   if (kind === 'pell') { g.userData.shield.visible = false; g.userData.sword.visible = false; g.userData.head.children[0].visible = false; g.add(boxesMesh([{ x: 0, y: 1.62, z: 0, w: 0.34, h: 0.34, d: 0.34, c: '#8a6a3a' }, { x: 0, y: 0.3, z: 0, w: 0.18, h: 0.6, d: 0.18, c: '#5a3a1a' }])); g.userData.legL.visible = false; g.userData.legR.visible = false; }
   if (kind === 'pellshield') { g.userData.sword.visible = false; g.userData.head.children[0].visible = false; g.add(boxesMesh([{ x: 0, y: 1.62, z: 0, w: 0.34, h: 0.34, d: 0.34, c: '#8a6a3a' }, { x: 0, y: 0.3, z: 0, w: 0.18, h: 0.6, d: 0.18, c: '#5a3a1a' }])); g.userData.legL.visible = false; g.userData.legR.visible = false; g.userData.shield.scale.set(1.5, 1.4, 1); g.userData.shield.position.y = 0.05; }
   if (kind === 'captain') { g.scale.set(1.45, 1.45, 1.45); }
