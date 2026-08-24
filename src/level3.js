@@ -77,7 +77,7 @@ export function buildLevel3(world) {
   L.checkpoints.push({ x: -4, y: 13.1, z: 61, name: 'The Stair' });
   L.crestSpots = { stair: { x: -4, y: 13.4, z: 63 } };
   bentTree(-7, 13, 59, 0.8); tuft(-2, 13, 63); tuft(-6, 13, 64);
-  pennant(-6, 13, 58);
+
 
   // ================= 3. THE GALE SPIRE =================
   cloudSlab(2, 12.4, 68); cloudSlab(8, 11.8, 72);
@@ -153,7 +153,7 @@ export function buildLevel3(world) {
   islet(-18, 118, 13, 11, -12);
   L.checkpoints.push({ x: -18, y: -11.9, z: 118, name: 'The Far Islet' });
   L.spawns.push({ kind: 'shield', x: -18, y: -11.9, z: 121 });
-  pennant(-21, -12, 121); L.hearts.push({ x: -15, y: -12, z: 115 });
+  pennant(-21, -12, 121); L.hearts.push({ x: -20, y: -12, z: 120.5 });
   bentTree(-22, -12, 116, 1.2); tuft(-19, -12, 122); tuft(-14, -12, 119);
   rubble(-16, -12, 122, 3);
   // the ride home: an updraft column back to the undercroft roof

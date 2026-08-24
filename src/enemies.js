@@ -9,7 +9,7 @@ export const E = {
   swarm:    { hp: 1, speed: 5.4, windup: 0.4, swing: 0.15, recover: 0.5, dmg: 1, reach: 1.3, aggro: 40, stop: 1.0 },
   captain:  { hp: 16, speed: 3.4, windup: 0.7, swing: 0.22, recover: 0.7, dmg: 2, reach: 2.6, aggro: 30, stop: 2.0, guardBreak: 1.2, slam: { windup: 1.05, radius: 4.2, dmg: 2 } },
   pell:     { hp: 3, speed: 0, windup: 9, swing: 0.1, recover: 9, dmg: 0, reach: 0, aggro: 0, stop: 0, passive: true },
-  pellshield: { hp: 3, speed: 0, windup: 9, swing: 0.1, recover: 9, dmg: 0, reach: 0, aggro: 0, stop: 0, passive: true, guardBreak: 2.0 },
+  pellshield: { hp: 3, speed: 0, windup: 9, swing: 0.1, recover: 9, dmg: 0, reach: 0, aggro: 0, stop: 0, passive: true, guardBreak: 1.5 },
   drill:    { hp: 4, speed: 2.4, windup: 1.1, swing: 0.2, recover: 1.4, dmg: 1, reach: 1.6, aggro: 9, stop: 1.3 },
   bomber:   { hp: 2, speed: 2.6, windup: 0.95, swing: 0.15, recover: 2.2, dmg: 1, reach: 13, aggro: 17, stop: 6, bomb: true, retreat: 5 },
   hound:    { hp: 1, speed: 7.0, windup: 0.38, swing: 0.16, recover: 1.1, dmg: 1, reach: 2.2, aggro: 18, stop: 1.6, hound: true },

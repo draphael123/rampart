@@ -230,7 +230,7 @@ export class Player {
     // BOP: landing on a foe's head bounces you and hurts them (platforming IS combat)
     if (!b.grounded && b.vel.y < -1 && this.state !== S.POUND && this.iframes <= 0) {
       for (const e of this.game.enemies) {
-        if (e.dead || e.cfg.friendly || e.cfg.passive) continue;
+        if (e.dead || e.cfg.friendly) continue;   // passive pells ARE boppable (drill 4 needs it)
         const top = e.pos.y + e.body.h;
         if (this.pos.y > top - 0.45 && this.pos.y < top + 0.15 && Math.abs(e.pos.x - this.pos.x) < 0.5 + e.body.w * 0.5 && Math.abs(e.pos.z - this.pos.z) < 0.5 + e.body.d * 0.5) {
           e.takeHit(1, { x: this.pos.x, y: this.pos.y, z: this.pos.z }, { fromAbove: true, kind: 'bop', kb: 2, up: 0 });

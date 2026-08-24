@@ -927,6 +927,8 @@ document.getElementById('btnMoves').onclick = () => { document.getElementById('m
 document.getElementById('btnMovesClose').onclick = () => { document.getElementById('moves').style.display = 'none'; document.getElementById('menu').classList.add('show'); audio.play('ui'); };
 document.getElementById('btnPauseOptions').onclick = () => { document.getElementById('menu').classList.remove('show'); showOptions(true, 'pause'); };
 document.getElementById('btnResume').onclick = () => { if (lockFallback) showMenu(false); else requestLock(); };
+document.getElementById('btnKeepPlaying').onclick = () => { document.getElementById('win').classList.remove('show'); game.won = false; audio.play('ui'); toast('The vale is yours to wander.', 3); };
+document.getElementById('btnWinQuit').onclick = () => { game.won = false; saveGame(); location.reload(); };
 document.getElementById('btnQuit').onclick = () => { saveGame(); location.reload(); };
 
 // beacons (Embermoor): relight with E; five lit raises a crest at the shrine
@@ -963,6 +965,7 @@ function loadSlot(i) {
   (d.pennants || []).forEach((got, k) => { if (got && pennantMeshes[k]) { pennantMeshes[k].got = true; pennantMeshes[k].m.visible = false; } });
   (d.shards || []).forEach((got, k) => { if (got && shardMeshes[k]) { shardMeshes[k].got = true; shardMeshes[k].m.visible = false; } });
   game.pennants = d.pennantCount || 0; game.shards = d.shardCount || 0; game.deaths = d.deaths || 0; game.campDone = !!d.campDone; game.tips = d.tips || {}; game.killsBy = d.killsBy || {}; game.met = d.met || {};
+  if (game.crests >= CRESTS.length) game.wonDone = true;   // completed save: no win replay on load
   if (game.campDone) game.campWave = 2;
   (d.braziers || []).forEach((lit, k) => { if (lit && L.braziers && L.braziers[k] && !L.braziers[k].lit) lightBeacon(L.braziers[k]); });
   try { if (VALE === 1 && localStorage.getItem('rampart_save_' + SLOT + '_v3')) setDoorOpen(); } catch (e) {}
@@ -1598,9 +1601,12 @@ function renderBoard() {
 function showBoard(on) { game.boardOpen = on; document.getElementById('crestboard').classList.toggle('show', on); if (on) renderBoard(); }
 document.getElementById('crestboard').addEventListener('mousedown', () => showBoard(false));
 function win() {
+  if (game.wonDone) return; game.wonDone = true;
   game.won = true; audio.play('win');
   const el = document.getElementById('win'); el.classList.add('show');
-  document.getElementById('winstats').textContent = 'All four crests claimed. ' + `${(game.time / 60) | 0}:${String((game.time % 60) | 0).padStart(2, '0')} · ${player.kills} foes · ${game.deaths} deaths · ${player.stats.parries} parries`;
+  const NWORD = { 4: 'four', 8: 'eight' }[CRESTS.length] || CRESTS.length;
+  document.getElementById('winSub').textContent = VALE === 3 ? 'The isles fly your colours. The wind will carry you home.' : VALE === 2 ? 'The Embermoor sleeps warm again. The Vale above awaits your return.' : 'Eight banners hang in the Great Hall. Beyond the clouds, another vale waits.';
+  document.getElementById('winstats').textContent = 'All ' + NWORD + ' crests claimed. ' + `${(game.time / 60) | 0}:${String((game.time % 60) | 0).padStart(2, '0')} · ${player.kills} foes · ${game.deaths} deaths · ${player.stats.parries} parries`;
   document.exitPointerLock();
 }
 function showMenu(on) {
