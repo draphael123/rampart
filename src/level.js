@@ -219,9 +219,12 @@ export function buildLevel(world) {
   // exterior stair to the top
   stairs(WT.x + 4.2, -16, WT.z - 5.6, { x: 0, z: 1 }, 8, 0.42, 0.6, 2.4, C.rock);
   block(WT.x + 4.2, -12.7, WT.z - 0.2, 2.4, 0.4, 1.6, C.stone);
-  stairs(WT.x + 4.2 - 0.8, -12.4, WT.z + 1.4, { x: -1, z: 0 }, 9, 0.4, 0.62, 2.0, C.rock);
-  block(WT.x - 2.2, -9, WT.z + 1.6, 2.2, 0.4, 1.8, C.stone);
-  stairs(WT.x - 2.4, -8.7, WT.z + 0.4, { x: 0, z: -1 }, 6, 0.42, 0.6, 1.8, C.rock);
+  // flights 2+3 wrap OUTSIDE the tower body (it is 6 wide: x -21..-15, z -61..-55)
+  stairs(WT.x + 4.2, -12.3, WT.z + 0.6, { x: 0, z: 1 }, 8, 0.4, 0.6, 2.0, C.rock);          // north along the east face
+  block(WT.x + 3.6, -9.3, WT.z + 5.4, 2.8, 0.4, 1.8, C.stone);                               // NE landing
+  stairs(WT.x + 2.6, -8.9, WT.z + 5.1, { x: -1, z: 0 }, 9, 0.4, 0.62, 2.0, C.rock);          // west along the north face
+  block(WT.x - 2.8, -5.75, WT.z + 3.8, 2.4, 0.35, 2.6, C.stone);                             // NW landing, flush with the deck
+  deco(WT.x + 3.6, -12, WT.z + 5.4, 0.4, 2.7, 0.4, C.woodD); deco(WT.x - 1.4, -9, WT.z + 4.4, 0.4, 3.2, 0.4, C.woodD);   // struts
   L.spawns.push({ kind: 'crossbow', x: WT.x, y: -5.3, z: WT.z, perch: true });
   L.checkpoints.push({ x: WT.x + 4.2, y: -15.9, z: WT.z - 5.6, name: 'Watchtower' });
   L.raceFinish = { x: WT.x, y: -5.4, z: WT.z, r: 3.2 };
